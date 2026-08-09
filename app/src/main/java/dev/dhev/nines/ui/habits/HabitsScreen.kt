@@ -35,10 +35,11 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MediumFloatingActionButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -93,8 +94,13 @@ fun HabitsScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { showAddSheet = true }) {
-                Icon(Icons.Filled.Add, contentDescription = "Add habit")
+            // Medium is M3 Expressive's recommended default size, not the plain (small-tier) FAB.
+            MediumFloatingActionButton(onClick = { showAddSheet = true }) {
+                Icon(
+                    Icons.Filled.Add,
+                    contentDescription = "Add habit",
+                    modifier = Modifier.size(FloatingActionButtonDefaults.MediumIconSize),
+                )
             }
         },
     ) { innerPadding ->
