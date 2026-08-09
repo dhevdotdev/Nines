@@ -1,6 +1,13 @@
 package dev.dhev.nines.ui.habits
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -231,57 +238,71 @@ private fun AddHabitSheet(onConfirm: (HabitsAction.CreateHabit) -> Unit, onDismi
                     shape = SegmentedButtonDefaults.itemShape(2, 3),
                 ) { Text("Custom") }
             }
-            if (frequencyType == FrequencyType.TIMES_PER_WEEK) {
-                Spacer(Modifier.height(Spacing.default))
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.default)) {
-                    Text(text = "Times per week", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                    NumberStepper(value = timesPerWeek, onValueChange = { timesPerWeek = it }, range = 1..7)
+            // Revealing/collapsing a content region within the sheet: a size change, moderate
+            // extent — the same "partially covers the screen" category as the sheet itself, so
+            // default spatial/effects speed (not fast — these aren't small controls).
+            val revealEnter = expandVertically(animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()) +
+                fadeIn(animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec())
+            val revealExit = shrinkVertically(animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()) +
+                fadeOut(animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec())
+
+            AnimatedVisibility(visible = frequencyType == FrequencyType.TIMES_PER_WEEK, enter = revealEnter, exit = revealExit) {
+                Column {
+                    Spacer(Modifier.height(Spacing.default))
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.default)) {
+                        Text(text = "Times per week", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                        NumberStepper(value = timesPerWeek, onValueChange = { timesPerWeek = it }, range = 1..7)
+                    }
                 }
             }
-            if (frequencyType == FrequencyType.EVERY_N_DAYS) {
-                Spacer(Modifier.height(Spacing.default))
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.default)) {
-                    Text(text = "Days between", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                    NumberStepper(value = everyNDays, onValueChange = { everyNDays = it }, range = 2..30)
+            AnimatedVisibility(visible = frequencyType == FrequencyType.EVERY_N_DAYS, enter = revealEnter, exit = revealExit) {
+                Column {
+                    Spacer(Modifier.height(Spacing.default))
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.default)) {
+                        Text(text = "Days between", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                        NumberStepper(value = everyNDays, onValueChange = { everyNDays = it }, range = 2..30)
+                    }
                 }
             }
 
-            if (type == HabitType.NUMERICAL) {
-                Spacer(Modifier.height(Spacing.default))
-                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.default)) {
-                    OutlinedTextField(
-                        value = targetText,
-                        onValueChange = { targetText = it },
-                        singleLine = true,
-                        label = { Text("Target") },
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Decimal,
-                            imeAction = ImeAction.Next,
-                        ),
-                        modifier = Modifier.weight(1f),
-                    )
-                    OutlinedTextField(
-                        value = unit,
-                        onValueChange = { unit = it },
-                        singleLine = true,
-                        label = { Text("Unit") },
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                        keyboardActions = KeyboardActions(onDone = { keyboardController?.hide() }),
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-                Spacer(Modifier.height(Spacing.default))
-                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                    SegmentedButton(
-                        selected = targetKind == TargetKind.AT_LEAST,
-                        onClick = { targetKind = TargetKind.AT_LEAST },
-                        shape = SegmentedButtonDefaults.itemShape(0, 2),
-                    ) { Text("At least") }
-                    SegmentedButton(
-                        selected = targetKind == TargetKind.AT_MOST,
-                        onClick = { targetKind = TargetKind.AT_MOST },
-                        shape = SegmentedButtonDefaults.itemShape(1, 2),
-                    ) { Text("At most") }
+            AnimatedVisibility(visible = type == HabitType.NUMERICAL, enter = revealEnter, exit = revealExit) {
+                Column {
+                    Spacer(Modifier.height(Spacing.default))
+                    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.default)) {
+                        OutlinedTextField(
+                            value = targetText,
+                            onValueChange = { targetText = it },
+                            singleLine = true,
+                            label = { Text("Target") },
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Decimal,
+                                imeAction = ImeAction.Next,
+                            ),
+                            modifier = Modifier.weight(1f),
+                        )
+                        OutlinedTextField(
+                            value = unit,
+                            onValueChange = { unit = it },
+                            singleLine = true,
+                            label = { Text("Unit") },
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                            keyboardActions = KeyboardActions(onDone = { keyboardController?.hide() }),
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    Spacer(Modifier.height(Spacing.default))
+                    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                        SegmentedButton(
+                            selected = targetKind == TargetKind.AT_LEAST,
+                            onClick = { targetKind = TargetKind.AT_LEAST },
+                            shape = SegmentedButtonDefaults.itemShape(0, 2),
+                        ) { Text("At least") }
+                        SegmentedButton(
+                            selected = targetKind == TargetKind.AT_MOST,
+                            onClick = { targetKind = TargetKind.AT_MOST },
+                            shape = SegmentedButtonDefaults.itemShape(1, 2),
+                        ) { Text("At most") }
+                    }
                 }
             }
 
@@ -302,6 +323,11 @@ private fun AddHabitSheet(onConfirm: (HabitsAction.CreateHabit) -> Unit, onDismi
                         animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
                         label = "colorSwatchScale",
                     )
+                    val borderWidth by animateDpAsState(
+                        targetValue = if (selected) 3.dp else 0.dp,
+                        animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
+                        label = "colorSwatchBorderWidth",
+                    )
                     Box(
                         modifier = Modifier
                             .size(40.dp)
@@ -309,7 +335,7 @@ private fun AddHabitSheet(onConfirm: (HabitsAction.CreateHabit) -> Unit, onDismi
                             .clip(CircleShape)
                             .background(previewColor)
                             .border(
-                                width = if (selected) 3.dp else 0.dp,
+                                width = borderWidth,
                                 color = MaterialTheme.colorScheme.onSurface,
                                 shape = CircleShape,
                             )
@@ -324,7 +350,11 @@ private fun AddHabitSheet(onConfirm: (HabitsAction.CreateHabit) -> Unit, onDismi
             Spacer(Modifier.height(Spacing.large))
             Text(text = "Icon", style = MaterialTheme.typography.labelLarge)
             Spacer(Modifier.height(Spacing.extraSmall))
-            val iconPreviewColor = rememberHabitColors(selectedColor).accent
+            val iconPreviewColor by animateColorAsState(
+                targetValue = rememberHabitColors(selectedColor).accent,
+                animationSpec = MaterialTheme.motionScheme.fastEffectsSpec(),
+                label = "iconPreviewColor",
+            )
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.small, Alignment.CenterHorizontally),
@@ -337,14 +367,17 @@ private fun AddHabitSheet(onConfirm: (HabitsAction.CreateHabit) -> Unit, onDismi
                         animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
                         label = "iconChipScale",
                     )
+                    val chipBackground by animateColorAsState(
+                        targetValue = if (selected) iconPreviewColor else MaterialTheme.colorScheme.surfaceContainerHigh,
+                        animationSpec = MaterialTheme.motionScheme.fastEffectsSpec(),
+                        label = "iconChipBackground",
+                    )
                     Box(
                         modifier = Modifier
                             .size(44.dp)
                             .graphicsLayer { scaleX = scale; scaleY = scale }
                             .clip(RoundedCornerShape(14.dp))
-                            .background(
-                                if (selected) iconPreviewColor else MaterialTheme.colorScheme.surfaceContainerHigh,
-                            )
+                            .background(chipBackground)
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null,
