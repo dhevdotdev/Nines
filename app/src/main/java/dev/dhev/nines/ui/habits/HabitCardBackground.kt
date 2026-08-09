@@ -8,7 +8,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 
 /**
  * A handful of abstract, procedurally-drawn motifs a habit's card background can carry — the
@@ -26,6 +31,12 @@ enum class CardBackgroundStyle(val key: String, val label: String) {
     SPARKLE("sparkle", "Sparkle"),
     ARC("arc", "Arc"),
     ZIGZAG("zigzag", "Zigzag"),
+    SPIRAL("spiral", "Spiral"),
+    STARS("stars", "Stars"),
+    CONFETTI("confetti", "Confetti"),
+    STRIPES("stripes", "Stripes"),
+    HEXAGON("hexagon", "Hexagon"),
+    LEAVES("leaves", "Leaves"),
     ;
 
     companion object {
@@ -125,7 +136,110 @@ fun HabitCardBackground(style: CardBackgroundStyle, color: Color, modifier: Modi
                 }
                 drawPath(path, tint, style = stroke)
             }
+            CardBackgroundStyle.SPIRAL -> {
+                val cx = w * 0.85f
+                val cy = h * 0.38f
+                val maxR = w * 0.30f
+                val turns = 2.2f
+                val steps = 64
+                val path = Path()
+                for (i in 0..steps) {
+                    val t = i / steps.toFloat()
+                    val angle = t * turns * 2f * PI.toFloat()
+                    val r = t * maxR
+                    val x = cx + r * cos(angle)
+                    val y = cy + r * sin(angle)
+                    if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+                }
+                drawPath(path, tint, style = stroke)
+            }
+            CardBackgroundStyle.STARS -> {
+                val stars = listOf(Triple(0.68f, 0.24f, 1.0f), Triple(0.90f, 0.42f, 0.65f), Triple(0.80f, 0.65f, 0.5f))
+                stars.forEach { (fx, fy, scale) ->
+                    drawStar(Offset(w * fx, h * fy), w * 0.11f * scale, w * 0.045f * scale, tint, strokeWidth * 0.7f)
+                }
+            }
+            CardBackgroundStyle.CONFETTI -> {
+                val pieces = listOf(
+                    Triple(0.62f, 0.22f, 20f),
+                    Triple(0.80f, 0.35f, -15f),
+                    Triple(0.70f, 0.55f, 40f),
+                    Triple(0.92f, 0.60f, -25f),
+                    Triple(0.88f, 0.20f, 10f),
+                )
+                pieces.forEach { (fx, fy, angle) ->
+                    rotate(degrees = angle, pivot = Offset(w * fx, h * fy)) {
+                        drawRoundRect(
+                            color = tint,
+                            topLeft = Offset(w * fx - strokeWidth, h * fy - strokeWidth * 1.6f),
+                            size = androidx.compose.ui.geometry.Size(strokeWidth * 2f, strokeWidth * 3.2f),
+                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(strokeWidth * 0.4f),
+                            style = stroke,
+                        )
+                    }
+                }
+            }
+            CardBackgroundStyle.STRIPES -> {
+                repeat(4) { i ->
+                    val offset = w * (0.02f + i * 0.10f)
+                    drawLine(
+                        color = tint,
+                        start = Offset(w * 0.55f + offset, h * 1.05f),
+                        end = Offset(w * 0.55f + offset + w * 0.25f, -h * 0.05f),
+                        strokeWidth = strokeWidth * 0.8f,
+                        cap = StrokeCap.Round,
+                    )
+                }
+            }
+            CardBackgroundStyle.HEXAGON -> {
+                val center = Offset(w * 0.90f, h * 0.35f)
+                repeat(2) { i ->
+                    drawPolygon(center, w * (0.14f + i * 0.11f), sides = 6, color = tint, strokeWidth = strokeWidth)
+                }
+            }
+            CardBackgroundStyle.LEAVES -> {
+                val leaf1 = Path().apply {
+                    moveTo(w * 0.60f, h * 0.70f)
+                    cubicTo(w * 0.68f, h * 0.55f, w * 0.82f, h * 0.50f, w * 0.94f, h * 0.28f)
+                    cubicTo(w * 0.86f, h * 0.48f, w * 0.78f, h * 0.62f, w * 0.60f, h * 0.70f)
+                    close()
+                }
+                drawPath(leaf1, tint, style = stroke)
+                val leaf2 = Path().apply {
+                    moveTo(w * 0.72f, h * 0.85f)
+                    cubicTo(w * 0.80f, h * 0.72f, w * 0.92f, h * 0.68f, w * 1.00f, h * 0.50f)
+                    cubicTo(w * 0.94f, h * 0.68f, w * 0.86f, h * 0.80f, w * 0.72f, h * 0.85f)
+                    close()
+                }
+                drawPath(leaf2, tint, style = stroke)
+            }
             CardBackgroundStyle.NONE -> Unit
         }
     }
+}
+
+private fun DrawScope.drawStar(center: Offset, outerRadius: Float, innerRadius: Float, color: Color, strokeWidth: Float) {
+    val path = Path()
+    val points = 5
+    for (i in 0 until points * 2) {
+        val radius = if (i % 2 == 0) outerRadius else innerRadius
+        val angle = (PI.toFloat() / points) * i - PI.toFloat() / 2f
+        val x = center.x + radius * cos(angle)
+        val y = center.y + radius * sin(angle)
+        if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+    }
+    path.close()
+    drawPath(path, color, style = Stroke(width = strokeWidth, join = StrokeJoin.Round))
+}
+
+private fun DrawScope.drawPolygon(center: Offset, radius: Float, sides: Int, color: Color, strokeWidth: Float) {
+    val path = Path()
+    for (i in 0 until sides) {
+        val angle = (2 * PI.toFloat() / sides) * i - PI.toFloat() / 2f
+        val x = center.x + radius * cos(angle)
+        val y = center.y + radius * sin(angle)
+        if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+    }
+    path.close()
+    drawPath(path, color, style = Stroke(width = strokeWidth, join = StrokeJoin.Round))
 }

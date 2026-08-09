@@ -35,7 +35,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -53,7 +52,9 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.toShape
 import androidx.compose.material3.MediumFloatingActionButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
@@ -600,47 +601,15 @@ private fun AddHabitSheet(
                 }
             }
 
-            Spacer(Modifier.height(Spacing.large))
-            Text(text = "Icon", style = MaterialTheme.typography.labelLarge)
-            Spacer(Modifier.height(Spacing.extraSmall))
             val iconPreviewColor by animateColorAsState(
                 targetValue = paletteColors[selectedColorIndex].accent,
                 animationSpec = MaterialTheme.motionScheme.fastEffectsSpec(),
                 label = "iconPreviewColor",
             )
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.small, Alignment.CenterHorizontally),
-                verticalArrangement = Arrangement.spacedBy(Spacing.medium),
-            ) {
-                HabitIcons.options.forEach { (key, icon) ->
-                    val selected = key == selectedIcon
-                    val scale = if (selected) 1.08f else 1f
-                    val chipBackground = if (selected) iconPreviewColor else MaterialTheme.colorScheme.surfaceContainerHigh
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .graphicsLayer { scaleX = scale; scaleY = scale }
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(chipBackground)
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null,
-                            ) { selectedIcon = key },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = null,
-                            tint = if (selected) {
-                                contrastingIconColor(iconPreviewColor)
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
-                        )
-                    }
-                }
-            }
+            // The real M3 Expressive squircle — a smooth-cornered RoundedPolygon, not a plain
+            // circular-arc RoundedCornerShape, which is what was reading as "rough"/inconsistent
+            // around the edges on these swatches.
+            val squircle = MaterialShapes.Square.toShape()
 
             Spacer(Modifier.height(Spacing.large))
             Text(text = "Background", style = MaterialTheme.typography.labelLarge)
@@ -658,12 +627,12 @@ private fun AddHabitSheet(
                         modifier = Modifier
                             .size(56.dp)
                             .graphicsLayer { scaleX = scale; scaleY = scale }
-                            .clip(RoundedCornerShape(16.dp))
+                            .clip(squircle)
                             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                             .border(
                                 width = if (selected) 2.dp else 0.dp,
                                 color = iconPreviewColor,
-                                shape = RoundedCornerShape(16.dp),
+                                shape = squircle,
                             )
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
@@ -671,14 +640,56 @@ private fun AddHabitSheet(
                             ) { selectedBackground = style },
                         contentAlignment = Alignment.Center,
                     ) {
+                        // Inset from the true edge so the pattern's own strokes never reach the
+                        // selection border — at this small preview size they bled right up to
+                        // it, visually blending with the border and reading as uneven thickness.
                         HabitCardBackground(
                             style = style,
                             color = iconPreviewColor,
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier
+                                .padding(4.dp)
+                                .fillMaxSize(),
                         )
                         if (style == CardBackgroundStyle.NONE) {
                             Text(text = "None", style = MaterialTheme.typography.labelSmall)
                         }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(Spacing.large))
+            Text(text = "Icon", style = MaterialTheme.typography.labelLarge)
+            Spacer(Modifier.height(Spacing.extraSmall))
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.small, Alignment.CenterHorizontally),
+                verticalArrangement = Arrangement.spacedBy(Spacing.medium),
+            ) {
+                HabitIcons.options.forEach { (key, icon) ->
+                    val selected = key == selectedIcon
+                    val scale = if (selected) 1.08f else 1f
+                    val chipBackground = if (selected) iconPreviewColor else MaterialTheme.colorScheme.surfaceContainerHigh
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .graphicsLayer { scaleX = scale; scaleY = scale }
+                            .clip(squircle)
+                            .background(chipBackground)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                            ) { selectedIcon = key },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = if (selected) {
+                                contrastingIconColor(iconPreviewColor)
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                        )
                     }
                 }
             }
