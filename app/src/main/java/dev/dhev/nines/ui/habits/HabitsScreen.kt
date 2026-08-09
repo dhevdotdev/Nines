@@ -150,7 +150,9 @@ private fun AddHabitSheet(onConfirm: (HabitsAction.CreateHabit) -> Unit, onDismi
     var targetText by remember { mutableStateOf("") }
     var unit by remember { mutableStateOf("") }
     var targetKind by remember { mutableStateOf(TargetKind.AT_LEAST) }
-    val sheetState = rememberModalBottomSheetState()
+    // Skip the partially-expanded resting state: this sheet is a form, and a peeked-height
+    // sheet doesn't grow when the IME appears — it just gets covered by the keyboard.
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val keyboardController = LocalSoftwareKeyboardController.current
 
     val canSubmit = name.isNotBlank() && (type == HabitType.BOOLEAN || targetText.toDoubleOrNull() != null)
@@ -275,7 +277,7 @@ private fun AddHabitSheet(onConfirm: (HabitsAction.CreateHabit) -> Unit, onDismi
             val iconPreviewColor = rememberHabitColors(selectedColor).accent
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.small, Alignment.CenterHorizontally),
                 verticalArrangement = Arrangement.spacedBy(Spacing.medium),
             ) {
                 HabitIcons.options.forEach { (key, icon) ->
