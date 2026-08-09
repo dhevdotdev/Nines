@@ -159,11 +159,11 @@ private fun AddHabitSheet(onConfirm: (HabitsAction.CreateHabit) -> Unit, onDismi
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .imePadding()
+                .navigationBarsPadding()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = Spacing.large)
-                .padding(bottom = Spacing.large)
-                .navigationBarsPadding()
-                .imePadding(),
+                .padding(bottom = Spacing.large),
         ) {
             Text(text = "New habit", style = MaterialTheme.typography.headlineSmallEmphasized)
             Spacer(Modifier.height(Spacing.default))
@@ -237,14 +237,16 @@ private fun AddHabitSheet(onConfirm: (HabitsAction.CreateHabit) -> Unit, onDismi
             Text(text = "Color", style = MaterialTheme.typography.labelLarge)
             Spacer(Modifier.height(Spacing.extraSmall))
             Row(
-                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                modifier = Modifier
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = Spacing.extraSmall, vertical = Spacing.extraSmall),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.medium),
             ) {
                 HabitPalette.seeds.forEach { seed ->
                     val previewColor = rememberHabitColors(seed).accent
                     val selected = seed == selectedColor
                     val scale by animateFloatAsState(
-                        targetValue = if (selected) 1.15f else 1f,
+                        targetValue = if (selected) 1.1f else 1f,
                         animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
                         label = "colorSwatchScale",
                     )
@@ -272,13 +274,14 @@ private fun AddHabitSheet(onConfirm: (HabitsAction.CreateHabit) -> Unit, onDismi
             Spacer(Modifier.height(Spacing.extraSmall))
             val iconPreviewColor = rememberHabitColors(selectedColor).accent
             FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(Spacing.medium),
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalArrangement = Arrangement.spacedBy(Spacing.medium),
             ) {
                 HabitIcons.options.forEach { (key, icon) ->
                     val selected = key == selectedIcon
                     val scale by animateFloatAsState(
-                        targetValue = if (selected) 1.1f else 1f,
+                        targetValue = if (selected) 1.08f else 1f,
                         animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
                         label = "iconChipScale",
                     )
