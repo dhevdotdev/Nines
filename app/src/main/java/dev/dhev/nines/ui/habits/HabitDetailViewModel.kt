@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.stateIn
 import java.time.LocalDate
 import java.time.ZoneId
 
-private const val HISTORY_MONTHS_BACK = 6L
+private const val HISTORY_MONTHS_BACK = 9L
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class HabitDetailViewModel(

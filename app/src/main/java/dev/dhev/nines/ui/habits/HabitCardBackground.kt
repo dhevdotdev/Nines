@@ -45,12 +45,12 @@ enum class CardBackgroundStyle(val key: String, val label: String) {
 }
 
 @Composable
-fun HabitCardBackground(style: CardBackgroundStyle, color: Color, modifier: Modifier = Modifier) {
+fun HabitCardBackground(style: CardBackgroundStyle, color: Color, modifier: Modifier = Modifier, alpha: Float = 0.14f) {
     if (style == CardBackgroundStyle.NONE) return
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
-        val tint = color.copy(alpha = 0.14f)
+        val tint = color.copy(alpha = alpha)
         val strokeWidth = size.minDimension * 0.025f
         val stroke = Stroke(width = strokeWidth, cap = StrokeCap.Round, join = StrokeJoin.Round)
 

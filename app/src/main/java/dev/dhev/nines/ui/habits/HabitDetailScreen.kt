@@ -1,5 +1,12 @@
 package dev.dhev.nines.ui.habits
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -22,19 +29,28 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.dhev.nines.data.local.entity.EntryState
@@ -107,62 +123,89 @@ fun HabitDetailScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = Spacing.large),
         ) {
-            Spacer(Modifier.height(Spacing.extraLarge))
+            Spacer(Modifier.height(Spacing.default))
 
-            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                Box(modifier = Modifier.size(96.dp), contentAlignment = Alignment.Center) {
-                    CircularWavyProgressIndicator(
-                        progress = { uiState.currentScore.toFloat() },
-                        modifier = Modifier.size(96.dp),
-                        color = colors.accent,
-                        trackColor = colors.container,
-                    )
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "${(uiState.currentScore * 100).roundToInt()}%",
-                            style = MaterialTheme.typography.headlineSmall,
+            // One hero surface start to finish — illustration, ring, and stats all live inside
+            // the same panel rather than a card-then-three-more-boxes stack. Stacking several
+            // separately-outlined rectangles read as "boxy"; folding the stats into the same
+            // surface (divided only by a hairline, not another edge) keeps it to a single shape.
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.extraLargeIncreased,
+                color = lerp(MaterialTheme.colorScheme.surfaceContainer, colors.accent, 0.08f),
+            ) {
+                Column {
+                    Box(modifier = Modifier.fillMaxWidth().height(260.dp), contentAlignment = Alignment.Center) {
+                        HabitCardBackground(
+                            style = CardBackgroundStyle.fromKey(uiState.backgroundStyleKey),
                             color = colors.accent,
+                            alpha = 0.35f,
+                            modifier = Modifier.matchParentSize(),
                         )
-                        Text(
-                            text = "reliability",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        // M3 Expressive leans into bold, unmissable primary indicators rather than
+                        // a modest little dial — this is the single most important number on the
+                        // page, so it gets to be the biggest thing on it.
+                        Box(modifier = Modifier.size(184.dp), contentAlignment = Alignment.Center) {
+                            CircularWavyProgressIndicator(
+                                progress = { uiState.currentScore.toFloat() },
+                                modifier = Modifier.size(184.dp),
+                                color = colors.accent,
+                                trackColor = colors.container,
+                            )
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = "${(uiState.currentScore * 100).roundToInt()}%",
+                                    style = MaterialTheme.typography.displayMediumEmphasized,
+                                    color = colors.accent,
+                                )
+                                // "reliability"/"uptime" was the SRE framing this app's name riffs
+                                // on, but that whole narrative layer is on hold for now (see the
+                                // project's own notes on this) — plain, common wording instead of
+                                // jargon until/unless that layer comes back deliberately.
+                                Text(
+                                    text = "consistency",
+                                    style = MaterialTheme.typography.labelMediumEmphasized,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(color = colors.accent.copy(alpha = 0.15f))
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = Spacing.default),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                    ) {
+                        StatColumn(
+                            icon = Icons.Filled.LocalFireDepartment,
+                            value = "${uiState.currentStreak}",
+                            label = "current streak",
+                            accent = colors.accent,
+                        )
+                        StatColumn(
+                            icon = null,
+                            value = "${uiState.bestStreak}",
+                            label = "best streak",
+                            accent = colors.accent,
+                        )
+                        StatColumn(
+                            icon = null,
+                            value = "${uiState.totalCompletions}",
+                            label = "total",
+                            accent = colors.accent,
                         )
                     }
                 }
-            }
-
-            Spacer(Modifier.height(Spacing.large))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-            ) {
-                StatColumn(
-                    icon = Icons.Filled.LocalFireDepartment,
-                    value = "${uiState.currentStreak}",
-                    label = "current streak",
-                    accent = colors.accent,
-                )
-                StatColumn(
-                    icon = null,
-                    value = "${uiState.bestStreak}",
-                    label = "best streak",
-                    accent = colors.accent,
-                )
-                StatColumn(
-                    icon = null,
-                    value = "${uiState.totalCompletions}",
-                    label = "total",
-                    accent = colors.accent,
-                )
             }
 
             Spacer(Modifier.height(Spacing.extraLarge))
 
             Text(
                 text = "History",
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleMediumEmphasized,
             )
             Spacer(Modifier.height(Spacing.default))
             HistoryCalendar(days = uiState.history, accent = colors.accent)
@@ -171,6 +214,9 @@ fun HabitDetailScreen(
     }
 }
 
+/** Plain text now, no chip background — these live inside the hero surface itself (see the
+ * comment above it), so wrapping each one in its own tonal box on top of that would just be
+ * another layer of boxes-within-boxes. The surface itself already gives them a home. */
 @Composable
 private fun StatColumn(
     icon: androidx.compose.ui.graphics.vector.ImageVector?,
@@ -183,9 +229,13 @@ private fun StatColumn(
             icon?.let {
                 Icon(imageVector = it, contentDescription = null, tint = accent, modifier = Modifier.size(18.dp))
             }
-            Text(text = value, style = MaterialTheme.typography.titleLarge, color = accent)
+            Text(text = value, style = MaterialTheme.typography.titleLargeEmphasized, color = accent)
         }
-        Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -202,13 +252,55 @@ private fun HistoryCalendar(days: List<DayCell>, accent: Color) {
     if (days.isEmpty()) return
     val byDate = remember(days) { days.associateBy { it.date } }
     val months = remember(days) { days.map { YearMonth.from(it.date) }.distinct().sortedDescending() }
+    val scrollState = rememberScrollState()
+    val density = LocalDensity.current
+    val cardStepPx = remember(density) { with(density) { (MonthCardWidth + Spacing.small).toPx() } }
+    var viewportWidthPx by remember { mutableFloatStateOf(0f) }
 
-    Row(
-        modifier = Modifier.horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.small),
-    ) {
-        months.forEach { month ->
-            MonthCalendar(month = month, byDate = byDate, accent = accent)
+    // Which year is showing sits above the row and tracks scroll position directly — no need to
+    // scroll all the way to a January/December boundary to tell which year you've landed on.
+    // Anchored to the CENTER of the visible viewport, not the left edge: at the scroll extremes
+    // the leftmost card can be reduced to a sliver just a few pixels wide while the rest of the
+    // viewport is dominated by the next month along — using the edge card's year there reads as
+    // wrong the moment more than half the screen is visibly a different month/year.
+    val visibleYear by remember(months) {
+        derivedStateOf {
+            val centerPx = scrollState.value + viewportWidthPx / 2f
+            val index = (centerPx / cardStepPx).roundToInt().coerceIn(0, months.lastIndex)
+            months[index].year
+        }
+    }
+
+    Column {
+        // An odometer-style tick, not a plain crossfade: scrolling further into the past slides
+        // the new (older) year up from below as the old one exits upward — like a counter rolling
+        // down — and reverses when scrolling back toward the present. Direction is derived from
+        // the actual year delta so it stays correct however far you jump in one scroll gesture.
+        AnimatedContent(
+            targetState = visibleYear,
+            transitionSpec = {
+                val goingBackInTime = targetState < initialState
+                (slideInVertically(tween(220)) { height -> if (goingBackInTime) height else -height } + fadeIn(tween(220)))
+                    .togetherWith(slideOutVertically(tween(220)) { height -> if (goingBackInTime) -height else height } + fadeOut(tween(220)))
+            },
+            label = "historyYear",
+        ) { year ->
+            Text(
+                text = year.toString(),
+                style = MaterialTheme.typography.labelLargeEmphasized,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Spacer(Modifier.height(Spacing.extraSmall))
+        Row(
+            modifier = Modifier
+                .horizontalScroll(scrollState)
+                .onSizeChanged { viewportWidthPx = it.width.toFloat() },
+            horizontalArrangement = Arrangement.spacedBy(Spacing.small),
+        ) {
+            months.forEach { month ->
+                MonthCalendar(month = month, byDate = byDate, accent = accent)
+            }
         }
     }
 }
@@ -221,7 +313,7 @@ private fun MonthCalendar(month: YearMonth, byDate: Map<LocalDate, DayCell>, acc
     Column(modifier = Modifier.width(MonthCardWidth)) {
         Text(
             text = month.month.getDisplayName(TextStyle.SHORT, Locale.getDefault()),
-            style = MaterialTheme.typography.labelSmall,
+            style = MaterialTheme.typography.labelSmallEmphasized,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(Spacing.extraSmall))

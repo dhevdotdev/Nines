@@ -164,10 +164,10 @@ class HabitsViewModel(private val repository: HabitRepository) : ViewModel() {
             scheduleEffectiveFrom = daysAgo(createdDaysAgo),
         )
 
-        // 1. Meditate — daily, ~7 months old (long enough for the calendar's scroll to matter),
-        // 21-day streak running up to today, sparser before that.
-        val meditateId = addHabit("Meditate", HabitType.BOOLEAN, null, 0xFF00897B.toInt(), "meditate", "rings", 210, 1, 1, null, null)
-        for (daysAgo in 0 until 210) {
+        // 1. Meditate — daily, ~9.5 months old (crosses a year boundary so the calendar's sticky
+        // year indicator has something to actually demonstrate), 21-day streak up to today.
+        val meditateId = addHabit("Meditate", HabitType.BOOLEAN, null, 0xFF00897B.toInt(), "meditate", "rings", 290, 1, 1, null, null)
+        for (daysAgo in 0 until 290) {
             if (daysAgo < 21) {
                 repository.toggleCompletion(meditateId, daysAgo(daysAgo.toLong()))
             } else if (random.nextFloat() < 0.7f) {
