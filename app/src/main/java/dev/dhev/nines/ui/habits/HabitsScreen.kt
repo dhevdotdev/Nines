@@ -90,7 +90,10 @@ fun HabitsScreen(
     modifier: Modifier = Modifier,
 ) {
     var showAddSheet by remember { mutableStateOf(false) }
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+    // enterAlways (not exitUntilCollapsed): the header should reappear on any downward scroll,
+    // not only once you're all the way back at the top — exitUntilCollapsed's "won't re-expand
+    // until scrolled to top" behavior is what read as unusual on a short, frequently-rechecked list.
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
 
     Scaffold(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
