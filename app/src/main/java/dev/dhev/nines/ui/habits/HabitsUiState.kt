@@ -14,6 +14,8 @@ data class HabitListItem(
     val currentValue: Double? = null,
     val targetValue: Double? = null,
     val unit: String? = null,
+    val targetNumerator: Int = 1,
+    val targetDenominator: Int = 1,
 )
 
 data class HabitsUiState(
@@ -29,6 +31,8 @@ sealed interface HabitsAction {
         val color: Int,
         val iconKey: String,
         val type: HabitType,
+        val targetNumerator: Int = 1,
+        val targetDenominator: Int = 1,
         val targetValue: Double? = null,
         val targetKind: TargetKind? = null,
         val unit: String? = null,

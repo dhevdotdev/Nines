@@ -30,7 +30,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FloatingActionButton
@@ -62,7 +64,9 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.widthIn
 import dev.dhev.nines.data.local.entity.HabitType
 import dev.dhev.nines.data.local.entity.TargetKind
 import dev.dhev.nines.ui.theme.HabitPalette
@@ -139,6 +143,8 @@ fun HabitsScreen(
     }
 }
 
+private enum class FrequencyType { DAILY, TIMES_PER_WEEK, EVERY_N_DAYS }
+
 @Suppress("DEPRECATION") // rememberModalBottomSheetState: flagged replacement has no such function in 1.5.0-alpha25 yet
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -150,6 +156,9 @@ private fun AddHabitSheet(onConfirm: (HabitsAction.CreateHabit) -> Unit, onDismi
     var targetText by remember { mutableStateOf("") }
     var unit by remember { mutableStateOf("") }
     var targetKind by remember { mutableStateOf(TargetKind.AT_LEAST) }
+    var frequencyType by remember { mutableStateOf(FrequencyType.DAILY) }
+    var timesPerWeek by remember { mutableStateOf(3) }
+    var everyNDays by remember { mutableStateOf(2) }
     // Skip the partially-expanded resting state: this sheet is a form, and a peeked-height
     // sheet doesn't grow when the IME appears — it just gets covered by the keyboard.
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -194,6 +203,41 @@ private fun AddHabitSheet(onConfirm: (HabitsAction.CreateHabit) -> Unit, onDismi
                     onClick = { type = HabitType.NUMERICAL },
                     shape = SegmentedButtonDefaults.itemShape(1, 2),
                 ) { Text("Measurable") }
+            }
+
+            Spacer(Modifier.height(Spacing.large))
+            Text(text = "Frequency", style = MaterialTheme.typography.labelLarge)
+            Spacer(Modifier.height(Spacing.extraSmall))
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                SegmentedButton(
+                    selected = frequencyType == FrequencyType.DAILY,
+                    onClick = { frequencyType = FrequencyType.DAILY },
+                    shape = SegmentedButtonDefaults.itemShape(0, 3),
+                ) { Text("Daily") }
+                SegmentedButton(
+                    selected = frequencyType == FrequencyType.TIMES_PER_WEEK,
+                    onClick = { frequencyType = FrequencyType.TIMES_PER_WEEK },
+                    shape = SegmentedButtonDefaults.itemShape(1, 3),
+                ) { Text("Per week") }
+                SegmentedButton(
+                    selected = frequencyType == FrequencyType.EVERY_N_DAYS,
+                    onClick = { frequencyType = FrequencyType.EVERY_N_DAYS },
+                    shape = SegmentedButtonDefaults.itemShape(2, 3),
+                ) { Text("Custom") }
+            }
+            if (frequencyType == FrequencyType.TIMES_PER_WEEK) {
+                Spacer(Modifier.height(Spacing.default))
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.default)) {
+                    Text(text = "Times per week", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                    NumberStepper(value = timesPerWeek, onValueChange = { timesPerWeek = it }, range = 1..7)
+                }
+            }
+            if (frequencyType == FrequencyType.EVERY_N_DAYS) {
+                Spacer(Modifier.height(Spacing.default))
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.default)) {
+                    Text(text = "Days between", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                    NumberStepper(value = everyNDays, onValueChange = { everyNDays = it }, range = 2..30)
+                }
             }
 
             if (type == HabitType.NUMERICAL) {
@@ -317,12 +361,19 @@ private fun AddHabitSheet(onConfirm: (HabitsAction.CreateHabit) -> Unit, onDismi
             Spacer(Modifier.height(Spacing.large))
             Button(
                 onClick = {
+                    val (numerator, denominator) = when (frequencyType) {
+                        FrequencyType.DAILY -> 1 to 1
+                        FrequencyType.TIMES_PER_WEEK -> timesPerWeek to 7
+                        FrequencyType.EVERY_N_DAYS -> 1 to everyNDays
+                    }
                     onConfirm(
                         HabitsAction.CreateHabit(
                             name = name.trim(),
                             color = selectedColor.toArgb(),
                             iconKey = selectedIcon,
                             type = type,
+                            targetNumerator = numerator,
+                            targetDenominator = denominator,
                             targetValue = if (type == HabitType.NUMERICAL) targetText.toDoubleOrNull() else null,
                             targetKind = if (type == HabitType.NUMERICAL) targetKind else null,
                             unit = unit.ifBlank { null },
@@ -334,6 +385,39 @@ private fun AddHabitSheet(onConfirm: (HabitsAction.CreateHabit) -> Unit, onDismi
             ) {
                 Text("Add habit")
             }
+        }
+    }
+}
+
+@Composable
+private fun NumberStepper(
+    value: Int,
+    onValueChange: (Int) -> Unit,
+    range: IntRange,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.medium),
+    ) {
+        FilledTonalIconButton(
+            onClick = { if (value > range.first) onValueChange(value - 1) },
+            enabled = value > range.first,
+        ) {
+            Icon(Icons.Filled.Remove, contentDescription = "Decrease")
+        }
+        Text(
+            text = value.toString(),
+            style = MaterialTheme.typography.titleMediumEmphasized,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.widthIn(min = 32.dp),
+        )
+        FilledTonalIconButton(
+            onClick = { if (value < range.last) onValueChange(value + 1) },
+            enabled = value < range.last,
+        ) {
+            Icon(Icons.Filled.Add, contentDescription = "Increase")
         }
     }
 }

@@ -56,6 +56,8 @@ class HabitsViewModel(private val repository: HabitRepository) : ViewModel() {
                 currentValue = todayEntry?.numericValue,
                 targetValue = schedule?.targetValue,
                 unit = habit.unit,
+                targetNumerator = schedule?.targetNumerator ?: 1,
+                targetDenominator = schedule?.targetDenominator ?: 1,
             )
         }
 
@@ -73,6 +75,8 @@ class HabitsViewModel(private val repository: HabitRepository) : ViewModel() {
                     type = action.type,
                     color = action.color,
                     iconKey = action.iconKey,
+                    targetNumerator = action.targetNumerator,
+                    targetDenominator = action.targetDenominator,
                     unit = action.unit,
                     targetValue = action.targetValue,
                     targetKind = action.targetKind,

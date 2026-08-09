@@ -86,6 +86,9 @@ fun HabitRow(
                         container = colors.container,
                         onContainer = colors.onContainer,
                     )
+                    frequencyLabel(item.targetNumerator, item.targetDenominator)?.let { label ->
+                        ValuePill(text = label, container = colors.container, onContainer = colors.onContainer)
+                    }
                 }
             }
 
@@ -125,4 +128,12 @@ private fun defaultIncrement(target: Double?): Double {
     if (target == null || target <= 0) return 1.0
     val raw = target / 10.0
     return if (raw < 1.0) 1.0 else raw.roundToInt().toDouble()
+}
+
+/** null for daily (the common case, not worth a chip); otherwise a short "3x/week" style label. */
+private fun frequencyLabel(numerator: Int, denominator: Int): String? = when {
+    numerator == 1 && denominator == 1 -> null
+    denominator == 7 -> "${numerator}x/week"
+    numerator == 1 -> "every ${denominator}d"
+    else -> "$numerator/${denominator}d"
 }
