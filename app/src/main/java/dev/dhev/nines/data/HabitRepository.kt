@@ -93,9 +93,14 @@ class HabitRepository(
      * they exceed target).
      */
     suspend fun incrementNumericEntry(habitId: Long, date: LocalDate, delta: Double) {
+        setNumericEntry(habitId, date, (entryDao.entryOn(habitId, date)?.numericValue ?: 0.0) + delta)
+    }
+
+    /** Sets a numeric habit's value for [date] outright, for manual entry rather than +/- taps. */
+    suspend fun setNumericEntry(habitId: Long, date: LocalDate, value: Double) {
         val existing = entryDao.entryOn(habitId, date)
         val now = Instant.now()
-        val newValue = (existing?.numericValue ?: 0.0) + delta
+        val newValue = value.coerceAtLeast(0.0)
         val schedule = scheduleVersionDao.versionEffectiveOn(habitId, date)
         val meetsTarget = when (schedule?.targetKind) {
             TargetKind.AT_LEAST -> schedule.targetValue != null && newValue >= schedule.targetValue
@@ -113,6 +118,55 @@ class HabitRepository(
                 updatedAt = now,
             ),
         )
+    }
+
+    /** Soft-delete: hides the habit from [observeActiveHabits] without touching its history. */
+    suspend fun archiveHabit(habitId: Long) {
+        val habit = habitDao.getById(habitId) ?: return
+        habitDao.update(habit.copy(archivedAt = Instant.now()))
+    }
+
+    /**
+     * Name/color/icon/unit are mutated in place. A schedule change (frequency or target) instead
+     * inserts a new [ScheduleVersionEntity] effective today, so past compliance stays judged
+     * against whatever schedule was actually in force at the time — same versioning [createHabit]
+     * relies on. Habit type is intentionally not editable: it determines which entry fields
+     * (boolean vs numeric) history already carries, and changing it after entries exist would
+     * make that history ambiguous.
+     */
+    suspend fun updateHabit(
+        habitId: Long,
+        name: String,
+        color: Int,
+        iconKey: String,
+        unit: String?,
+        targetNumerator: Int,
+        targetDenominator: Int,
+        targetValue: Double?,
+        targetKind: TargetKind?,
+    ) {
+        val habit = habitDao.getById(habitId) ?: return
+        habitDao.update(habit.copy(name = name, color = color, iconKey = iconKey, unit = unit))
+
+        val today = LocalDate.now()
+        val current = scheduleVersionDao.versionEffectiveOn(habitId, today)
+        val scheduleChanged = current == null ||
+            current.targetNumerator != targetNumerator ||
+            current.targetDenominator != targetDenominator ||
+            current.targetValue != targetValue ||
+            current.targetKind != targetKind
+        if (scheduleChanged) {
+            scheduleVersionDao.insert(
+                ScheduleVersionEntity(
+                    habitId = habitId,
+                    effectiveFromDate = today,
+                    targetNumerator = targetNumerator,
+                    targetDenominator = targetDenominator,
+                    targetValue = targetValue,
+                    targetKind = targetKind,
+                ),
+            )
+        }
     }
 
     suspend fun setSkipped(habitId: Long, date: LocalDate) {

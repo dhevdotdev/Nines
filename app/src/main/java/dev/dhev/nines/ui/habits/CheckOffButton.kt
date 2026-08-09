@@ -1,10 +1,10 @@
 package dev.dhev.nines.ui.habits
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -12,10 +12,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ripple
@@ -56,6 +53,18 @@ fun CheckOffButton(
         label = "checkOffContainerColor",
     )
     val borderColor = if (completed) accentColor else MaterialTheme.colorScheme.outline
+    // Draws in on completion (a beat slower than the pop/settle motion around it, so the stroke
+    // is still visibly travelling once the shape has already landed) and simply retreats quickly
+    // on undo, rather than trying to "undraw" itself in reverse.
+    val checkProgress by animateFloatAsState(
+        targetValue = if (completed) 1f else 0f,
+        animationSpec = if (completed) {
+            tween(durationMillis = 380, easing = FastOutSlowInEasing)
+        } else {
+            tween(durationMillis = 120)
+        },
+        label = "checkDrawProgress",
+    )
 
     Box(
         modifier = modifier
@@ -82,12 +91,10 @@ fun CheckOffButton(
             },
         contentAlignment = Alignment.Center,
     ) {
-        AnimatedVisibility(visible = completed, enter = fadeIn(), exit = fadeOut()) {
-            Icon(
-                imageVector = Icons.Filled.Check,
-                contentDescription = null,
-                tint = contrastingIconColor(accentColor),
-            )
-        }
+        DrawnCheckmark(
+            color = contrastingIconColor(accentColor),
+            progress = checkProgress,
+            modifier = Modifier.size(22.dp),
+        )
     }
 }

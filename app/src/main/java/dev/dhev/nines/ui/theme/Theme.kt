@@ -8,8 +8,10 @@ import androidx.compose.material3.MotionScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFontFamilyResolver
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import com.materialkolor.PaletteStyle
@@ -32,6 +34,14 @@ fun NinesTheme(
             style = PaletteStyle.Expressive,
             specVersion = ColorSpec.SpecVersion.SPEC_2025,
         )
+    }
+
+    // Resolving a downloadable font is a real one-time cost per process (typeface fetch +
+    // rasterization). Do it now, while the user is looking at the habit list with nothing
+    // time-sensitive happening, instead of lazily the first time a sheet using these fonts opens.
+    val fontFamilyResolver = LocalFontFamilyResolver.current
+    LaunchedEffect(Unit) {
+        NinesFontFamilies.forEach { fontFamilyResolver.preload(it) }
     }
 
     val view = LocalView.current

@@ -2,11 +2,14 @@ package dev.dhev.nines.ui.habits
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -27,6 +30,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -38,13 +42,17 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LargeTopAppBar
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MediumFloatingActionButton
 import androidx.compose.material3.ModalBottomSheet
@@ -53,11 +61,14 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material3.rememberTopAppBarState
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -68,7 +79,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -79,8 +89,9 @@ import dev.dhev.nines.data.local.entity.HabitType
 import dev.dhev.nines.data.local.entity.TargetKind
 import dev.dhev.nines.ui.theme.HabitPalette
 import dev.dhev.nines.ui.theme.Spacing
+import dev.dhev.nines.ui.theme.HabitColors
 import dev.dhev.nines.ui.theme.contrastingIconColor
-import dev.dhev.nines.ui.theme.rememberHabitColors
+import dev.dhev.nines.ui.theme.rememberHabitColorsForPalette
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -90,17 +101,25 @@ fun HabitsScreen(
     modifier: Modifier = Modifier,
 ) {
     var showAddSheet by remember { mutableStateOf(false) }
-    // enterAlways (not exitUntilCollapsed): the header should reappear on any downward scroll,
-    // not only once you're all the way back at the top — exitUntilCollapsed's "won't re-expand
-    // until scrolled to top" behavior is what read as unusual on a short, frequently-rechecked list.
-    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
+    var editingHabit by remember { mutableStateOf<HabitListItem?>(null) }
+    // Computed here (persists across sheet open/close), not inside AddHabitSheet (torn down and
+    // rebuilt every time the sheet opens): the real HCT/CAM16 math for ~20 swatches should run
+    // once per theme change, not once per sheet open.
+    val paletteColors = rememberHabitColorsForPalette(HabitPalette.seeds)
 
     Scaffold(
-        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        modifier = modifier,
+        // Plain, fixed-height, no scrollBehavior attached — fully sticky/pinned rather than the
+        // collapsing-on-scroll LargeTopAppBar, which reserved a lot of empty vertical space at
+        // rest and only gave it back once you scrolled. Consistent space from the start instead.
         topBar = {
-            LargeTopAppBar(
-                title = { Text("Nines") },
-                scrollBehavior = scrollBehavior,
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "Nines",
+                        style = MaterialTheme.typography.displaySmall,
+                    )
+                },
             )
         },
         floatingActionButton = {
@@ -115,15 +134,10 @@ fun HabitsScreen(
         },
     ) { innerPadding ->
         if (uiState.habits.isEmpty() && !uiState.isLoading) {
-            Box(
+            EmptyHabitsState(
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = "No habits yet — tap + to add one",
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-            }
+                onAddHabit = { showAddSheet = true },
+            )
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
@@ -131,50 +145,271 @@ fun HabitsScreen(
                     start = Spacing.default,
                     end = Spacing.default,
                     top = innerPadding.calculateTopPadding() + Spacing.default,
-                    bottom = innerPadding.calculateBottomPadding() + Spacing.default,
+                    // Scaffold's innerPadding doesn't reserve room for the FAB — without this,
+                    // the FAB sits on top of (and eats touches meant for) the last row's own
+                    // trailing button.
+                    bottom = innerPadding.calculateBottomPadding() + Spacing.default + 96.dp,
                 ),
             ) {
+                item {
+                    // Shown only once every habit is checked off — a small reward for actually
+                    // finishing, not just a status readout that's visible the rest of the time.
+                    AnimatedVisibility(
+                        visible = uiState.habits.all { it.completedToday },
+                        enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) +
+                            expandVertically(animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()),
+                        exit = fadeOut(MaterialTheme.motionScheme.defaultEffectsSpec()) +
+                            shrinkVertically(animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()),
+                    ) {
+                        AllDoneBanner(modifier = Modifier.padding(bottom = Spacing.medium))
+                    }
+                }
                 items(uiState.habits, key = { it.id }) { item ->
-                    HabitRow(
-                        item = item,
-                        onToggle = { onAction(HabitsAction.ToggleHabit(item.id)) },
-                        onIncrement = { delta -> onAction(HabitsAction.IncrementHabit(item.id, delta)) },
+                    // Swiping in either direction opens edit — the only way to delete is the
+                    // trash icon inside the edit sheet, which is immediate and final (no undo).
+                    // The swipe-to-delete-with-undo version of this kept breaking in ways that
+                    // were never fully pinned down, so it's gone rather than patched further:
+                    // neither direction here ever actually commits (confirmValueChange always
+                    // returns false), it only ever springs back to Settled on its own built-in
+                    // animation after opening the sheet as a side effect.
+                    val dismissState = rememberSwipeToDismissBoxState(
+                        // 90% rather than the library's 50% default, so a normal drag has to go
+                        // nearly all the way across before opening edit — a half-hearted swipe
+                        // (or an incidental diagonal touch while scrolling) shouldn't trigger it.
+                        positionalThreshold = { totalDistance -> totalDistance * 0.9f },
+                        confirmValueChange = { value ->
+                            if (value != SwipeToDismissBoxValue.Settled) {
+                                editingHabit = item
+                            }
+                            false
+                        },
+                    )
+                    SwipeToDismissBox(
+                        state = dismissState,
                         modifier = Modifier
                             .animateItem()
                             .padding(bottom = Spacing.medium),
-                    )
+                        backgroundContent = { SwipeBackground(direction = dismissState.dismissDirection) },
+                    ) {
+                        HabitRow(
+                            item = item,
+                            onToggle = { onAction(HabitsAction.ToggleHabit(item.id)) },
+                            onIncrement = { delta -> onAction(HabitsAction.IncrementHabit(item.id, delta)) },
+                            onDecrement = { delta -> onAction(HabitsAction.IncrementHabit(item.id, -delta)) },
+                            onSetValue = { value -> onAction(HabitsAction.SetNumericValue(item.id, value)) },
+                        )
+                    }
                 }
             }
         }
     }
 
-    if (showAddSheet) {
+    if (showAddSheet || editingHabit != null) {
         AddHabitSheet(
+            paletteColors = paletteColors,
+            editing = editingHabit,
             onConfirm = { action ->
                 onAction(action)
                 showAddSheet = false
+                editingHabit = null
             },
-            onDismiss = { showAddSheet = false },
+            onDelete = editingHabit?.let { target ->
+                {
+                    onAction(HabitsAction.DeleteHabit(target.id))
+                    editingHabit = null
+                }
+            },
+            onDismiss = {
+                showAddSheet = false
+                editingHabit = null
+            },
         )
+    }
+}
+
+@Composable
+private fun SwipeBackground(direction: SwipeToDismissBoxValue) {
+    // Settled must render as genuinely nothing, not fall through to the edit look — this
+    // background sits behind every row at all times, normally just hidden by the opaque card on
+    // top of it. Both swipe directions mean the same thing now (open edit), so only alignment
+    // differs — the icon sits on whichever side your thumb is dragging away from.
+    if (direction == SwipeToDismissBoxValue.Settled) return
+
+    val isStartToEnd = direction == SwipeToDismissBoxValue.StartToEnd
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .clip(MaterialTheme.shapes.largeIncreased)
+            .background(MaterialTheme.colorScheme.secondaryContainer),
+        contentAlignment = if (isStartToEnd) Alignment.CenterStart else Alignment.CenterEnd,
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.Edit,
+            contentDescription = "Edit",
+            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+            modifier = Modifier.padding(horizontal = Spacing.large),
+        )
+    }
+}
+
+/** A one-time reward for actually finishing, not a status readout — only exists while every
+ * habit is checked off, so its own drawn checkmark gets to draw in fresh every time it appears. */
+@Composable
+private fun AllDoneBanner(modifier: Modifier = Modifier) {
+    var started by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { started = true }
+    val checkProgress by animateFloatAsState(
+        targetValue = if (started) 1f else 0f,
+        animationSpec = tween(durationMillis = 420, delayMillis = 150, easing = FastOutSlowInEasing),
+        label = "allDoneCheck",
+    )
+
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.largeIncreased,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.large, vertical = Spacing.default),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.default),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                DrawnCheckmark(
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    progress = checkProgress,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+            Column {
+                Text(text = "All done for today", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = "Every habit checked off. Nice work.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyHabitsState(onAddHabit: () -> Unit, modifier: Modifier = Modifier) {
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { visible = true }
+
+    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+        AnimatedVisibility(
+            visible = visible,
+            enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) +
+                scaleIn(
+                    animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
+                    initialScale = 0.82f,
+                ),
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(Spacing.large),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(140.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primaryContainer),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    DrawnSproutIllustration(
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(76.dp),
+                    )
+                }
+                Spacer(Modifier.height(Spacing.large))
+                Text(
+                    text = "Nothing tracked yet",
+                    style = MaterialTheme.typography.headlineSmall,
+                    textAlign = TextAlign.Center,
+                )
+                Spacer(Modifier.height(Spacing.small))
+                Text(
+                    text = "Add your first habit and watch it grow.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
+                Spacer(Modifier.height(Spacing.large))
+                Button(onClick = onAddHabit) {
+                    Icon(
+                        imageVector = Icons.Filled.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text("Add a habit")
+                }
+            }
+        }
     }
 }
 
 private enum class FrequencyType { DAILY, TIMES_PER_WEEK, EVERY_N_DAYS }
 
+private data class FrequencyState(val type: FrequencyType, val timesPerWeek: Int, val everyNDays: Int)
+
+/** Inverts the numerator/denominator encoding the submit button builds, to prefill an edit. */
+private fun frequencyStateFor(editing: HabitListItem?): FrequencyState {
+    if (editing == null) return FrequencyState(FrequencyType.DAILY, 3, 2)
+    val n = editing.targetNumerator
+    val d = editing.targetDenominator
+    return when {
+        n == 1 && d == 1 -> FrequencyState(FrequencyType.DAILY, 3, 2)
+        d == 7 -> FrequencyState(FrequencyType.TIMES_PER_WEEK, n.coerceIn(1, 7), 2)
+        n == 1 -> FrequencyState(FrequencyType.EVERY_N_DAYS, 3, d.coerceIn(2, 30))
+        else -> FrequencyState(FrequencyType.DAILY, 3, 2)
+    }
+}
+
+private fun formatEditableValue(value: Double): String =
+    if (value == value.toLong().toDouble()) value.toLong().toString() else value.toString()
+
 @Suppress("DEPRECATION") // rememberModalBottomSheetState: flagged replacement has no such function in 1.5.0-alpha25 yet
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun AddHabitSheet(onConfirm: (HabitsAction.CreateHabit) -> Unit, onDismiss: () -> Unit) {
-    var name by remember { mutableStateOf("") }
-    var selectedColor by remember { mutableStateOf(HabitPalette.default) }
-    var selectedIcon by remember { mutableStateOf(HabitIcons.default) }
-    var type by remember { mutableStateOf(HabitType.BOOLEAN) }
-    var targetText by remember { mutableStateOf("") }
-    var unit by remember { mutableStateOf("") }
-    var targetKind by remember { mutableStateOf(TargetKind.AT_LEAST) }
-    var frequencyType by remember { mutableStateOf(FrequencyType.DAILY) }
-    var timesPerWeek by remember { mutableStateOf(3) }
-    var everyNDays by remember { mutableStateOf(2) }
+private fun AddHabitSheet(
+    paletteColors: List<HabitColors>,
+    editing: HabitListItem?,
+    onConfirm: (HabitsAction) -> Unit,
+    onDelete: (() -> Unit)?,
+    onDismiss: () -> Unit,
+) {
+    var name by remember { mutableStateOf(editing?.name ?: "") }
+    var selectedColorIndex by remember {
+        mutableStateOf(
+            editing?.let { target -> HabitPalette.seeds.indexOfFirst { it.toArgb() == target.color } }
+                ?.takeIf { it >= 0 } ?: 0,
+        )
+    }
+    val selectedColor = HabitPalette.seeds[selectedColorIndex]
+    var selectedIcon by remember { mutableStateOf(editing?.iconKey ?: HabitIcons.default) }
+    var type by remember { mutableStateOf(editing?.type ?: HabitType.BOOLEAN) }
+    var targetText by remember { mutableStateOf(editing?.targetValue?.let(::formatEditableValue) ?: "") }
+    var unit by remember { mutableStateOf(editing?.unit ?: "") }
+    var targetKind by remember { mutableStateOf(editing?.targetKind ?: TargetKind.AT_LEAST) }
+    val initialFrequency = remember { frequencyStateFor(editing) }
+    var frequencyType by remember { mutableStateOf(initialFrequency.type) }
+    var timesPerWeek by remember { mutableStateOf(initialFrequency.timesPerWeek) }
+    var everyNDays by remember { mutableStateOf(initialFrequency.everyNDays) }
     // Skip the partially-expanded resting state: this sheet is a form, and a peeked-height
     // sheet doesn't grow when the IME appears — it just gets covered by the keyboard.
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -192,7 +427,18 @@ private fun AddHabitSheet(onConfirm: (HabitsAction.CreateHabit) -> Unit, onDismi
                 .padding(horizontal = Spacing.large)
                 .padding(bottom = Spacing.large),
         ) {
-            Text(text = "New habit", style = MaterialTheme.typography.headlineSmallEmphasized)
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = if (editing != null) "Edit habit" else "New habit",
+                    style = MaterialTheme.typography.headlineSmallEmphasized,
+                    modifier = Modifier.weight(1f),
+                )
+                if (editing != null && onDelete != null) {
+                    IconButton(onClick = onDelete) {
+                        Icon(Icons.Outlined.Delete, contentDescription = "Delete habit")
+                    }
+                }
+            }
             Spacer(Modifier.height(Spacing.default))
 
             OutlinedTextField(
@@ -208,15 +454,20 @@ private fun AddHabitSheet(onConfirm: (HabitsAction.CreateHabit) -> Unit, onDismi
             Spacer(Modifier.height(Spacing.large))
             Text(text = "Type", style = MaterialTheme.typography.labelLarge)
             Spacer(Modifier.height(Spacing.extraSmall))
+            // Locked once a habit exists: type decides which entry fields (boolean vs numeric)
+            // its history already carries, so changing it after entries exist would make that
+            // history ambiguous — see HabitRepository.updateHabit.
             SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                 SegmentedButton(
                     selected = type == HabitType.BOOLEAN,
-                    onClick = { type = HabitType.BOOLEAN },
+                    onClick = { if (editing == null) type = HabitType.BOOLEAN },
+                    enabled = editing == null,
                     shape = SegmentedButtonDefaults.itemShape(0, 2),
                 ) { Text("Yes / no") }
                 SegmentedButton(
                     selected = type == HabitType.NUMERICAL,
-                    onClick = { type = HabitType.NUMERICAL },
+                    onClick = { if (editing == null) type = HabitType.NUMERICAL },
+                    enabled = editing == null,
                     shape = SegmentedButtonDefaults.itemShape(1, 2),
                 ) { Text("Measurable") }
             }
@@ -318,19 +569,11 @@ private fun AddHabitSheet(onConfirm: (HabitsAction.CreateHabit) -> Unit, onDismi
                     .padding(horizontal = Spacing.extraSmall, vertical = Spacing.extraSmall),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.medium),
             ) {
-                HabitPalette.seeds.forEach { seed ->
-                    val previewColor = rememberHabitColors(seed).accent
-                    val selected = seed == selectedColor
-                    val scale by animateFloatAsState(
-                        targetValue = if (selected) 1.1f else 1f,
-                        animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
-                        label = "colorSwatchScale",
-                    )
-                    val borderWidth by animateDpAsState(
-                        targetValue = if (selected) 3.dp else 0.dp,
-                        animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
-                        label = "colorSwatchBorderWidth",
-                    )
+                HabitPalette.seeds.forEachIndexed { index, seed ->
+                    val previewColor = paletteColors[index].accent
+                    val selected = index == selectedColorIndex
+                    val scale = if (selected) 1.1f else 1f
+                    val borderWidth = if (selected) 3.dp else 0.dp
                     Box(
                         modifier = Modifier
                             .size(40.dp)
@@ -345,7 +588,7 @@ private fun AddHabitSheet(onConfirm: (HabitsAction.CreateHabit) -> Unit, onDismi
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null,
-                            ) { selectedColor = seed },
+                            ) { selectedColorIndex = index },
                     )
                 }
             }
@@ -354,7 +597,7 @@ private fun AddHabitSheet(onConfirm: (HabitsAction.CreateHabit) -> Unit, onDismi
             Text(text = "Icon", style = MaterialTheme.typography.labelLarge)
             Spacer(Modifier.height(Spacing.extraSmall))
             val iconPreviewColor by animateColorAsState(
-                targetValue = rememberHabitColors(selectedColor).accent,
+                targetValue = paletteColors[selectedColorIndex].accent,
                 animationSpec = MaterialTheme.motionScheme.fastEffectsSpec(),
                 label = "iconPreviewColor",
             )
@@ -365,16 +608,8 @@ private fun AddHabitSheet(onConfirm: (HabitsAction.CreateHabit) -> Unit, onDismi
             ) {
                 HabitIcons.options.forEach { (key, icon) ->
                     val selected = key == selectedIcon
-                    val scale by animateFloatAsState(
-                        targetValue = if (selected) 1.08f else 1f,
-                        animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
-                        label = "iconChipScale",
-                    )
-                    val chipBackground by animateColorAsState(
-                        targetValue = if (selected) iconPreviewColor else MaterialTheme.colorScheme.surfaceContainerHigh,
-                        animationSpec = MaterialTheme.motionScheme.fastEffectsSpec(),
-                        label = "iconChipBackground",
-                    )
+                    val scale = if (selected) 1.08f else 1f
+                    val chipBackground = if (selected) iconPreviewColor else MaterialTheme.colorScheme.surfaceContainerHigh
                     Box(
                         modifier = Modifier
                             .size(44.dp)
@@ -408,24 +643,40 @@ private fun AddHabitSheet(onConfirm: (HabitsAction.CreateHabit) -> Unit, onDismi
                         FrequencyType.TIMES_PER_WEEK -> timesPerWeek to 7
                         FrequencyType.EVERY_N_DAYS -> 1 to everyNDays
                     }
+                    val targetValue = if (type == HabitType.NUMERICAL) targetText.toDoubleOrNull() else null
+                    val effectiveTargetKind = if (type == HabitType.NUMERICAL) targetKind else null
                     onConfirm(
-                        HabitsAction.CreateHabit(
-                            name = name.trim(),
-                            color = selectedColor.toArgb(),
-                            iconKey = selectedIcon,
-                            type = type,
-                            targetNumerator = numerator,
-                            targetDenominator = denominator,
-                            targetValue = if (type == HabitType.NUMERICAL) targetText.toDoubleOrNull() else null,
-                            targetKind = if (type == HabitType.NUMERICAL) targetKind else null,
-                            unit = unit.ifBlank { null },
-                        ),
+                        if (editing != null) {
+                            HabitsAction.UpdateHabit(
+                                habitId = editing.id,
+                                name = name.trim(),
+                                color = selectedColor.toArgb(),
+                                iconKey = selectedIcon,
+                                targetNumerator = numerator,
+                                targetDenominator = denominator,
+                                targetValue = targetValue,
+                                targetKind = effectiveTargetKind,
+                                unit = unit.ifBlank { null },
+                            )
+                        } else {
+                            HabitsAction.CreateHabit(
+                                name = name.trim(),
+                                color = selectedColor.toArgb(),
+                                iconKey = selectedIcon,
+                                type = type,
+                                targetNumerator = numerator,
+                                targetDenominator = denominator,
+                                targetValue = targetValue,
+                                targetKind = effectiveTargetKind,
+                                unit = unit.ifBlank { null },
+                            )
+                        },
                     )
                 },
                 enabled = canSubmit,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("Add habit")
+                Text(if (editing != null) "Save changes" else "Add habit")
             }
         }
     }
