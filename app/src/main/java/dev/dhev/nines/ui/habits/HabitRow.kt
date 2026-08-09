@@ -64,15 +64,17 @@ fun HabitRow(
     onIncrement: (Double) -> Unit,
     onDecrement: (Double) -> Unit,
     onSetValue: (Double) -> Unit,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = rememberHabitColors(Color(item.color))
     val cardContainer = lerp(MaterialTheme.colorScheme.surfaceContainer, colors.accent, 0.10f)
     var showValueDialog by remember { mutableStateOf(false) }
 
-    // Non-interactive on tap for now — a future detail screen owns that gesture. Edit lives on
-    // the swipe-right gesture instead (see HabitsScreen), delete on swipe-left.
+    // Tapping the card opens the detail screen; edit lives on the swipe-right gesture instead
+    // (see HabitsScreen), delete on swipe-left.
     Card(
+        onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.largeIncreased,
         colors = CardDefaults.cardColors(

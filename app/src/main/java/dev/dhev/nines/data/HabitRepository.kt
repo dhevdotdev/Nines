@@ -24,6 +24,8 @@ class HabitRepository(
 ) {
     fun observeActiveHabits(): Flow<List<HabitEntity>> = habitDao.observeActiveHabits()
 
+    fun observeHabit(habitId: Long): Flow<HabitEntity?> = habitDao.observeById(habitId)
+
     fun observeEntries(habitId: Long): Flow<List<EntryEntity>> = entryDao.observeEntries(habitId)
 
     suspend fun scheduleEffectiveOn(habitId: Long, date: LocalDate): ScheduleVersionEntity? =
@@ -40,6 +42,10 @@ class HabitRepository(
         unit: String? = null,
         targetValue: Double? = null,
         targetKind: TargetKind? = null,
+        // Overridable only so debug demo-data seeding can backdate a habit's creation date
+        // (to populate its calendar history) — real habit creation always uses the default.
+        createdAt: Instant = Instant.now(),
+        scheduleEffectiveFrom: LocalDate = LocalDate.now(),
     ): Long {
         val position = habitDao.nextPosition()
         val habitId = habitDao.insert(
@@ -51,13 +57,13 @@ class HabitRepository(
                 iconKey = iconKey,
                 backgroundStyleKey = backgroundStyleKey,
                 position = position,
-                createdAt = Instant.now(),
+                createdAt = createdAt,
             ),
         )
         scheduleVersionDao.insert(
             ScheduleVersionEntity(
                 habitId = habitId,
-                effectiveFromDate = LocalDate.now(),
+                effectiveFromDate = scheduleEffectiveFrom,
                 targetNumerator = targetNumerator,
                 targetDenominator = targetDenominator,
                 targetValue = targetValue,

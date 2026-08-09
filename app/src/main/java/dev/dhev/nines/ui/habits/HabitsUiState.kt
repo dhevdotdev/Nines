@@ -65,4 +65,8 @@ sealed interface HabitsAction {
         val unit: String? = null,
     ) : HabitsAction
     data class DeleteHabit(val habitId: Long) : HabitsAction
+    /** Debug-only: long-press the "Nines" title to insert a fixed set of demo habits/history
+     * directly through the repository — a stand-in for adb-based DB reseeding, which this
+     * device's storage permissions block (run-as can list but not read /sdcard file contents). */
+    data object SeedDemoData : HabitsAction
 }

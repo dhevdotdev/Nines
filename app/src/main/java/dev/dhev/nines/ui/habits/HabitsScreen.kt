@@ -4,9 +4,12 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -17,6 +20,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -31,6 +35,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -38,6 +43,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -74,29 +80,42 @@ import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.lerp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.widthIn
+import kotlin.math.roundToInt
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import dev.dhev.nines.BuildConfig
 import dev.dhev.nines.data.local.entity.HabitType
 import dev.dhev.nines.data.local.entity.TargetKind
 import dev.dhev.nines.ui.theme.HabitPalette
 import dev.dhev.nines.ui.theme.Spacing
 import dev.dhev.nines.ui.theme.HabitColors
 import dev.dhev.nines.ui.theme.contrastingIconColor
+import dev.dhev.nines.ui.theme.rememberHabitColors
 import dev.dhev.nines.ui.theme.rememberHabitColorsForPalette
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -104,6 +123,7 @@ import dev.dhev.nines.ui.theme.rememberHabitColorsForPalette
 fun HabitsScreen(
     uiState: HabitsUiState,
     onAction: (HabitsAction) -> Unit,
+    onHabitClick: (Long) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     var showAddSheet by remember { mutableStateOf(false) }
@@ -124,6 +144,20 @@ fun HabitsScreen(
                     Text(
                         text = "Nines",
                         style = MaterialTheme.typography.displaySmall,
+                        // Debug-only: long-press to insert demo habits/history directly through
+                        // the repository, in-process — a stand-in for adb-based DB reseeding on
+                        // devices (like this one) whose storage permissions block that. No-op,
+                        // inert gesture in release builds.
+                        modifier = if (BuildConfig.DEBUG) {
+                            Modifier.combinedClickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                onClick = {},
+                                onLongClick = { onAction(HabitsAction.SeedDemoData) },
+                            )
+                        } else {
+                            Modifier
+                        },
                     )
                 },
             )
@@ -161,7 +195,10 @@ fun HabitsScreen(
                     // Shown only once every habit is checked off — a small reward for actually
                     // finishing, not just a status readout that's visible the rest of the time.
                     AnimatedVisibility(
-                        visible = uiState.habits.all { it.completedToday },
+                        // habits.isNotEmpty() guards the vacuous-truth case: List<T>.all{} on an
+                        // empty list is true, so before the real data loads in (uiState.habits
+                        // starts empty) this would otherwise flash on for a frame every launch.
+                        visible = uiState.habits.isNotEmpty() && uiState.habits.all { it.completedToday },
                         enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) +
                             expandVertically(animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()),
                         exit = fadeOut(MaterialTheme.motionScheme.defaultEffectsSpec()) +
@@ -203,6 +240,7 @@ fun HabitsScreen(
                             onIncrement = { delta -> onAction(HabitsAction.IncrementHabit(item.id, delta)) },
                             onDecrement = { delta -> onAction(HabitsAction.IncrementHabit(item.id, -delta)) },
                             onSetValue = { value -> onAction(HabitsAction.SetNumericValue(item.id, value)) },
+                            onClick = { onHabitClick(item.id) },
                         )
                     }
                 }

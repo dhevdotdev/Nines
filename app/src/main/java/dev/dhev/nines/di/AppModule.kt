@@ -3,6 +3,7 @@ package dev.dhev.nines.di
 import androidx.room.Room
 import dev.dhev.nines.data.HabitRepository
 import dev.dhev.nines.data.local.NinesDatabase
+import dev.dhev.nines.ui.habits.HabitDetailViewModel
 import dev.dhev.nines.ui.habits.HabitsViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModelOf
@@ -22,4 +23,5 @@ val appModule = module {
     single { HabitRepository(get(), get(), get()) }
 
     viewModelOf(::HabitsViewModel)
+    viewModelOf(::HabitDetailViewModel)
 }
