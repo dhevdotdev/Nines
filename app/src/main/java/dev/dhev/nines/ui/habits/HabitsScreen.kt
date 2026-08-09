@@ -1,6 +1,8 @@
 package dev.dhev.nines.ui.habits
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
@@ -11,6 +13,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -85,6 +88,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.widthIn
 import dev.dhev.nines.data.local.entity.HabitType
@@ -508,22 +512,39 @@ private fun AddHabitSheet(
             val revealExit = shrinkVertically(animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()) +
                 fadeOut(animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec())
 
-            AnimatedVisibility(visible = frequencyType == FrequencyType.TIMES_PER_WEEK, enter = revealEnter, exit = revealExit) {
-                Column {
-                    Spacer(Modifier.height(Spacing.default))
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.default)) {
-                        Text(text = "Times per week", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                        NumberStepper(value = timesPerWeek, onValueChange = { timesPerWeek = it }, range = 1..7)
+            // A single AnimatedContent, not two independent AnimatedVisibility siblings — the
+            // previous version had "Per week" and "Custom" as separate toggles, so switching
+            // between them fired two uncoordinated animations at once (one shrinking, one
+            // expanding), fighting each other instead of one clean swap.
+            // transitionSpec isn't a @Composable context, so the motion specs have to be read
+            // here first and captured, not called directly inside it.
+            val contentEffectsSpec = MaterialTheme.motionScheme.defaultEffectsSpec<Float>()
+            val contentSpatialSpec = MaterialTheme.motionScheme.defaultSpatialSpec<IntSize>()
+            AnimatedContent(
+                targetState = frequencyType,
+                transitionSpec = {
+                    fadeIn(contentEffectsSpec)
+                        .togetherWith(fadeOut(contentEffectsSpec))
+                        .using(SizeTransform(clip = false) { _, _ -> contentSpatialSpec })
+                },
+                label = "frequencyDetail",
+            ) { type ->
+                when (type) {
+                    FrequencyType.TIMES_PER_WEEK -> Column {
+                        Spacer(Modifier.height(Spacing.default))
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.default)) {
+                            Text(text = "Times per week", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                            NumberStepper(value = timesPerWeek, onValueChange = { timesPerWeek = it }, range = 1..7)
+                        }
                     }
-                }
-            }
-            AnimatedVisibility(visible = frequencyType == FrequencyType.EVERY_N_DAYS, enter = revealEnter, exit = revealExit) {
-                Column {
-                    Spacer(Modifier.height(Spacing.default))
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.default)) {
-                        Text(text = "Days between", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                        NumberStepper(value = everyNDays, onValueChange = { everyNDays = it }, range = 2..30)
+                    FrequencyType.EVERY_N_DAYS -> Column {
+                        Spacer(Modifier.height(Spacing.default))
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.default)) {
+                            Text(text = "Days between", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                            NumberStepper(value = everyNDays, onValueChange = { everyNDays = it }, range = 2..30)
+                        }
                     }
+                    FrequencyType.DAILY -> Box(Modifier)
                 }
             }
 
