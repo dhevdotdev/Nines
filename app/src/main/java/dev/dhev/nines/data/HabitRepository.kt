@@ -8,6 +8,7 @@ import dev.dhev.nines.data.local.entity.EntryState
 import dev.dhev.nines.data.local.entity.HabitEntity
 import dev.dhev.nines.data.local.entity.HabitType
 import dev.dhev.nines.data.local.entity.ScheduleVersionEntity
+import dev.dhev.nines.data.local.entity.TargetKind
 import dev.dhev.nines.scoring.ScheduleTarget
 import dev.dhev.nines.scoring.ScorePoint
 import dev.dhev.nines.scoring.computeScoreSeries
@@ -25,13 +26,19 @@ class HabitRepository(
 
     fun observeEntries(habitId: Long): Flow<List<EntryEntity>> = entryDao.observeEntries(habitId)
 
+    suspend fun scheduleEffectiveOn(habitId: Long, date: LocalDate): ScheduleVersionEntity? =
+        scheduleVersionDao.versionEffectiveOn(habitId, date)
+
     suspend fun createHabit(
         name: String,
         type: HabitType,
         color: Int,
+        iconKey: String,
         targetNumerator: Int = 1,
         targetDenominator: Int = 1,
         unit: String? = null,
+        targetValue: Double? = null,
+        targetKind: TargetKind? = null,
     ): Long {
         val position = habitDao.nextPosition()
         val habitId = habitDao.insert(
@@ -40,6 +47,7 @@ class HabitRepository(
                 type = type,
                 unit = unit,
                 color = color,
+                iconKey = iconKey,
                 position = position,
                 createdAt = Instant.now(),
             ),
@@ -50,6 +58,8 @@ class HabitRepository(
                 effectiveFromDate = LocalDate.now(),
                 targetNumerator = targetNumerator,
                 targetDenominator = targetDenominator,
+                targetValue = targetValue,
+                targetKind = targetKind,
             ),
         )
         return habitId
@@ -68,6 +78,36 @@ class HabitRepository(
                 habitId = habitId,
                 date = date,
                 state = EntryState.COMPLETED,
+                tzOffsetMinutes = currentTzOffsetMinutes(),
+                createdAt = existing?.createdAt ?: now,
+                updatedAt = now,
+            ),
+        )
+    }
+
+    /**
+     * Adds [delta] to a numeric habit's running value for [date], marking the day COMPLETED
+     * once it meets the schedule's target (at-least: value >= target; at-most: value <= target
+     * — since the increment only grows the value, an at-most habit is "complete" for the day
+     * the moment it's logged at all, and further increments push it back to IN_PROGRESS if
+     * they exceed target).
+     */
+    suspend fun incrementNumericEntry(habitId: Long, date: LocalDate, delta: Double) {
+        val existing = entryDao.entryOn(habitId, date)
+        val now = Instant.now()
+        val newValue = (existing?.numericValue ?: 0.0) + delta
+        val schedule = scheduleVersionDao.versionEffectiveOn(habitId, date)
+        val meetsTarget = when (schedule?.targetKind) {
+            TargetKind.AT_LEAST -> schedule.targetValue != null && newValue >= schedule.targetValue
+            TargetKind.AT_MOST -> schedule.targetValue != null && newValue <= schedule.targetValue
+            null -> false
+        }
+        entryDao.upsert(
+            EntryEntity(
+                habitId = habitId,
+                date = date,
+                state = if (meetsTarget) EntryState.COMPLETED else EntryState.IN_PROGRESS,
+                numericValue = newValue,
                 tzOffsetMinutes = currentTzOffsetMinutes(),
                 createdAt = existing?.createdAt ?: now,
                 updatedAt = now,

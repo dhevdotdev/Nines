@@ -29,10 +29,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
+import dev.dhev.nines.ui.theme.contrastingIconColor
 import dev.dhev.nines.ui.theme.habitCompleteSpatialSpec
 import kotlinx.coroutines.launch
 
@@ -91,6 +91,3 @@ fun CheckOffButton(
         }
     }
 }
-
-private fun contrastingIconColor(background: Color): Color =
-    if (background.luminance() > 0.5f) Color.Black else Color.White

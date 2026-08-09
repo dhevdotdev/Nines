@@ -6,7 +6,8 @@ import androidx.room.Index
 import java.time.Instant
 import java.time.LocalDate
 
-enum class EntryState { COMPLETED, SKIPPED }
+/** [IN_PROGRESS] is a numeric habit's partial progress for the day — logged, but not yet at target. */
+enum class EntryState { COMPLETED, SKIPPED, IN_PROGRESS }
 
 /**
  * One day's record for a habit. A missed day has no row at all — absence is the miss.

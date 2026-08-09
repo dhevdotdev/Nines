@@ -9,7 +9,7 @@ import dev.dhev.nines.data.local.entity.ScheduleVersionEntity
 
 @Database(
     entities = [HabitEntity::class, ScheduleVersionEntity::class, EntryEntity::class],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)

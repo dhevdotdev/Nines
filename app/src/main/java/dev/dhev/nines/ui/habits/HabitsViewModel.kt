@@ -1,7 +1,5 @@
 package dev.dhev.nines.ui.habits
 
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.dhev.nines.data.HabitRepository
@@ -20,7 +18,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.ZoneId
-import kotlin.random.Random
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class HabitsViewModel(private val repository: HabitRepository) : ViewModel() {
@@ -43,15 +40,22 @@ class HabitsViewModel(private val repository: HabitRepository) : ViewModel() {
     private fun habitItemFlow(habit: HabitEntity): Flow<HabitListItem> =
         repository.observeEntries(habit.id).map { entries ->
             val today = LocalDate.now()
-            val completedToday = entries.any { it.date == today && it.state == EntryState.COMPLETED }
+            val todayEntry = entries.firstOrNull { it.date == today }
+            val completedToday = todayEntry?.state == EntryState.COMPLETED
             val startDate = habit.createdAt.atZone(ZoneId.systemDefault()).toLocalDate()
             val score = repository.scoreSeries(habit.id, startDate, today).lastOrNull()?.score ?: 0.0
+            val schedule = repository.scheduleEffectiveOn(habit.id, today)
             HabitListItem(
                 id = habit.id,
                 name = habit.name,
                 color = habit.color,
+                iconKey = habit.iconKey,
+                type = habit.type,
                 completedToday = completedToday,
                 currentScore = score,
+                currentValue = todayEntry?.numericValue,
+                targetValue = schedule?.targetValue,
+                unit = habit.unit,
             )
         }
 
@@ -60,16 +64,20 @@ class HabitsViewModel(private val repository: HabitRepository) : ViewModel() {
             is HabitsAction.ToggleHabit -> viewModelScope.launch {
                 repository.toggleCompletion(action.habitId, LocalDate.now())
             }
+            is HabitsAction.IncrementHabit -> viewModelScope.launch {
+                repository.incrementNumericEntry(action.habitId, LocalDate.now(), action.delta)
+            }
             is HabitsAction.CreateHabit -> viewModelScope.launch {
                 repository.createHabit(
                     name = action.name,
-                    type = HabitType.BOOLEAN,
-                    color = randomSeedColor(),
+                    type = action.type,
+                    color = action.color,
+                    iconKey = action.iconKey,
+                    unit = action.unit,
+                    targetValue = action.targetValue,
+                    targetKind = action.targetKind,
                 )
             }
         }
     }
-
-    private fun randomSeedColor(): Int =
-        Color.hsv(hue = Random.nextFloat() * 360f, saturation = 0.55f, value = 0.85f).toArgb()
 }
