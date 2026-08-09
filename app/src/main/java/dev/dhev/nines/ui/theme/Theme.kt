@@ -48,6 +48,7 @@ fun NinesTheme(
     MaterialExpressiveTheme(
         colorScheme = colorScheme,
         motionScheme = MotionScheme.expressive(),
+        typography = NinesTypography,
         content = content,
     )
 }

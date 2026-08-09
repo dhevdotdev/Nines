@@ -8,6 +8,7 @@ activityCompose = "1.13.0"
 lifecycle = "2.11.0"
 coreKtx = "1.18.0"
 materialKolor = "5.0.0"
+uiTextGoogleFonts = "1.11.4"
 desugarJdkLibs = "2.1.5"
 room = "2.8.4"
 koin = "4.2.2"
@@ -30,6 +31,7 @@ androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "u
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
 androidx-compose-material-icons-core = { group = "androidx.compose.material", name = "material-icons-core" }
 androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
+androidx-ui-text-google-fonts = { group = "androidx.compose.ui", name = "ui-text-google-fonts", version.ref = "uiTextGoogleFonts" }
 
 materialKolor = { group = "com.materialkolor", name = "material-kolor", version.ref = "materialKolor" }
 desugar-jdk-libs = { group = "com.android.tools", name = "desugar_jdk_libs", version.ref = "desugarJdkLibs" }

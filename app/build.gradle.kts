@@ -56,6 +56,7 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.core)
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.materialKolor)
+    implementation(libs.androidx.ui.text.google.fonts)
 
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
