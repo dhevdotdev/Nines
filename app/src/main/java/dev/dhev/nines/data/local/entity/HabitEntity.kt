@@ -16,6 +16,7 @@ data class HabitEntity(
     val unit: String? = null,
     val color: Int,
     val iconKey: String,
+    val backgroundStyleKey: String? = null,
     val position: Int,
     val archivedAt: Instant? = null,
     val createdAt: Instant,

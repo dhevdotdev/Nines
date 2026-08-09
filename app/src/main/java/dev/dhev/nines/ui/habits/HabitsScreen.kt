@@ -74,6 +74,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -310,7 +311,10 @@ private fun EmptyHabitsState(onAddHabit: () -> Unit, modifier: Modifier = Modifi
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { visible = true }
 
-    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+    // True vertical center of the space below the (now compact, fixed) top bar reads as too low
+    // — people perceive "centered" relative to the whole screen including the header, not just
+    // the remaining space beneath it. A slight upward bias corrects for that.
+    Box(modifier = modifier, contentAlignment = BiasAlignment(horizontalBias = 0f, verticalBias = -0.2f)) {
         AnimatedVisibility(
             visible = visible,
             enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) +
@@ -402,6 +406,9 @@ private fun AddHabitSheet(
     }
     val selectedColor = HabitPalette.seeds[selectedColorIndex]
     var selectedIcon by remember { mutableStateOf(editing?.iconKey ?: HabitIcons.default) }
+    var selectedBackground by remember {
+        mutableStateOf(CardBackgroundStyle.fromKey(editing?.backgroundStyleKey))
+    }
     var type by remember { mutableStateOf(editing?.type ?: HabitType.BOOLEAN) }
     var targetText by remember { mutableStateOf(editing?.targetValue?.let(::formatEditableValue) ?: "") }
     var unit by remember { mutableStateOf(editing?.unit ?: "") }
@@ -636,6 +643,47 @@ private fun AddHabitSheet(
             }
 
             Spacer(Modifier.height(Spacing.large))
+            Text(text = "Background", style = MaterialTheme.typography.labelLarge)
+            Spacer(Modifier.height(Spacing.extraSmall))
+            Row(
+                modifier = Modifier
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = Spacing.extraSmall, vertical = Spacing.extraSmall),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.medium),
+            ) {
+                CardBackgroundStyle.entries.forEach { style ->
+                    val selected = style == selectedBackground
+                    val scale = if (selected) 1.08f else 1f
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .graphicsLayer { scaleX = scale; scaleY = scale }
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                            .border(
+                                width = if (selected) 2.dp else 0.dp,
+                                color = iconPreviewColor,
+                                shape = RoundedCornerShape(16.dp),
+                            )
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                            ) { selectedBackground = style },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        HabitCardBackground(
+                            style = style,
+                            color = iconPreviewColor,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                        if (style == CardBackgroundStyle.NONE) {
+                            Text(text = "None", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(Spacing.large))
             Button(
                 onClick = {
                     val (numerator, denominator) = when (frequencyType) {
@@ -652,6 +700,7 @@ private fun AddHabitSheet(
                                 name = name.trim(),
                                 color = selectedColor.toArgb(),
                                 iconKey = selectedIcon,
+                                backgroundStyleKey = selectedBackground.key.takeIf { selectedBackground != CardBackgroundStyle.NONE },
                                 targetNumerator = numerator,
                                 targetDenominator = denominator,
                                 targetValue = targetValue,
@@ -663,6 +712,7 @@ private fun AddHabitSheet(
                                 name = name.trim(),
                                 color = selectedColor.toArgb(),
                                 iconKey = selectedIcon,
+                                backgroundStyleKey = selectedBackground.key.takeIf { selectedBackground != CardBackgroundStyle.NONE },
                                 type = type,
                                 targetNumerator = numerator,
                                 targetDenominator = denominator,

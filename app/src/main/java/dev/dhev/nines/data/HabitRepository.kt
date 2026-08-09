@@ -34,6 +34,7 @@ class HabitRepository(
         type: HabitType,
         color: Int,
         iconKey: String,
+        backgroundStyleKey: String? = null,
         targetNumerator: Int = 1,
         targetDenominator: Int = 1,
         unit: String? = null,
@@ -48,6 +49,7 @@ class HabitRepository(
                 unit = unit,
                 color = color,
                 iconKey = iconKey,
+                backgroundStyleKey = backgroundStyleKey,
                 position = position,
                 createdAt = Instant.now(),
             ),
@@ -139,6 +141,7 @@ class HabitRepository(
         name: String,
         color: Int,
         iconKey: String,
+        backgroundStyleKey: String?,
         unit: String?,
         targetNumerator: Int,
         targetDenominator: Int,
@@ -146,7 +149,15 @@ class HabitRepository(
         targetKind: TargetKind?,
     ) {
         val habit = habitDao.getById(habitId) ?: return
-        habitDao.update(habit.copy(name = name, color = color, iconKey = iconKey, unit = unit))
+        habitDao.update(
+            habit.copy(
+                name = name,
+                color = color,
+                iconKey = iconKey,
+                backgroundStyleKey = backgroundStyleKey,
+                unit = unit,
+            ),
+        )
 
         val today = LocalDate.now()
         val current = scheduleVersionDao.versionEffectiveOn(habitId, today)

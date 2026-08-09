@@ -81,13 +81,19 @@ fun HabitRow(
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = Spacing.large, vertical = Spacing.default),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.default),
-        ) {
+        Box {
+            HabitCardBackground(
+                style = CardBackgroundStyle.fromKey(item.backgroundStyleKey),
+                color = colors.accent,
+                modifier = Modifier.matchParentSize(),
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Spacing.large, vertical = Spacing.default),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.default),
+            ) {
             // The wavy ring itself communicates reliability (score) — a distinctly MD3
             // Expressive stand-in for a flat "X% reliable" text pill.
             Box(modifier = Modifier.size(56.dp), contentAlignment = Alignment.Center) {
@@ -182,6 +188,7 @@ fun HabitRow(
                     onToggle = onToggle,
                     accentColor = colors.accent,
                 )
+            }
             }
         }
     }
