@@ -755,7 +755,19 @@ private fun MonthCalendar(
                             modifier = Modifier
                                 .size(DayCellSize)
                                 .clip(RoundedCornerShape(2.dp))
-                                .background(fill.copy(alpha = cellAlpha)),
+                                .background(fill.copy(alpha = cellAlpha))
+                                .then(
+                                    if (date == LocalDate.now()) {
+                                        val ringColor = if (cell?.state == EntryState.COMPLETED) {
+                                            contrastingIconColor(accent)
+                                        } else {
+                                            accent
+                                        }
+                                        Modifier.border(1.dp, ringColor, RoundedCornerShape(2.dp))
+                                    } else {
+                                        Modifier
+                                    },
+                                ),
                         )
                     }
                 }
