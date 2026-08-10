@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.ZoneId
 
@@ -57,6 +58,7 @@ class HabitDetailViewModel(
                     }
 
                     val totalCompletions = entries.count { it.state == EntryState.COMPLETED }
+                    val todayEntry = entriesByDate[today]
 
                     val historyStart = maxOf(
                         createdDate,
@@ -79,6 +81,8 @@ class HabitDetailViewModel(
                         currentStreak = currentStreak,
                         bestStreak = bestStreak,
                         totalCompletions = totalCompletions,
+                        completedToday = todayEntry?.state == EntryState.COMPLETED,
+                        currentValue = todayEntry?.numericValue,
                         targetValue = schedule?.targetValue,
                         targetKind = schedule?.targetKind,
                         targetNumerator = schedule?.targetNumerator ?: 1,
@@ -94,4 +98,18 @@ class HabitDetailViewModel(
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = HabitDetailUiState(habitId = habitId),
         )
+
+    fun onAction(action: HabitDetailAction) {
+        when (action) {
+            is HabitDetailAction.Toggle -> viewModelScope.launch {
+                repository.toggleCompletion(habitId, LocalDate.now())
+            }
+            is HabitDetailAction.Increment -> viewModelScope.launch {
+                repository.incrementNumericEntry(habitId, LocalDate.now(), action.delta)
+            }
+            is HabitDetailAction.SetValue -> viewModelScope.launch {
+                repository.setNumericEntry(habitId, LocalDate.now(), action.value)
+            }
+        }
+    }
 }

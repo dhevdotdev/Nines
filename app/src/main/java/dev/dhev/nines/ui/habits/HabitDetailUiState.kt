@@ -15,6 +15,8 @@ data class HabitDetailUiState(
     val currentStreak: Int = 0,
     val bestStreak: Int = 0,
     val totalCompletions: Int = 0,
+    val completedToday: Boolean = false,
+    val currentValue: Double? = null,
     val targetValue: Double? = null,
     val targetKind: TargetKind? = null,
     val targetNumerator: Int = 1,
@@ -22,3 +24,9 @@ data class HabitDetailUiState(
     val history: List<DayCell> = emptyList(),
     val isLoading: Boolean = true,
 )
+
+sealed interface HabitDetailAction {
+    data object Toggle : HabitDetailAction
+    data class Increment(val delta: Double) : HabitDetailAction
+    data class SetValue(val value: Double) : HabitDetailAction
+}

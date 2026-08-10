@@ -364,7 +364,7 @@ private fun HistoryStrip(days: List<DayCell>, accent: Color) {
 private fun formatValue(value: Double): String =
     if (value == value.roundToInt().toDouble()) value.roundToInt().toString() else "%.1f".format(value)
 
-private fun defaultIncrement(target: Double?): Double {
+fun defaultIncrement(target: Double?): Double {
     if (target == null || target <= 0) return 1.0
     val raw = target / 10.0
     return if (raw < 1.0) 1.0 else raw.roundToInt().toDouble()

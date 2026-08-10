@@ -70,6 +70,9 @@ import kotlin.math.roundToInt
 fun HabitDetailScreen(
     uiState: HabitDetailUiState,
     onBack: () -> Unit,
+    onToggle: () -> Unit,
+    onIncrement: (Double) -> Unit,
+    onDecrement: (Double) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = rememberHabitColors(Color(uiState.color))
@@ -147,17 +150,44 @@ fun HabitDetailScreen(
                 color = lerp(MaterialTheme.colorScheme.surfaceContainer, colors.accent, 0.08f),
             ) {
                 Column {
-                    Box(modifier = Modifier.fillMaxWidth().height(260.dp), contentAlignment = Alignment.Center) {
+                    Box(modifier = Modifier.fillMaxWidth().height(260.dp)) {
                         HabitCardBackground(
                             style = CardBackgroundStyle.fromKey(uiState.backgroundStyleKey),
                             color = colors.accent,
                             alpha = 0.35f,
                             modifier = Modifier.matchParentSize(),
                         )
+                        // The one thing missing from this page before now: you could see today's
+                        // status here but not actually change it, so marking a habit done meant
+                        // leaving the detail screen and going back to the list. Floats in the
+                        // corner rather than its own row so it doesn't add a fourth boxy section.
+                        if (uiState.type == HabitType.NUMERICAL) {
+                            NumericProgressButton(
+                                metTarget = uiState.completedToday,
+                                onIncrement = { onIncrement(defaultIncrement(uiState.targetValue)) },
+                                onDecrement = { onDecrement(defaultIncrement(uiState.targetValue)) },
+                                accentColor = colors.accent,
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(Spacing.default),
+                            )
+                        } else {
+                            CheckOffButton(
+                                completed = uiState.completedToday,
+                                onToggle = onToggle,
+                                accentColor = colors.accent,
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(Spacing.default),
+                            )
+                        }
                         // M3 Expressive leans into bold, unmissable primary indicators rather than
                         // a modest little dial — this is the single most important number on the
                         // page, so it gets to be the biggest thing on it.
-                        Box(modifier = Modifier.size(184.dp), contentAlignment = Alignment.Center) {
+                        Box(
+                            modifier = Modifier.size(184.dp).align(Alignment.Center),
+                            contentAlignment = Alignment.Center,
+                        ) {
                             CircularWavyProgressIndicator(
                                 progress = { uiState.currentScore.toFloat() },
                                 modifier = Modifier.size(184.dp),
