@@ -155,7 +155,10 @@ fun HabitDetailScreen(
             )
         },
     ) { innerPadding ->
-        if (uiState.isLoading) return@Scaffold
+        if (uiState.isLoading) {
+            FullScreenLoadingIndicator(modifier = Modifier.padding(innerPadding))
+            return@Scaffold
+        }
 
         Column(
             modifier = Modifier

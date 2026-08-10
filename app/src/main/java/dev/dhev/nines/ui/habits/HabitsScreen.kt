@@ -163,7 +163,9 @@ fun HabitsScreen(
             }
         },
     ) { innerPadding ->
-        if (uiState.habits.isEmpty() && !uiState.isLoading) {
+        if (uiState.isLoading) {
+            FullScreenLoadingIndicator(modifier = Modifier.padding(innerPadding))
+        } else if (uiState.habits.isEmpty()) {
             EmptyHabitsState(
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
                 onAddHabit = { showAddSheet = true },
