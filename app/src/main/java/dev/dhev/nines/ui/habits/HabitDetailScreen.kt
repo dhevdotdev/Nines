@@ -30,7 +30,10 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularWavyProgressIndicator
@@ -305,6 +308,8 @@ fun HabitDetailScreen(
                     }
                 }
             }
+
+            InsightsSection(uiState = uiState, accent = colors.accent)
 
             Spacer(Modifier.height(Spacing.large))
         }
@@ -679,6 +684,137 @@ private fun streakRangeLabel(streak: StreakRun): String {
         formatter.format(streak.start)
     }
     return if (streak.start == streak.end) startText else "$startText – ${formatter.format(streak.end)}"
+}
+
+/**
+ * Three different angles on the same history that none of the other sections answer: which
+ * weekdays this habit actually holds up on, whether the last month was better or worse than the
+ * one before it, and roughly when in the day it tends to get done. Grouped into one card rather
+ * than three separate titled sections since each is a single supporting fact, not its own screen
+ * region — three headings in a row would out-weigh what they're each saying.
+ */
+@Composable
+private fun InsightsSection(uiState: HabitDetailUiState, accent: Color) {
+    val hasWeekday = uiState.weekdayRates.size == 7
+    val hasMomentum = uiState.momentumDeltaPoints != null
+    val hasTypicalTime = uiState.typicalTimeOfDay != null
+    if (!hasWeekday && !hasMomentum && !hasTypicalTime) return
+
+    Spacer(Modifier.height(Spacing.extraLarge))
+    Text(
+        text = "Insights",
+        style = MaterialTheme.typography.titleMediumEmphasized,
+    )
+    Spacer(Modifier.height(Spacing.default))
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.extraLargeIncreased,
+        color = MaterialTheme.colorScheme.surfaceContainer,
+    ) {
+        Column(
+            modifier = Modifier.padding(Spacing.default),
+            verticalArrangement = Arrangement.spacedBy(Spacing.default),
+        ) {
+            if (hasWeekday) {
+                WeekdayBreakdownRow(rates = uiState.weekdayRates, accent = accent)
+            }
+            uiState.momentumDeltaPoints?.let { delta ->
+                if (hasWeekday) HorizontalDivider(color = accent.copy(alpha = 0.12f))
+                MomentumRow(deltaPoints = delta, accent = accent)
+            }
+            uiState.typicalTimeOfDay?.let { timeOfDay ->
+                if (hasWeekday || hasMomentum) HorizontalDivider(color = accent.copy(alpha = 0.12f))
+                TypicalTimeRow(timeOfDay = timeOfDay, accent = accent)
+            }
+        }
+    }
+}
+
+@Composable
+private fun WeekdayBreakdownRow(rates: List<Double>, accent: Color) {
+    Column {
+        Text(
+            text = "By day of week",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(Spacing.small))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            val labels = listOf("M", "T", "W", "T", "F", "S", "S")
+            rates.forEachIndexed { index, rate ->
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(accent.copy(alpha = (0.12f + rate.toFloat() * 0.75f).coerceAtMost(1f))),
+                    )
+                    Spacer(Modifier.height(Spacing.extraSmall))
+                    Text(
+                        text = labels[index],
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+        val strongest = rates.indices.maxByOrNull { rates[it] }
+        val weakest = rates.indices.minByOrNull { rates[it] }
+        if (strongest != null && weakest != null && strongest != weakest && rates[strongest] > rates[weakest]) {
+            Spacer(Modifier.height(Spacing.small))
+            Text(
+                text = "Strongest on ${weekdayName(strongest)}s, weakest on ${weekdayName(weakest)}s",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+private fun weekdayName(index: Int): String =
+    java.time.DayOfWeek.of(index + 1).getDisplayName(TextStyle.FULL, Locale.getDefault())
+
+@Composable
+private fun MomentumRow(deltaPoints: Double, accent: Color) {
+    val improving = deltaPoints >= 0
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            imageVector = if (improving) Icons.AutoMirrored.Filled.TrendingUp else Icons.AutoMirrored.Filled.TrendingDown,
+            contentDescription = null,
+            tint = if (improving) accent else MaterialTheme.colorScheme.error,
+            modifier = Modifier.size(20.dp),
+        )
+        Spacer(Modifier.width(Spacing.small))
+        val roundedDelta = kotlin.math.abs(deltaPoints).roundToInt()
+        Text(
+            text = if (improving) {
+                "$roundedDelta% more consistent than the previous 30 days"
+            } else {
+                "$roundedDelta% less consistent than the previous 30 days"
+            },
+            style = MaterialTheme.typography.bodyMedium,
+        )
+    }
+}
+
+@Composable
+private fun TypicalTimeRow(timeOfDay: String, accent: Color) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            imageVector = Icons.Filled.Schedule,
+            contentDescription = null,
+            tint = accent,
+            modifier = Modifier.size(20.dp),
+        )
+        Spacer(Modifier.width(Spacing.small))
+        Text(
+            text = "Usually logged in the $timeOfDay",
+            style = MaterialTheme.typography.bodyMedium,
+        )
+    }
 }
 
 /** Plain text now, no chip background — these live inside the hero surface itself (see the

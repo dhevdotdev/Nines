@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.ZoneId
+import java.time.ZoneOffset
 
 private const val HISTORY_MONTHS_BACK = 9L
 
@@ -81,6 +82,68 @@ class HabitDetailViewModel(
                         null
                     }
 
+                    // Which weekdays this habit actually lands on - a habit can have a strong
+                    // score overall while consistently sliding on one or two particular days,
+                    // and nothing else on this screen would ever surface that pattern.
+                    val weekdayRates = if (!createdDate.isAfter(today.minusDays(13))) {
+                        val totals = IntArray(7)
+                        val completions = IntArray(7)
+                        var wd = createdDate
+                        while (!wd.isAfter(today)) {
+                            val idx = wd.dayOfWeek.value - 1
+                            totals[idx]++
+                            if (entriesByDate[wd]?.state == EntryState.COMPLETED) completions[idx]++
+                            wd = wd.plusDays(1)
+                        }
+                        (0 until 7).map { i -> if (totals[i] > 0) completions[i].toDouble() / totals[i] else 0.0 }
+                    } else {
+                        emptyList()
+                    }
+
+                    // Comparing two full, equal-length trailing windows (not calendar months,
+                    // which vary in length and would bias the comparison) rather than eyeballing
+                    // the score - a direct "are things trending up or down lately" readout.
+                    val momentumDeltaPoints = if (!createdDate.isAfter(today.minusDays(59))) {
+                        fun completionRate(windowEnd: LocalDate): Double {
+                            val windowStart = windowEnd.minusDays(29)
+                            var count = 0
+                            var wd = windowStart
+                            while (!wd.isAfter(windowEnd)) {
+                                if (entriesByDate[wd]?.state == EntryState.COMPLETED) count++
+                                wd = wd.plusDays(1)
+                            }
+                            return count / 30.0
+                        }
+                        (completionRate(today) - completionRate(today.minusDays(30))) * 100
+                    } else {
+                        null
+                    }
+
+                    // Uses timestamps already captured on every entry (tzOffsetMinutes +
+                    // createdAt) but never surfaced anywhere - a "when do I actually do this"
+                    // pattern that only shows up once you have several logged times to compare.
+                    val completedEntries = entries.filter { it.state == EntryState.COMPLETED }
+                    val typicalTimeOfDay = if (completedEntries.size >= 5) {
+                        completedEntries
+                            .map {
+                                val hour = it.createdAt
+                                    .atOffset(ZoneOffset.ofTotalSeconds(it.tzOffsetMinutes * 60))
+                                    .hour
+                                when (hour) {
+                                    in 5..11 -> "morning"
+                                    in 12..16 -> "afternoon"
+                                    in 17..20 -> "evening"
+                                    else -> "night"
+                                }
+                            }
+                            .groupingBy { it }
+                            .eachCount()
+                            .maxByOrNull { it.value }
+                            ?.key
+                    } else {
+                        null
+                    }
+
                     val historyStart = maxOf(
                         createdDate,
                         today.minusMonths(HISTORY_MONTHS_BACK).withDayOfMonth(1),
@@ -120,6 +183,9 @@ class HabitDetailViewModel(
                         cycleTarget = cycleTarget,
                         cycleWindowDays = cycleWindowDays,
                         topStreaks = topStreaks,
+                        weekdayRates = weekdayRates,
+                        momentumDeltaPoints = momentumDeltaPoints,
+                        typicalTimeOfDay = typicalTimeOfDay,
                         history = history,
                         isLoading = false,
                     )

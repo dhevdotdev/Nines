@@ -29,6 +29,9 @@ data class HabitDetailUiState(
     val cycleTarget: Int? = null,
     val cycleWindowDays: Int? = null,
     val topStreaks: List<StreakRun> = emptyList(),
+    val weekdayRates: List<Double> = emptyList(),
+    val momentumDeltaPoints: Double? = null,
+    val typicalTimeOfDay: String? = null,
     val history: List<DayCell> = emptyList(),
     val isLoading: Boolean = true,
 )
