@@ -5,6 +5,9 @@ import androidx.lifecycle.viewModelScope
 import dev.dhev.nines.data.HabitRepository
 import dev.dhev.nines.data.local.entity.EntryState
 import dev.dhev.nines.data.local.entity.HabitType
+import dev.dhev.nines.scoring.computeGapRuns
+import dev.dhev.nines.scoring.computeStreakRuns
+import dev.dhev.nines.scoring.currentStreakLength
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -38,31 +41,13 @@ class HabitDetailViewModel(
                 ) { entries, schedule ->
                     val entriesByDate = entries.associateBy { it.date }
                     val score = repository.scoreSeries(habitId, createdDate, today).lastOrNull()?.score ?: 0.0
+                    val completedDates = entries.filter { it.state == EntryState.COMPLETED }.map { it.date }.toSet()
 
-                    var currentStreak = 0
-                    var cursor = if (entriesByDate[today]?.state == EntryState.COMPLETED) today else today.minusDays(1)
-                    while (entriesByDate[cursor]?.state == EntryState.COMPLETED) {
-                        currentStreak++
-                        cursor = cursor.minusDays(1)
-                    }
-
-                    // Recorded as full runs (not just the longest length) so the detail screen
-                    // can list past streaks ranked by length, not just report a single number.
-                    val streakRuns = mutableListOf<StreakRun>()
-                    var runStart: LocalDate? = null
-                    var running = 0
-                    var day = createdDate
-                    while (!day.isAfter(today)) {
-                        if (entriesByDate[day]?.state == EntryState.COMPLETED) {
-                            if (running == 0) runStart = day
-                            running++
-                        } else {
-                            if (running > 0) streakRuns.add(StreakRun(runStart!!, day.minusDays(1), running))
-                            running = 0
-                        }
-                        day = day.plusDays(1)
-                    }
-                    if (running > 0) streakRuns.add(StreakRun(runStart!!, today, running))
+                    // Full runs (not just the longest length) so the detail screen can list past
+                    // streaks ranked by length, not just report a single number - current/best
+                    // are both just views onto the same underlying runs.
+                    val streakRuns = computeStreakRuns(completedDates, createdDate, today)
+                    val currentStreak = currentStreakLength(streakRuns, today)
                     val bestStreak = streakRuns.maxOfOrNull { it.length } ?: 0
                     val topStreaks = streakRuns.sortedByDescending { it.length }.take(5)
 
@@ -145,28 +130,14 @@ class HabitDetailViewModel(
                         null
                     }
 
-                    // Mirrors the streak-run tracking above but inverted - the longest run of
-                    // non-completed days on record. Best streaks alone only tell half the story;
-                    // this is the other, harder half, using the same completed/not-completed
-                    // rule so the two lists never disagree about what counts as a "day".
-                    val gapRuns = mutableListOf<StreakRun>()
-                    var gapStart: LocalDate? = null
-                    var gapRunning = 0
-                    var gd = createdDate
-                    while (!gd.isAfter(today)) {
-                        if (entriesByDate[gd]?.state != EntryState.COMPLETED) {
-                            if (gapRunning == 0) gapStart = gd
-                            gapRunning++
-                        } else {
-                            if (gapRunning > 0) gapRuns.add(StreakRun(gapStart!!, gd.minusDays(1), gapRunning))
-                            gapRunning = 0
-                        }
-                        gd = gd.plusDays(1)
-                    }
-                    if (gapRunning > 0) gapRuns.add(StreakRun(gapStart!!, today, gapRunning))
-                    // A single missed day isn't a "gap" worth naming - only surface it once it's
-                    // long enough to represent a real lapse, not routine day-to-day noise.
-                    val longestGap = gapRuns.filter { it.length >= 3 }.maxByOrNull { it.length }
+                    // The inverse of the streak runs above - best streaks alone only tell half
+                    // the story; this is the other, harder half, using the same
+                    // completed/not-completed rule so the two lists never disagree about what
+                    // counts as a "day". A single missed day isn't a "gap" worth naming - only
+                    // surface one long enough to represent a real lapse, not routine noise.
+                    val longestGap = computeGapRuns(completedDates, createdDate, today)
+                        .filter { it.length >= 3 }
+                        .maxByOrNull { it.length }
 
                     // Never summed/averaged anywhere else - the running totals only ever showed
                     // a day-count, never what was actually logged on those days.

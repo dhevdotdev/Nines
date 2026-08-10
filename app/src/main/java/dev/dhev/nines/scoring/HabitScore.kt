@@ -79,3 +79,45 @@ fun computeScoreSeries(
     }
     return results
 }
+
+/** A single run of consecutive days matching some day-level condition (completed, or not). */
+data class StreakRun(val start: LocalDate, val end: LocalDate, val length: Int)
+
+/**
+ * Runs of consecutive completed days between [startDate] and [endDate] inclusive, in
+ * chronological order. The last entry is the "current" streak exactly when its [StreakRun.end]
+ * is [endDate] or the day before it — a run that stopped earlier than that has already broken.
+ */
+fun computeStreakRuns(completedDates: Set<LocalDate>, startDate: LocalDate, endDate: LocalDate): List<StreakRun> =
+    computeRuns(startDate, endDate) { it in completedDates }
+
+/** The inverse of [computeStreakRuns]: runs of consecutive NOT-completed days, i.e. gaps. */
+fun computeGapRuns(completedDates: Set<LocalDate>, startDate: LocalDate, endDate: LocalDate): List<StreakRun> =
+    computeRuns(startDate, endDate) { it !in completedDates }
+
+private fun computeRuns(startDate: LocalDate, endDate: LocalDate, matches: (LocalDate) -> Boolean): List<StreakRun> {
+    require(!endDate.isBefore(startDate)) { "endDate must not be before startDate" }
+    val runs = mutableListOf<StreakRun>()
+    var runStart: LocalDate? = null
+    var length = 0
+    var date = startDate
+    while (!date.isAfter(endDate)) {
+        if (matches(date)) {
+            if (length == 0) runStart = date
+            length++
+        } else if (length > 0) {
+            runs.add(StreakRun(runStart!!, date.minusDays(1), length))
+            length = 0
+        }
+        date = date.plusDays(1)
+    }
+    if (length > 0) runs.add(StreakRun(runStart!!, endDate, length))
+    return runs
+}
+
+/** The streak still running as of [endDate] — the last run's length if it reaches through
+ * [endDate] or the day before it, zero if the most recent run already ended earlier than that. */
+fun currentStreakLength(streakRuns: List<StreakRun>, endDate: LocalDate): Int {
+    val last = streakRuns.lastOrNull() ?: return 0
+    return if (!last.end.isBefore(endDate.minusDays(1))) last.length else 0
+}

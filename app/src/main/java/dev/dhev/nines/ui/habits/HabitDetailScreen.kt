@@ -81,6 +81,7 @@ import androidx.compose.ui.window.Dialog
 import dev.dhev.nines.data.local.entity.EntryState
 import dev.dhev.nines.data.local.entity.HabitType
 import dev.dhev.nines.data.local.entity.TargetKind
+import dev.dhev.nines.scoring.StreakRun
 import dev.dhev.nines.ui.theme.HabitPalette
 import dev.dhev.nines.ui.theme.Spacing
 import dev.dhev.nines.ui.theme.contrastingIconColor
@@ -197,15 +198,28 @@ fun HabitDetailScreen(
                         // leaving the detail screen and going back to the list. Floats in the
                         // corner rather than its own row so it doesn't add a fourth boxy section.
                         if (uiState.type == HabitType.NUMERICAL) {
-                            NumericProgressButton(
-                                metTarget = uiState.completedToday,
-                                onIncrement = { onAction(HabitDetailAction.Increment(LocalDate.now(), defaultIncrement(uiState.targetValue))) },
-                                onDecrement = { onAction(HabitDetailAction.Increment(LocalDate.now(), -defaultIncrement(uiState.targetValue))) },
-                                accentColor = colors.accent,
+                            Column(
                                 modifier = Modifier
                                     .align(Alignment.TopEnd)
                                     .padding(Spacing.default),
-                            )
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                            ) {
+                                NumericProgressButton(
+                                    metTarget = uiState.completedToday,
+                                    onIncrement = { onAction(HabitDetailAction.Increment(LocalDate.now(), defaultIncrement(uiState.targetValue))) },
+                                    onDecrement = { onAction(HabitDetailAction.Increment(LocalDate.now(), -defaultIncrement(uiState.targetValue))) },
+                                    accentColor = colors.accent,
+                                )
+                                Spacer(Modifier.height(Spacing.extraSmall))
+                                // Every tap on that button silently changes a number nowhere else
+                                // visible on this screen - this is the only feedback confirming
+                                // the tap landed and showing what it actually did to today's value.
+                                Text(
+                                    text = "${formatValue(uiState.currentValue ?: 0.0)}${uiState.targetValue?.let { "/${formatValue(it)}" } ?: ""}",
+                                    style = MaterialTheme.typography.labelMediumEmphasized,
+                                    color = colors.accent,
+                                )
+                            }
                         } else {
                             CheckOffButton(
                                 completed = uiState.completedToday,
@@ -552,7 +566,7 @@ private fun NumericEditDialog(
     onSave: (Double) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var text by remember(day.date) { mutableStateOf(day.numericValue?.let { formatDetailValue(it) } ?: "") }
+    var text by remember(day.date) { mutableStateOf(day.numericValue?.let { formatValue(it) } ?: "") }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -591,17 +605,14 @@ private fun NumericEditDialog(
 
 private fun dayStatusLabel(day: DayCell, unit: String?): String = when (day.state) {
     EntryState.COMPLETED -> if (day.numericValue != null) {
-        "Completed · ${formatDetailValue(day.numericValue)}${unit?.let { " $it" } ?: ""}"
+        "Completed · ${formatValue(day.numericValue)}${unit?.let { " $it" } ?: ""}"
     } else {
         "Completed"
     }
-    EntryState.IN_PROGRESS -> "In progress · ${formatDetailValue(day.numericValue ?: 0.0)}${unit?.let { " $it" } ?: ""}"
+    EntryState.IN_PROGRESS -> "In progress · ${formatValue(day.numericValue ?: 0.0)}${unit?.let { " $it" } ?: ""}"
     EntryState.SKIPPED -> "Skipped"
     null -> if (day.date.isAfter(LocalDate.now())) "Upcoming" else "Not logged"
 }
-
-private fun formatDetailValue(value: Double): String =
-    if (value == value.roundToInt().toDouble()) value.roundToInt().toString() else "%.1f".format(value)
 
 /**
  * "3× per week", "Goal: at least 20 pages", "Every 2 days" — the schedule this habit was
@@ -820,7 +831,7 @@ private fun NumericTotalsRow(total: Double, average: Double, unit: String?, acce
         )
         Spacer(Modifier.width(Spacing.small))
         Text(
-            text = "${formatDetailValue(total)}$unitSuffix total · averaging ${formatDetailValue(average)}$unitSuffix per entry",
+            text = "${formatValue(total)}$unitSuffix total · averaging ${formatValue(average)}$unitSuffix per entry",
             style = MaterialTheme.typography.bodyMedium,
         )
     }

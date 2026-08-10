@@ -7,6 +7,8 @@ import dev.dhev.nines.data.local.entity.EntryState
 import dev.dhev.nines.data.local.entity.HabitEntity
 import dev.dhev.nines.data.local.entity.HabitType
 import dev.dhev.nines.data.local.entity.TargetKind
+import dev.dhev.nines.scoring.computeStreakRuns
+import dev.dhev.nines.scoring.currentStreakLength
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -55,12 +57,8 @@ class HabitsViewModel(private val repository: HabitRepository) : ViewModel() {
                 val date = today.minusDays(offset.toLong())
                 DayCell(date = date, state = entriesByDate[date]?.state, isToday = date == today)
             }
-            var streak = 0
-            var cursor = if (completedToday) today else today.minusDays(1)
-            while (entriesByDate[cursor]?.state == EntryState.COMPLETED) {
-                streak++
-                cursor = cursor.minusDays(1)
-            }
+            val completedDates = entries.filter { it.state == EntryState.COMPLETED }.map { it.date }.toSet()
+            val streak = currentStreakLength(computeStreakRuns(completedDates, startDate, today), today)
             HabitListItem(
                 id = habit.id,
                 name = habit.name,

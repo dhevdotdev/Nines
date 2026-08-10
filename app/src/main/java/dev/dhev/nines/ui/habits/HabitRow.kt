@@ -361,7 +361,8 @@ private fun HistoryStrip(days: List<DayCell>, accent: Color) {
     }
 }
 
-private fun formatValue(value: Double): String =
+/** Shared with the detail screen (same package) - "12" for a whole number, "12.5" otherwise. */
+fun formatValue(value: Double): String =
     if (value == value.roundToInt().toDouble()) value.roundToInt().toString() else "%.1f".format(value)
 
 fun defaultIncrement(target: Double?): Double {
