@@ -8,6 +8,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -434,6 +435,18 @@ private fun ExpandedMonthDialog(
                                         .size(ExpandedDayCellSize)
                                         .clip(CircleShape)
                                         .background(fill.copy(alpha = if (date == null) 0f else cellAlpha))
+                                        .then(
+                                            if (date == today) {
+                                                val ringColor = if (cell?.state == EntryState.COMPLETED) {
+                                                    contrastingIconColor(accent)
+                                                } else {
+                                                    accent
+                                                }
+                                                Modifier.border(1.5.dp, ringColor, CircleShape)
+                                            } else {
+                                                Modifier
+                                            },
+                                        )
                                         .clickable(
                                             interactionSource = remember { MutableInteractionSource() },
                                             indication = ripple(),
