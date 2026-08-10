@@ -2,6 +2,7 @@ package dev.dhev.nines.ui.habits
 
 import dev.dhev.nines.data.local.entity.HabitType
 import dev.dhev.nines.data.local.entity.TargetKind
+import java.time.LocalDate
 
 data class HabitDetailUiState(
     val habitId: Long = -1,
@@ -26,9 +27,12 @@ data class HabitDetailUiState(
 )
 
 sealed interface HabitDetailAction {
-    data object Toggle : HabitDetailAction
-    data class Increment(val delta: Double) : HabitDetailAction
-    data class SetValue(val value: Double) : HabitDetailAction
+    // Carry an explicit date rather than always assuming "today" — these now double as the
+    // retroactive edit actions fired from the expanded month view, not just the mark-complete
+    // button for the current day.
+    data class Toggle(val date: LocalDate) : HabitDetailAction
+    data class Increment(val date: LocalDate, val delta: Double) : HabitDetailAction
+    data class SetValue(val date: LocalDate, val value: Double) : HabitDetailAction
     data class Update(
         val name: String,
         val color: Int,

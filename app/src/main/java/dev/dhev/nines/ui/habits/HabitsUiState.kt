@@ -10,6 +10,7 @@ data class DayCell(
     val date: LocalDate,
     val state: EntryState?,
     val isToday: Boolean,
+    val numericValue: Double? = null,
 )
 
 data class HabitListItem(

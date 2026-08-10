@@ -8,7 +8,9 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,11 +25,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -35,10 +39,13 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -53,8 +60,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import dev.dhev.nines.data.local.entity.EntryState
 import dev.dhev.nines.data.local.entity.HabitType
 import dev.dhev.nines.data.local.entity.TargetKind
@@ -65,6 +75,8 @@ import dev.dhev.nines.ui.theme.rememberHabitColors
 import dev.dhev.nines.ui.theme.rememberHabitColorsForPalette
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import java.time.format.TextStyle
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -79,6 +91,8 @@ fun HabitDetailScreen(
 ) {
     val colors = rememberHabitColors(Color(uiState.color))
     var showEditSheet by remember { mutableStateOf(false) }
+    var expandedMonth by remember { mutableStateOf<YearMonth?>(null) }
+    var editingDay by remember { mutableStateOf<DayCell?>(null) }
 
     Scaffold(
         modifier = modifier,
@@ -172,8 +186,8 @@ fun HabitDetailScreen(
                         if (uiState.type == HabitType.NUMERICAL) {
                             NumericProgressButton(
                                 metTarget = uiState.completedToday,
-                                onIncrement = { onAction(HabitDetailAction.Increment(defaultIncrement(uiState.targetValue))) },
-                                onDecrement = { onAction(HabitDetailAction.Increment(-defaultIncrement(uiState.targetValue))) },
+                                onIncrement = { onAction(HabitDetailAction.Increment(LocalDate.now(), defaultIncrement(uiState.targetValue))) },
+                                onDecrement = { onAction(HabitDetailAction.Increment(LocalDate.now(), -defaultIncrement(uiState.targetValue))) },
                                 accentColor = colors.accent,
                                 modifier = Modifier
                                     .align(Alignment.TopEnd)
@@ -182,7 +196,7 @@ fun HabitDetailScreen(
                         } else {
                             CheckOffButton(
                                 completed = uiState.completedToday,
-                                onToggle = { onAction(HabitDetailAction.Toggle) },
+                                onToggle = { onAction(HabitDetailAction.Toggle(LocalDate.now())) },
                                 accentColor = colors.accent,
                                 modifier = Modifier
                                     .align(Alignment.TopEnd)
@@ -258,7 +272,11 @@ fun HabitDetailScreen(
                 style = MaterialTheme.typography.titleMediumEmphasized,
             )
             Spacer(Modifier.height(Spacing.default))
-            HistoryCalendar(days = uiState.history, accent = colors.accent)
+            HistoryCalendar(
+                days = uiState.history,
+                accent = colors.accent,
+                onMonthClick = { month -> expandedMonth = month },
+            )
             Spacer(Modifier.height(Spacing.large))
         }
     }
@@ -311,7 +329,218 @@ fun HabitDetailScreen(
             onDismiss = { showEditSheet = false },
         )
     }
+
+    // Small compact grid cells are too fiddly to tap accurately, so the calendar is a two-step
+    // reveal: tap a whole month card to open it full-size, then tap a day inside that bigger
+    // grid to edit it directly — done/not-done for boolean habits, or the logged measurement
+    // for numeric ones. This is real retroactive editing, not just a read-only heatmap.
+    expandedMonth?.let { month ->
+        ExpandedMonthDialog(
+            month = month,
+            byDate = remember(uiState.history) { uiState.history.associateBy { it.date } },
+            habitType = uiState.type,
+            unit = uiState.unit,
+            accent = colors.accent,
+            onDayClick = { day ->
+                if (uiState.type == HabitType.NUMERICAL) {
+                    editingDay = day
+                } else {
+                    onAction(HabitDetailAction.Toggle(day.date))
+                }
+            },
+            onDismiss = { expandedMonth = null },
+        )
+    }
+
+    editingDay?.let { day ->
+        NumericEditDialog(
+            day = day,
+            unit = uiState.unit,
+            accent = colors.accent,
+            onSave = { value ->
+                onAction(HabitDetailAction.SetValue(day.date, value))
+                editingDay = null
+            },
+            onDismiss = { editingDay = null },
+        )
+    }
 }
+
+/**
+ * The full-size month view opened from tapping a compact card in [HistoryCalendar]. Cells here
+ * are big enough (36dp, with the day-of-month number) to tap confidently, unlike the 9dp cells
+ * in the scrollable overview row.
+ */
+@Composable
+private fun ExpandedMonthDialog(
+    month: YearMonth,
+    byDate: Map<LocalDate, DayCell>,
+    habitType: HabitType,
+    unit: String?,
+    accent: Color,
+    onDayClick: (DayCell) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val today = LocalDate.now()
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = MaterialTheme.shapes.extraLargeIncreased,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        ) {
+            Column(modifier = Modifier.padding(Spacing.large).fillMaxWidth()) {
+                Text(
+                    text = month.month.getDisplayName(TextStyle.FULL, Locale.getDefault()) + " ${month.year}",
+                    style = MaterialTheme.typography.titleMediumEmphasized,
+                )
+                Spacer(Modifier.height(Spacing.default))
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    listOf("S", "M", "T", "W", "T", "F", "S").forEach { label ->
+                        Box(modifier = Modifier.size(ExpandedDayCellSize), contentAlignment = Alignment.Center) {
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.height(Spacing.extraSmall))
+
+                val firstOfMonth = month.atDay(1)
+                val leadingBlanks = firstOfMonth.dayOfWeek.value % 7
+                val cells = buildList {
+                    repeat(leadingBlanks) { add(null) }
+                    for (day in 1..month.lengthOfMonth()) add(month.atDay(day))
+                    while (size % 7 != 0) add(null)
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.extraSmall)) {
+                    cells.chunked(7).forEach { week ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                        ) {
+                            week.forEach { date ->
+                                val cell = date?.let { byDate[it] }
+                                val enabled = date != null && !date.isAfter(today)
+                                val (fill, cellAlpha) = when (cell?.state) {
+                                    EntryState.COMPLETED -> accent to 1f
+                                    EntryState.IN_PROGRESS -> accent to 0.4f
+                                    EntryState.SKIPPED, null -> MaterialTheme.colorScheme.surfaceContainerHighest to 0.6f
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .size(ExpandedDayCellSize)
+                                        .clip(CircleShape)
+                                        .background(fill.copy(alpha = if (date == null) 0f else cellAlpha))
+                                        .clickable(
+                                            interactionSource = remember { MutableInteractionSource() },
+                                            indication = ripple(),
+                                            enabled = enabled,
+                                        ) {
+                                            date?.let { onDayClick(cell ?: DayCell(date = it, state = null, isToday = it == today)) }
+                                        },
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    if (date != null) {
+                                        Text(
+                                            text = date.dayOfMonth.toString(),
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = if (cell?.state == EntryState.COMPLETED) {
+                                                contrastingIconColor(accent)
+                                            } else {
+                                                MaterialTheme.colorScheme.onSurface
+                                            },
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(Spacing.default))
+                Text(
+                    text = if (habitType == HabitType.NUMERICAL) {
+                        "Tap a day to log or edit an entry."
+                    } else {
+                        "Tap a day to mark it done or not done."
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(Spacing.default))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = onDismiss) { Text("Close") }
+                }
+            }
+        }
+    }
+}
+
+private val ExpandedDayCellSize = 36.dp
+
+/** Nested on top of [ExpandedMonthDialog] when a day is tapped for a numeric habit — the only
+ * habit type where "tap to edit" needs more than a toggle. */
+@Composable
+private fun NumericEditDialog(
+    day: DayCell,
+    unit: String?,
+    accent: Color,
+    onSave: (Double) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var text by remember(day.date) { mutableStateOf(day.numericValue?.let { formatDetailValue(it) } ?: "") }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = MaterialTheme.shapes.extraLargeIncreased,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        ) {
+            Column(modifier = Modifier.padding(Spacing.large).fillMaxWidth()) {
+                Text(
+                    text = day.date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL)),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Spacer(Modifier.height(Spacing.small))
+                Text(
+                    text = dayStatusLabel(day, unit),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = accent,
+                )
+                Spacer(Modifier.height(Spacing.large))
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    label = { Text(unit ?: "Value") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(Spacing.large))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = onDismiss) { Text("Cancel") }
+                    Spacer(Modifier.width(Spacing.small))
+                    Button(onClick = { text.toDoubleOrNull()?.let(onSave) }) { Text("Save") }
+                }
+            }
+        }
+    }
+}
+
+private fun dayStatusLabel(day: DayCell, unit: String?): String = when (day.state) {
+    EntryState.COMPLETED -> if (day.numericValue != null) {
+        "Completed · ${formatDetailValue(day.numericValue)}${unit?.let { " $it" } ?: ""}"
+    } else {
+        "Completed"
+    }
+    EntryState.IN_PROGRESS -> "In progress · ${formatDetailValue(day.numericValue ?: 0.0)}${unit?.let { " $it" } ?: ""}"
+    EntryState.SKIPPED -> "Skipped"
+    null -> if (day.date.isAfter(LocalDate.now())) "Upcoming" else "Not logged"
+}
+
+private fun formatDetailValue(value: Double): String =
+    if (value == value.roundToInt().toDouble()) value.roundToInt().toString() else "%.1f".format(value)
 
 /**
  * "3× per week", "Goal: at least 20 pages", "Every 2 days" — the schedule this habit was
@@ -372,7 +601,7 @@ private fun StatColumn(
  * screen meant three months of them could overflow off the bottom of the screen entirely).
  */
 @Composable
-private fun HistoryCalendar(days: List<DayCell>, accent: Color) {
+private fun HistoryCalendar(days: List<DayCell>, accent: Color, onMonthClick: (YearMonth) -> Unit) {
     if (days.isEmpty()) return
     val byDate = remember(days) { days.associateBy { it.date } }
     val months = remember(days) { days.map { YearMonth.from(it.date) }.distinct().sortedDescending() }
@@ -423,7 +652,12 @@ private fun HistoryCalendar(days: List<DayCell>, accent: Color) {
             horizontalArrangement = Arrangement.spacedBy(Spacing.small),
         ) {
             months.forEach { month ->
-                MonthCalendar(month = month, byDate = byDate, accent = accent)
+                MonthCalendar(
+                    month = month,
+                    byDate = byDate,
+                    accent = accent,
+                    onClick = { onMonthClick(month) },
+                )
             }
         }
     }
@@ -433,8 +667,23 @@ private val MonthCardWidth = 84.dp
 private val DayCellSize = 9.dp
 
 @Composable
-private fun MonthCalendar(month: YearMonth, byDate: Map<LocalDate, DayCell>, accent: Color) {
-    Column(modifier = Modifier.width(MonthCardWidth)) {
+private fun MonthCalendar(
+    month: YearMonth,
+    byDate: Map<LocalDate, DayCell>,
+    accent: Color,
+    onClick: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .width(MonthCardWidth)
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = ripple(),
+                onClick = onClick,
+            )
+            .padding(4.dp),
+    ) {
         Text(
             text = month.month.getDisplayName(TextStyle.SHORT, Locale.getDefault()),
             style = MaterialTheme.typography.labelSmallEmphasized,
@@ -465,6 +714,9 @@ private fun MonthCalendar(month: YearMonth, byDate: Map<LocalDate, DayCell>, acc
                             EntryState.IN_PROGRESS -> accent to 0.4f
                             EntryState.SKIPPED, null -> MaterialTheme.colorScheme.surfaceContainerHighest to 0.6f
                         }
+                        // Individual cells are no longer separately tappable — at 9dp they're far
+                        // too small to hit reliably. The whole card is one tap target (see
+                        // MonthCalendar's onClick) that opens a bigger, actually-tappable grid.
                         Box(
                             modifier = Modifier
                                 .size(DayCellSize)

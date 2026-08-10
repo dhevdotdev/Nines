@@ -66,7 +66,15 @@ class HabitDetailViewModel(
                     )
                     val history = generateSequence(historyStart) { it.plusDays(1) }
                         .takeWhile { !it.isAfter(today) }
-                        .map { date -> DayCell(date = date, state = entriesByDate[date]?.state, isToday = date == today) }
+                        .map { date ->
+                            val entry = entriesByDate[date]
+                            DayCell(
+                                date = date,
+                                state = entry?.state,
+                                isToday = date == today,
+                                numericValue = entry?.numericValue,
+                            )
+                        }
                         .toList()
 
                     HabitDetailUiState(
@@ -102,13 +110,13 @@ class HabitDetailViewModel(
     fun onAction(action: HabitDetailAction) {
         when (action) {
             is HabitDetailAction.Toggle -> viewModelScope.launch {
-                repository.toggleCompletion(habitId, LocalDate.now())
+                repository.toggleCompletion(habitId, action.date)
             }
             is HabitDetailAction.Increment -> viewModelScope.launch {
-                repository.incrementNumericEntry(habitId, LocalDate.now(), action.delta)
+                repository.incrementNumericEntry(habitId, action.date, action.delta)
             }
             is HabitDetailAction.SetValue -> viewModelScope.launch {
-                repository.setNumericEntry(habitId, LocalDate.now(), action.value)
+                repository.setNumericEntry(habitId, action.date, action.value)
             }
             is HabitDetailAction.Update -> viewModelScope.launch {
                 repository.updateHabit(
