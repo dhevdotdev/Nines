@@ -1,3 +1,9 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <style name="Theme.Nines" parent="android:Theme.Material.NoActionBar" />
+    <!-- See values/themes.xml for why this is set explicitly rather than left to the parent
+      theme's default (a mismatched grey flash before the real dark surface paints in). -->
+    <style name="Theme.Nines" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#111318</item>
+        <item name="android:windowSplashScreenBackground" tools:targetApi="31">#111318</item>
+        <item name="android:windowSplashScreenAnimationDuration" tools:targetApi="31">0</item>
+    </style>
 </resources>

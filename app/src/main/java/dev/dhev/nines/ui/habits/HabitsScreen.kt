@@ -141,9 +141,9 @@ fun HabitsScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.small),
+                    Text(
+                        text = "Nines",
+                        style = MaterialTheme.typography.displaySmall,
                         // Debug-only: long-press to insert demo habits/history directly through
                         // the repository, in-process — a stand-in for adb-based DB reseeding on
                         // devices (like this one) whose storage permissions block that. No-op,
@@ -158,16 +158,7 @@ fun HabitsScreen(
                         } else {
                             Modifier
                         },
-                    ) {
-                        NinesLogoMark(
-                            modifier = Modifier.size(30.dp),
-                            tint = MaterialTheme.colorScheme.onSurface,
-                        )
-                        Text(
-                            text = "Nines",
-                            style = MaterialTheme.typography.displaySmall,
-                        )
-                    }
+                    )
                 },
             )
         },

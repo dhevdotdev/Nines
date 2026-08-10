@@ -1,3 +1,15 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <style name="Theme.Nines" parent="android:Theme.Material.Light.NoActionBar" />
+    <!--
+      Cold-start splash comes from the platform SplashScreen API (Android 12+) synthesizing a
+      screen from this theme automatically — with no explicit windowBackground it fell back to
+      android:Theme.Material.Light's default (a visibly grey tone, not the app's actual white/
+      near-white surface), so the launcher icon appeared to "pop" against a mismatched backdrop
+      right before the real UI painted. windowSplashScreenAnimationDuration=0 skips the built-in
+      icon zoom too, so it's an instant handoff rather than an animated transition.
+    -->
+    <style name="Theme.Nines" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@android:color/white</item>
+        <item name="android:windowSplashScreenBackground" tools:targetApi="31">@android:color/white</item>
+        <item name="android:windowSplashScreenAnimationDuration" tools:targetApi="31">0</item>
+    </style>
 </resources>
