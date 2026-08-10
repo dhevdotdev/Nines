@@ -1,6 +1,8 @@
 package dev.dhev.nines.ui.habits
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -18,8 +20,10 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -55,6 +59,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -307,7 +312,7 @@ fun HabitDetailScreen(
                 )
                 Spacer(Modifier.height(Spacing.default))
                 val longestStreak = uiState.topStreaks.first().length
-                Column(verticalArrangement = Arrangement.spacedBy(Spacing.small)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.extraSmall)) {
                     uiState.topStreaks.forEachIndexed { index, streak ->
                         StreakRow(
                             rank = index + 1,
@@ -643,7 +648,17 @@ private fun cycleProgressLabel(uiState: HabitDetailUiState): String? {
  */
 @Composable
 private fun StreakRow(rank: Int, streak: StreakRun, fraction: Float, accent: Color) {
-    val rowHeight = 56.dp
+    val rowHeight = 44.dp
+    // Grows in once on appearance rather than snapping straight to its final length - the fill
+    // IS the data here, so the reveal is what sells "this row's length means something" instead
+    // of reading as a static tinted background that happens to vary between rows.
+    var animateIn by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { animateIn = true }
+    val animatedFraction by animateFloatAsState(
+        targetValue = if (animateIn) fraction else 0f,
+        animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
+        label = "streakFill",
+    )
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
@@ -654,7 +669,7 @@ private fun StreakRow(rank: Int, streak: StreakRun, fraction: Float, accent: Col
             // at a glance, rather than making someone compare four-digit-day-count text.
             Box(
                 modifier = Modifier
-                    .width(maxWidth * fraction)
+                    .width(maxWidth * animatedFraction)
                     .height(rowHeight)
                     .background(accent.copy(alpha = 0.14f)),
             )
@@ -667,14 +682,14 @@ private fun StreakRow(rank: Int, streak: StreakRun, fraction: Float, accent: Col
             ) {
                 Box(
                     modifier = Modifier
-                        .size(28.dp)
+                        .size(22.dp)
                         .clip(CircleShape)
                         .background(accent.copy(alpha = 0.22f)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
                         text = "$rank",
-                        style = MaterialTheme.typography.labelMediumEmphasized,
+                        style = MaterialTheme.typography.labelSmallEmphasized,
                         color = accent,
                     )
                 }
@@ -719,6 +734,22 @@ private fun InsightsSection(uiState: HabitDetailUiState, accent: Color) {
         }
         if (uiState.weekdayRates.size == 7) {
             add { WeekdayBreakdownRow(rates = uiState.weekdayRates, accent = accent) }
+        }
+        // AT_MOST is left out for now - "above the line" would mean the opposite of what it
+        // means for AT_LEAST, and inverting the whole visualization for one target kind isn't
+        // worth the confusion it'd risk for the common case.
+        if (uiState.type == HabitType.NUMERICAL && uiState.targetKind == TargetKind.AT_LEAST) {
+            val target = uiState.targetValue
+            val recentDays = uiState.history.takeLast(14)
+            if (target != null && target > 0 && recentDays.size >= 7) {
+                add {
+                    TargetProgressRow(
+                        days = recentDays,
+                        target = target,
+                        accent = accent,
+                    )
+                }
+            }
         }
         uiState.momentumDeltaPoints?.let { delta ->
             add { MomentumRow(deltaPoints = delta, accent = accent) }
@@ -816,6 +847,11 @@ private fun LongestGapRow(gap: StreakRun, accent: Color) {
 
 @Composable
 private fun WeekdayBreakdownRow(rates: List<Double>, accent: Color) {
+    // Color/alpha, not shape or position, so this fades in rather than springing - the
+    // library's own rule is spatial for anything that moves or resizes, effects for anything
+    // that's purely a color change, and a fade reads calmer for seven cells appearing together.
+    var animateIn by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { animateIn = true }
     Column {
         Text(
             text = "By day of week",
@@ -830,11 +866,17 @@ private fun WeekdayBreakdownRow(rates: List<Double>, accent: Color) {
             val labels = listOf("M", "T", "W", "T", "F", "S", "S")
             rates.forEachIndexed { index, rate ->
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    val targetColor = accent.copy(alpha = (0.12f + rate.toFloat() * 0.75f).coerceAtMost(1f))
+                    val animatedColor by animateColorAsState(
+                        targetValue = if (animateIn) targetColor else accent.copy(alpha = 0f),
+                        animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
+                        label = "weekdayCell",
+                    )
                     Box(
                         modifier = Modifier
                             .size(28.dp)
                             .clip(RoundedCornerShape(8.dp))
-                            .background(accent.copy(alpha = (0.12f + rate.toFloat() * 0.75f).coerceAtMost(1f))),
+                            .background(animatedColor),
                     )
                     Spacer(Modifier.height(Spacing.extraSmall))
                     Text(
@@ -860,6 +902,75 @@ private fun WeekdayBreakdownRow(rates: List<Double>, accent: Color) {
 
 private fun weekdayName(index: Int): String =
     java.time.DayOfWeek.of(index + 1).getDisplayName(TextStyle.FULL, Locale.getDefault())
+
+private val TargetChartHeight = 56.dp
+
+// Bars are allowed to rise 25% above the target line before clipping, so a day that blew past
+// goal reads as visibly taller instead of clipping flush with every day that merely met it.
+private const val TargetChartMaxScale = 1.25f
+
+/**
+ * The other half of a numeric habit's story that a plain daily number never shows: not just
+ * whether you hit target, but by how much or how little on each of the last two weeks. A
+ * reference line at the target height turns "12/20, 18/20, 22/20" into a shape you can read at
+ * a glance instead of a column of fractions.
+ */
+@Composable
+private fun TargetProgressRow(days: List<DayCell>, target: Double, accent: Color) {
+    val metCount = days.count { (it.numericValue ?: 0.0) >= target }
+    // One coordinated grow-in for the whole strip, not fourteen individually-timed bars - a
+    // bar chart reading in together sells "this is one chart appearing," while staggering each
+    // bar reads as list-item motion, which the library itself never applies to repeated rows.
+    var animateIn by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { animateIn = true }
+    Column {
+        Text(
+            text = "Recent days vs. target",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(Spacing.small))
+        Box(modifier = Modifier.fillMaxWidth().height(TargetChartHeight)) {
+            HorizontalDivider(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .offset(y = -(TargetChartHeight / TargetChartMaxScale)),
+                color = accent.copy(alpha = 0.45f),
+            )
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                horizontalArrangement = Arrangement.spacedBy(3.dp),
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                days.forEach { day ->
+                    val ratio = ((day.numericValue ?: 0.0) / target).toFloat().coerceIn(0f, TargetChartMaxScale)
+                    val metTarget = (day.numericValue ?: 0.0) >= target
+                    val animatedRatio by animateFloatAsState(
+                        targetValue = if (animateIn) ratio else 0f,
+                        animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
+                        label = "targetBar",
+                    )
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            // The spatial spring is underdamped and overshoots by design, but
+                            // fillMaxHeight requires its fraction to stay within 0f..1f - clamp
+                            // the rare overshoot past 1.0 rather than let it crash mid-animation.
+                            .fillMaxHeight((animatedRatio / TargetChartMaxScale).coerceIn(0f, 1f))
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(if (metTarget) accent else accent.copy(alpha = 0.35f)),
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.height(Spacing.small))
+        Text(
+            text = "Hit target on $metCount of the last ${days.size} days",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
 
 @Composable
 private fun MomentumRow(deltaPoints: Double, accent: Color) {
