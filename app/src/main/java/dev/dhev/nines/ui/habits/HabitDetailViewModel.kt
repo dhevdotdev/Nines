@@ -8,12 +8,14 @@ import dev.dhev.nines.data.local.entity.HabitType
 import dev.dhev.nines.scoring.computeGapRuns
 import dev.dhev.nines.scoring.computeStreakRuns
 import dev.dhev.nines.scoring.currentStreakLength
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -214,6 +216,12 @@ class HabitDetailViewModel(
                 }
             }
         }
+        // Score decay, six-plus O(history-length) passes for streaks/gaps/weekday/momentum, and
+        // building up to ~270 DayCells all ran on this flow's collection context with no
+        // dispatcher specified, which defaults to viewModelScope's Main.immediate - i.e. the main
+        // thread, right as the detail screen is trying to animate in. Moving it off-thread is
+        // what actually fixes the perceived jank, not a loading spinner papering over it.
+        .flowOn(Dispatchers.Default)
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),

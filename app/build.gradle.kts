@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.androidx.room)
+    alias(libs.plugins.androidx.baselineprofile)
 }
 
 android {
@@ -43,6 +44,12 @@ room {
     schemaDirectory("$projectDir/schemas")
 }
 
+baselineProfile {
+    // Baseline profiles help debug builds too (fewer, but real) - no reason to limit generation
+    // to release only when the jank that prompted this was observed on a debug build.
+    dexLayoutOptimization = true
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
@@ -71,8 +78,11 @@ dependencies {
     implementation(libs.koin.androidx.compose)
 
     implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.profileinstaller)
 
     coreLibraryDesugaring(libs.desugar.jdk.libs)
+
+    baselineProfile(project(":benchmark"))
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)

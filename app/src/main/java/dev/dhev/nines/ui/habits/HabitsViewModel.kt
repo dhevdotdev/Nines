@@ -9,6 +9,7 @@ import dev.dhev.nines.data.local.entity.HabitType
 import dev.dhev.nines.data.local.entity.TargetKind
 import dev.dhev.nines.scoring.computeStreakRuns
 import dev.dhev.nines.scoring.currentStreakLength
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -16,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -38,6 +40,10 @@ class HabitsViewModel(private val repository: HabitRepository) : ViewModel() {
             }
         }
         .map { items -> HabitsUiState(habits = items, isLoading = false) }
+        // Every habit's score/streak recompute combines here, all on whatever dispatcher
+        // collects this flow - without this, that's viewModelScope's Main.immediate, i.e. the
+        // main thread, for N habits at once on every entries change.
+        .flowOn(Dispatchers.Default)
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),

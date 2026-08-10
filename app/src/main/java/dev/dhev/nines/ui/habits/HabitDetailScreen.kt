@@ -12,7 +12,6 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,6 +27,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -62,7 +64,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -71,8 +72,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -1093,22 +1092,24 @@ private fun HistoryCalendar(days: List<DayCell>, accent: Color, onMonthClick: (Y
     if (days.isEmpty()) return
     val byDate = remember(days) { days.associateBy { it.date } }
     val months = remember(days) { days.map { YearMonth.from(it.date) }.distinct().sortedDescending() }
-    val scrollState = rememberScrollState()
-    val density = LocalDensity.current
-    val cardStepPx = remember(density) { with(density) { (MonthCardWidth + Spacing.small).toPx() } }
-    var viewportWidthPx by remember { mutableFloatStateOf(0f) }
+    val listState = rememberLazyListState()
 
     // Which year is showing sits above the row and tracks scroll position directly — no need to
     // scroll all the way to a January/December boundary to tell which year you've landed on.
     // Anchored to the CENTER of the visible viewport, not the left edge: at the scroll extremes
     // the leftmost card can be reduced to a sliver just a few pixels wide while the rest of the
     // viewport is dominated by the next month along — using the edge card's year there reads as
-    // wrong the moment more than half the screen is visibly a different month/year.
+    // wrong the moment more than half the screen is visibly a different month/year. LazyListState
+    // already tracks exactly which items are visible and where, so this reads that directly
+    // instead of converting scroll-offset pixels back into a month index by hand.
     val visibleYear by remember(months) {
         derivedStateOf {
-            val centerPx = scrollState.value + viewportWidthPx / 2f
-            val index = (centerPx / cardStepPx).roundToInt().coerceIn(0, months.lastIndex)
-            months[index].year
+            val layout = listState.layoutInfo
+            val viewportCenter = (layout.viewportStartOffset + layout.viewportEndOffset) / 2
+            val centerItem = layout.visibleItemsInfo.minByOrNull {
+                kotlin.math.abs((it.offset + it.size / 2) - viewportCenter)
+            }
+            months.getOrElse(centerItem?.index ?: 0) { months.last() }.year
         }
     }
 
@@ -1133,13 +1134,11 @@ private fun HistoryCalendar(days: List<DayCell>, accent: Color, onMonthClick: (Y
             )
         }
         Spacer(Modifier.height(Spacing.extraSmall))
-        Row(
-            modifier = Modifier
-                .horizontalScroll(scrollState)
-                .onSizeChanged { viewportWidthPx = it.width.toFloat() },
+        LazyRow(
+            state = listState,
             horizontalArrangement = Arrangement.spacedBy(Spacing.small),
         ) {
-            months.forEach { month ->
+            items(months, key = { it.toString() }) { month ->
                 MonthCalendar(
                     month = month,
                     byDate = byDate,
