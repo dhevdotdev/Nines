@@ -54,6 +54,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.dhev.nines.data.local.entity.EntryState
+import dev.dhev.nines.data.local.entity.HabitType
+import dev.dhev.nines.data.local.entity.TargetKind
 import dev.dhev.nines.ui.theme.Spacing
 import dev.dhev.nines.ui.theme.contrastingIconColor
 import dev.dhev.nines.ui.theme.rememberHabitColors
@@ -124,6 +126,16 @@ fun HabitDetailScreen(
                 .padding(horizontal = Spacing.large),
         ) {
             Spacer(Modifier.height(Spacing.default))
+
+            Text(
+                text = scheduleLabel(uiState),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            )
+
+            Spacer(Modifier.height(Spacing.small))
 
             // One hero surface start to finish — illustration, ring, and stats all live inside
             // the same panel rather than a card-then-three-more-boxes stack. Stacking several
@@ -211,6 +223,31 @@ fun HabitDetailScreen(
             HistoryCalendar(days = uiState.history, accent = colors.accent)
             Spacer(Modifier.height(Spacing.large))
         }
+    }
+}
+
+/**
+ * "3× per week", "Goal: at least 20 pages", "Every 2 days" — the schedule this habit was
+ * actually set up with, which the detail screen previously didn't surface anywhere at all despite
+ * the data already being on [HabitDetailUiState]. For numeric habits the target takes priority
+ * over the day-frequency wording since the target is the more meaningful number to lead with.
+ */
+private fun scheduleLabel(uiState: HabitDetailUiState): String {
+    if (uiState.type == HabitType.NUMERICAL && uiState.targetValue != null) {
+        val kindWord = if (uiState.targetKind == TargetKind.AT_MOST) "at most" else "at least"
+        val amount = if (uiState.targetValue == uiState.targetValue.toLong().toDouble()) {
+            uiState.targetValue.toLong().toString()
+        } else {
+            "%.1f".format(uiState.targetValue)
+        }
+        return "Goal: $kindWord $amount${uiState.unit?.let { " $it" } ?: ""}"
+    }
+    val num = uiState.targetNumerator
+    val den = uiState.targetDenominator
+    return when {
+        num == 1 && den == 1 -> "Every day"
+        den == 7 -> "$num× per week"
+        else -> "Every $den days"
     }
 }
 

@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.unit.dp
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -53,6 +54,13 @@ fun HabitCardBackground(style: CardBackgroundStyle, color: Color, modifier: Modi
         val tint = color.copy(alpha = alpha)
         val strokeWidth = size.minDimension * 0.025f
         val stroke = Stroke(width = strokeWidth, cap = StrokeCap.Round, join = StrokeJoin.Round)
+        // DOTS and SPARKLE draw small fixed-look glyphs (dots, "+"-shaped glints) sized off of
+        // strokeWidth directly, unlike the other motifs which scale as fractions of the whole
+        // canvas — reused at the much larger detail-screen hero banner size, those glyphs blew up
+        // right along with strokeWidth and stopped reading as delicate dust, looking instead like
+        // literal oversized plus signs. Capping the basis they scale from keeps them small and
+        // decorative regardless of how big the canvas hosting them gets.
+        val decorativeStrokeWidth = strokeWidth.coerceAtMost(2.dp.toPx())
 
         when (style) {
             CardBackgroundStyle.RINGS -> {
@@ -85,7 +93,7 @@ fun HabitCardBackground(style: CardBackgroundStyle, color: Color, modifier: Modi
                     0.95f to 0.65f,
                 )
                 points.forEachIndexed { index, (fx, fy) ->
-                    val radius = strokeWidth * (0.8f + (index % 3) * 0.35f)
+                    val radius = decorativeStrokeWidth * (0.8f + (index % 3) * 0.35f)
                     drawCircle(color = tint, radius = radius, center = Offset(w * fx, h * fy))
                 }
             }
@@ -104,8 +112,8 @@ fun HabitCardBackground(style: CardBackgroundStyle, color: Color, modifier: Modi
                 sparkles.forEach { (fx, fy, scale) ->
                     val cx = w * fx
                     val cy = h * fy
-                    val arm = strokeWidth * 2.4f * scale
-                    val armStroke = Stroke(width = strokeWidth * 0.6f, cap = StrokeCap.Round)
+                    val arm = decorativeStrokeWidth * 2.4f * scale
+                    val armStroke = Stroke(width = decorativeStrokeWidth * 0.6f, cap = StrokeCap.Round)
                     drawLine(tint, Offset(cx - arm, cy), Offset(cx + arm, cy), strokeWidth = armStroke.width, cap = StrokeCap.Round)
                     drawLine(tint, Offset(cx, cy - arm), Offset(cx, cy + arm), strokeWidth = armStroke.width, cap = StrokeCap.Round)
                 }
@@ -171,9 +179,9 @@ fun HabitCardBackground(style: CardBackgroundStyle, color: Color, modifier: Modi
                     rotate(degrees = angle, pivot = Offset(w * fx, h * fy)) {
                         drawRoundRect(
                             color = tint,
-                            topLeft = Offset(w * fx - strokeWidth, h * fy - strokeWidth * 1.6f),
-                            size = androidx.compose.ui.geometry.Size(strokeWidth * 2f, strokeWidth * 3.2f),
-                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(strokeWidth * 0.4f),
+                            topLeft = Offset(w * fx - decorativeStrokeWidth, h * fy - decorativeStrokeWidth * 1.6f),
+                            size = androidx.compose.ui.geometry.Size(decorativeStrokeWidth * 2f, decorativeStrokeWidth * 3.2f),
+                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(decorativeStrokeWidth * 0.4f),
                             style = stroke,
                         )
                     }
