@@ -59,8 +59,12 @@ fun HabitCardBackground(style: CardBackgroundStyle, color: Color, modifier: Modi
         // canvas — reused at the much larger detail-screen hero banner size, those glyphs blew up
         // right along with strokeWidth and stopped reading as delicate dust, looking instead like
         // literal oversized plus signs. Capping the basis they scale from keeps them small and
-        // decorative regardless of how big the canvas hosting them gets.
-        val decorativeStrokeWidth = strokeWidth.coerceAtMost(2.dp.toPx())
+        // decorative regardless of how big the canvas hosting them gets. The cap matches what
+        // strokeWidth actually computes to on a normal ~88dp-tall list card (its original,
+        // correct-looking size) — an earlier version of this cap (2.dp) was a bit tighter than
+        // that, so it was shrinking these three styles slightly even on the list card itself,
+        // not just preventing the detail-screen blowup it was meant to fix.
+        val decorativeStrokeWidth = strokeWidth.coerceAtMost(2.2.dp.toPx())
 
         when (style) {
             CardBackgroundStyle.RINGS -> {
