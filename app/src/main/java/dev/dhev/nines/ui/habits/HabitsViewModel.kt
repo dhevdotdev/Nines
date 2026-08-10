@@ -237,5 +237,11 @@ class HabitsViewModel(private val repository: HabitRepository) : ViewModel() {
         // 8. Learn Spanish — every-2-days, brand new, low data.
         val spanishId = addHabit("Learn Spanish", HabitType.NUMERICAL, "min", 0xFFFFB300.toInt(), "language", "leaves", 2, 1, 2, 15.0, TargetKind.AT_LEAST)
         repository.setNumericEntry(spanishId, daysAgo(1), 15.0)
+
+        // 9. Screen Time — AT_MOST target, the only demo habit exercising that path.
+        val screenTimeId = addHabit("Screen Time", HabitType.NUMERICAL, "min", 0xFF00ACC1.toInt(), "phone", "arc", 25, 1, 1, 120.0, TargetKind.AT_MOST)
+        for (daysAgo in 0 until 25) {
+            repository.setNumericEntry(screenTimeId, daysAgo(daysAgo.toLong()), listOf(60, 90, 110, 130, 150, 180).random(random).toDouble())
+        }
     }
 }

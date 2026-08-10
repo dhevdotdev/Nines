@@ -735,10 +735,7 @@ private fun InsightsSection(uiState: HabitDetailUiState, accent: Color) {
         if (uiState.weekdayRates.size == 7) {
             add { WeekdayBreakdownRow(rates = uiState.weekdayRates, accent = accent) }
         }
-        // AT_MOST is left out for now - "above the line" would mean the opposite of what it
-        // means for AT_LEAST, and inverting the whole visualization for one target kind isn't
-        // worth the confusion it'd risk for the common case.
-        if (uiState.type == HabitType.NUMERICAL && uiState.targetKind == TargetKind.AT_LEAST) {
+        if (uiState.type == HabitType.NUMERICAL && uiState.targetKind != null) {
             val target = uiState.targetValue
             val recentDays = uiState.history.takeLast(14)
             if (target != null && target > 0 && recentDays.size >= 7) {
@@ -746,6 +743,7 @@ private fun InsightsSection(uiState: HabitDetailUiState, accent: Color) {
                     TargetProgressRow(
                         days = recentDays,
                         target = target,
+                        targetKind = uiState.targetKind,
                         accent = accent,
                     )
                 }
@@ -916,8 +914,12 @@ private const val TargetChartMaxScale = 1.25f
  * a glance instead of a column of fractions.
  */
 @Composable
-private fun TargetProgressRow(days: List<DayCell>, target: Double, accent: Color) {
-    val metCount = days.count { (it.numericValue ?: 0.0) >= target }
+private fun TargetProgressRow(days: List<DayCell>, target: Double, targetKind: TargetKind, accent: Color) {
+    // AT_MOST inverts what "met" means (staying under a ceiling, not reaching a floor) but not
+    // the bar mechanics - a bar that reaches the line still means "landed exactly on target"
+    // either way, only which side of it counts as success flips.
+    fun isMet(value: Double) = if (targetKind == TargetKind.AT_MOST) value <= target else value >= target
+    val metCount = days.count { isMet(it.numericValue ?: 0.0) }
     // One coordinated grow-in for the whole strip, not fourteen individually-timed bars - a
     // bar chart reading in together sells "this is one chart appearing," while staggering each
     // bar reads as list-item motion, which the library itself never applies to repeated rows.
@@ -944,7 +946,7 @@ private fun TargetProgressRow(days: List<DayCell>, target: Double, accent: Color
             ) {
                 days.forEach { day ->
                     val ratio = ((day.numericValue ?: 0.0) / target).toFloat().coerceIn(0f, TargetChartMaxScale)
-                    val metTarget = (day.numericValue ?: 0.0) >= target
+                    val metTarget = isMet(day.numericValue ?: 0.0)
                     val animatedRatio by animateFloatAsState(
                         targetValue = if (animateIn) ratio else 0f,
                         animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
@@ -958,14 +960,27 @@ private fun TargetProgressRow(days: List<DayCell>, target: Double, accent: Color
                             // the rare overshoot past 1.0 rather than let it crash mid-animation.
                             .fillMaxHeight((animatedRatio / TargetChartMaxScale).coerceIn(0f, 1f))
                             .clip(RoundedCornerShape(3.dp))
-                            .background(if (metTarget) accent else accent.copy(alpha = 0.35f)),
+                            .background(
+                                when {
+                                    metTarget -> accent
+                                    // Going over a ceiling is a violation, not just a shortfall -
+                                    // worth a clearer color than the muted-accent "didn't get
+                                    // there yet" used for an AT_LEAST day that fell short.
+                                    targetKind == TargetKind.AT_MOST -> MaterialTheme.colorScheme.error.copy(alpha = 0.6f)
+                                    else -> accent.copy(alpha = 0.35f)
+                                },
+                            ),
                     )
                 }
             }
         }
         Spacer(Modifier.height(Spacing.small))
         Text(
-            text = "Hit target on $metCount of the last ${days.size} days",
+            text = if (targetKind == TargetKind.AT_MOST) {
+                "Stayed within the limit on $metCount of the last ${days.size} days"
+            } else {
+                "Hit target on $metCount of the last ${days.size} days"
+            },
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
