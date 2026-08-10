@@ -232,6 +232,14 @@ fun HabitDetailScreen(
                                     style = MaterialTheme.typography.labelMediumEmphasized,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
+                                cycleProgressLabel(uiState)?.let { label ->
+                                    Spacer(Modifier.height(Spacing.extraSmall))
+                                    Text(
+                                        text = label,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                    )
+                                }
                             }
                         }
                     }
@@ -578,6 +586,19 @@ private fun scheduleLabel(uiState: HabitDetailUiState): String {
         den == 7 -> "$num× per week"
         else -> "Every $den days"
     }
+}
+
+/**
+ * How much of the current window's slack is left, e.g. "2/3 this week" — only shown for
+ * habits with real slack in their schedule (daily habits have none: the streak already says
+ * everything there is to say about a habit with zero allowed misses).
+ */
+private fun cycleProgressLabel(uiState: HabitDetailUiState): String? {
+    val completions = uiState.cycleCompletions ?: return null
+    val target = uiState.cycleTarget ?: return null
+    val windowDays = uiState.cycleWindowDays ?: return null
+    val cadence = if (windowDays == 7) "this week" else "this cycle"
+    return "$completions/$target $cadence"
 }
 
 /** Plain text now, no chip background — these live inside the hero surface itself (see the

@@ -22,6 +22,9 @@ data class HabitDetailUiState(
     val targetKind: TargetKind? = null,
     val targetNumerator: Int = 1,
     val targetDenominator: Int = 1,
+    val cycleCompletions: Int? = null,
+    val cycleTarget: Int? = null,
+    val cycleWindowDays: Int? = null,
     val history: List<DayCell> = emptyList(),
     val isLoading: Boolean = true,
 )

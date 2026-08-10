@@ -60,6 +60,20 @@ class HabitDetailViewModel(
                     val totalCompletions = entries.count { it.state == EntryState.COMPLETED }
                     val todayEntry = entriesByDate[today]
 
+                    // Daily habits (1/1) don't need this - the streak already says everything
+                    // there is to say. It only adds information for a habit with real slack
+                    // ("3x per week"): how much of that slack is left in the window closing today.
+                    val cycleTarget = schedule?.targetNumerator
+                    val cycleWindowDays = schedule?.targetDenominator
+                    val cycleCompletions = if (cycleWindowDays != null && cycleWindowDays > 1) {
+                        val windowStart = maxOf(createdDate, today.minusDays(cycleWindowDays - 1L))
+                        generateSequence(windowStart) { it.plusDays(1) }
+                            .takeWhile { !it.isAfter(today) }
+                            .count { entriesByDate[it]?.state == EntryState.COMPLETED }
+                    } else {
+                        null
+                    }
+
                     val historyStart = maxOf(
                         createdDate,
                         today.minusMonths(HISTORY_MONTHS_BACK).withDayOfMonth(1),
@@ -95,6 +109,9 @@ class HabitDetailViewModel(
                         targetKind = schedule?.targetKind,
                         targetNumerator = schedule?.targetNumerator ?: 1,
                         targetDenominator = schedule?.targetDenominator ?: 1,
+                        cycleCompletions = cycleCompletions,
+                        cycleTarget = cycleTarget,
+                        cycleWindowDays = cycleWindowDays,
                         history = history,
                         isLoading = false,
                     )
