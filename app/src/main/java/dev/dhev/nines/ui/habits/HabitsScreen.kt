@@ -433,7 +433,7 @@ private fun formatEditableValue(value: Double): String =
 @Suppress("DEPRECATION") // rememberModalBottomSheetState: flagged replacement has no such function in 1.5.0-alpha25 yet
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun AddHabitSheet(
+fun AddHabitSheet(
     paletteColors: List<HabitColors>,
     editing: HabitListItem?,
     onConfirm: (HabitsAction) -> Unit,

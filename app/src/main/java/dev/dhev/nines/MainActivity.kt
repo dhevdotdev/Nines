@@ -16,7 +16,6 @@ import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDe
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
-import dev.dhev.nines.ui.habits.HabitDetailAction
 import dev.dhev.nines.ui.habits.HabitDetailScreen
 import dev.dhev.nines.ui.habits.HabitDetailViewModel
 import dev.dhev.nines.ui.habits.HabitsScreen
@@ -78,9 +77,7 @@ private fun NinesNavRoot() {
                 HabitDetailScreen(
                     uiState = uiState,
                     onBack = dropUnlessResumed { backStack.removeLastOrNull() },
-                    onToggle = { viewModel.onAction(HabitDetailAction.Toggle) },
-                    onIncrement = { delta -> viewModel.onAction(HabitDetailAction.Increment(delta)) },
-                    onDecrement = { delta -> viewModel.onAction(HabitDetailAction.Increment(-delta)) },
+                    onAction = viewModel::onAction,
                     modifier = Modifier.fillMaxSize(),
                 )
             }

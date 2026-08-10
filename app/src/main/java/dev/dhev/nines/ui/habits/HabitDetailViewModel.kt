@@ -110,6 +110,23 @@ class HabitDetailViewModel(
             is HabitDetailAction.SetValue -> viewModelScope.launch {
                 repository.setNumericEntry(habitId, LocalDate.now(), action.value)
             }
+            is HabitDetailAction.Update -> viewModelScope.launch {
+                repository.updateHabit(
+                    habitId = habitId,
+                    name = action.name,
+                    color = action.color,
+                    iconKey = action.iconKey,
+                    backgroundStyleKey = action.backgroundStyleKey,
+                    unit = action.unit,
+                    targetNumerator = action.targetNumerator,
+                    targetDenominator = action.targetDenominator,
+                    targetValue = action.targetValue,
+                    targetKind = action.targetKind,
+                )
+            }
+            is HabitDetailAction.Delete -> viewModelScope.launch {
+                repository.archiveHabit(habitId)
+            }
         }
     }
 }

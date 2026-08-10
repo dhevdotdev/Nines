@@ -29,4 +29,16 @@ sealed interface HabitDetailAction {
     data object Toggle : HabitDetailAction
     data class Increment(val delta: Double) : HabitDetailAction
     data class SetValue(val value: Double) : HabitDetailAction
+    data class Update(
+        val name: String,
+        val color: Int,
+        val iconKey: String,
+        val backgroundStyleKey: String?,
+        val targetNumerator: Int,
+        val targetDenominator: Int,
+        val targetValue: Double?,
+        val targetKind: TargetKind?,
+        val unit: String?,
+    ) : HabitDetailAction
+    data object Delete : HabitDetailAction
 }

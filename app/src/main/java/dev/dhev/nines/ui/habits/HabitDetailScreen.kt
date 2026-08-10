@@ -27,6 +27,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -42,6 +43,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -56,9 +58,11 @@ import androidx.compose.ui.unit.dp
 import dev.dhev.nines.data.local.entity.EntryState
 import dev.dhev.nines.data.local.entity.HabitType
 import dev.dhev.nines.data.local.entity.TargetKind
+import dev.dhev.nines.ui.theme.HabitPalette
 import dev.dhev.nines.ui.theme.Spacing
 import dev.dhev.nines.ui.theme.contrastingIconColor
 import dev.dhev.nines.ui.theme.rememberHabitColors
+import dev.dhev.nines.ui.theme.rememberHabitColorsForPalette
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.TextStyle
@@ -70,12 +74,11 @@ import kotlin.math.roundToInt
 fun HabitDetailScreen(
     uiState: HabitDetailUiState,
     onBack: () -> Unit,
-    onToggle: () -> Unit,
-    onIncrement: (Double) -> Unit,
-    onDecrement: (Double) -> Unit,
+    onAction: (HabitDetailAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = rememberHabitColors(Color(uiState.color))
+    var showEditSheet by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = modifier,
@@ -114,6 +117,11 @@ fun HabitDetailScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { showEditSheet = true }) {
+                        Icon(Icons.Outlined.Edit, contentDescription = "Edit habit")
                     }
                 },
             )
@@ -164,8 +172,8 @@ fun HabitDetailScreen(
                         if (uiState.type == HabitType.NUMERICAL) {
                             NumericProgressButton(
                                 metTarget = uiState.completedToday,
-                                onIncrement = { onIncrement(defaultIncrement(uiState.targetValue)) },
-                                onDecrement = { onDecrement(defaultIncrement(uiState.targetValue)) },
+                                onIncrement = { onAction(HabitDetailAction.Increment(defaultIncrement(uiState.targetValue))) },
+                                onDecrement = { onAction(HabitDetailAction.Increment(-defaultIncrement(uiState.targetValue))) },
                                 accentColor = colors.accent,
                                 modifier = Modifier
                                     .align(Alignment.TopEnd)
@@ -174,7 +182,7 @@ fun HabitDetailScreen(
                         } else {
                             CheckOffButton(
                                 completed = uiState.completedToday,
-                                onToggle = onToggle,
+                                onToggle = { onAction(HabitDetailAction.Toggle) },
                                 accentColor = colors.accent,
                                 modifier = Modifier
                                     .align(Alignment.TopEnd)
@@ -253,6 +261,55 @@ fun HabitDetailScreen(
             HistoryCalendar(days = uiState.history, accent = colors.accent)
             Spacer(Modifier.height(Spacing.large))
         }
+    }
+
+    // Reuses the exact same sheet the list screen edits habits with, rather than a second
+    // parallel edit UI — one form to keep in sync instead of two.
+    if (showEditSheet) {
+        AddHabitSheet(
+            paletteColors = rememberHabitColorsForPalette(HabitPalette.seeds),
+            editing = HabitListItem(
+                id = uiState.habitId,
+                name = uiState.name,
+                color = uiState.color,
+                iconKey = uiState.iconKey,
+                backgroundStyleKey = uiState.backgroundStyleKey,
+                type = uiState.type,
+                completedToday = uiState.completedToday,
+                currentScore = uiState.currentScore,
+                currentStreak = uiState.currentStreak,
+                currentValue = uiState.currentValue,
+                targetValue = uiState.targetValue,
+                targetKind = uiState.targetKind,
+                unit = uiState.unit,
+                targetNumerator = uiState.targetNumerator,
+                targetDenominator = uiState.targetDenominator,
+            ),
+            onConfirm = { action ->
+                if (action is HabitsAction.UpdateHabit) {
+                    onAction(
+                        HabitDetailAction.Update(
+                            name = action.name,
+                            color = action.color,
+                            iconKey = action.iconKey,
+                            backgroundStyleKey = action.backgroundStyleKey,
+                            targetNumerator = action.targetNumerator,
+                            targetDenominator = action.targetDenominator,
+                            targetValue = action.targetValue,
+                            targetKind = action.targetKind,
+                            unit = action.unit,
+                        ),
+                    )
+                }
+                showEditSheet = false
+            },
+            onDelete = {
+                onAction(HabitDetailAction.Delete)
+                showEditSheet = false
+                onBack()
+            },
+            onDismiss = { showEditSheet = false },
+        )
     }
 }
 
