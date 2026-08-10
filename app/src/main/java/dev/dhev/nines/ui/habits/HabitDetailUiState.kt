@@ -32,6 +32,10 @@ data class HabitDetailUiState(
     val weekdayRates: List<Double> = emptyList(),
     val momentumDeltaPoints: Double? = null,
     val typicalTimeOfDay: String? = null,
+    val longestGap: StreakRun? = null,
+    val numericTotal: Double? = null,
+    val numericAverage: Double? = null,
+    val recordProgressLabel: String? = null,
     val history: List<DayCell> = emptyList(),
     val isLoading: Boolean = true,
 )

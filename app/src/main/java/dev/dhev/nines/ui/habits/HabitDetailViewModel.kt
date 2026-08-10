@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.dhev.nines.data.HabitRepository
 import dev.dhev.nines.data.local.entity.EntryState
+import dev.dhev.nines.data.local.entity.HabitType
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -144,6 +145,52 @@ class HabitDetailViewModel(
                         null
                     }
 
+                    // Mirrors the streak-run tracking above but inverted - the longest run of
+                    // non-completed days on record. Best streaks alone only tell half the story;
+                    // this is the other, harder half, using the same completed/not-completed
+                    // rule so the two lists never disagree about what counts as a "day".
+                    val gapRuns = mutableListOf<StreakRun>()
+                    var gapStart: LocalDate? = null
+                    var gapRunning = 0
+                    var gd = createdDate
+                    while (!gd.isAfter(today)) {
+                        if (entriesByDate[gd]?.state != EntryState.COMPLETED) {
+                            if (gapRunning == 0) gapStart = gd
+                            gapRunning++
+                        } else {
+                            if (gapRunning > 0) gapRuns.add(StreakRun(gapStart!!, gd.minusDays(1), gapRunning))
+                            gapRunning = 0
+                        }
+                        gd = gd.plusDays(1)
+                    }
+                    if (gapRunning > 0) gapRuns.add(StreakRun(gapStart!!, today, gapRunning))
+                    // A single missed day isn't a "gap" worth naming - only surface it once it's
+                    // long enough to represent a real lapse, not routine day-to-day noise.
+                    val longestGap = gapRuns.filter { it.length >= 3 }.maxByOrNull { it.length }
+
+                    // Never summed/averaged anywhere else - the running totals only ever showed
+                    // a day-count, never what was actually logged on those days.
+                    val loggedValues = entries.mapNotNull { it.numericValue }.filter { it > 0 }
+                    val numericTotal = if (habit.type == HabitType.NUMERICAL && loggedValues.isNotEmpty()) {
+                        loggedValues.sum()
+                    } else {
+                        null
+                    }
+                    val numericAverage = if (habit.type == HabitType.NUMERICAL && loggedValues.isNotEmpty()) {
+                        loggedValues.sum() / loggedValues.size
+                    } else {
+                        null
+                    }
+
+                    // Forward-looking rather than retrospective like everything else on this
+                    // screen - "how close am I" instead of only "how have I done".
+                    val recordProgressLabel = when {
+                        bestStreak == 0 -> null
+                        currentStreak == 0 -> null
+                        currentStreak >= bestStreak -> "You're on your longest streak yet"
+                        else -> "${bestStreak - currentStreak} days to beat your record of $bestStreak"
+                    }
+
                     val historyStart = maxOf(
                         createdDate,
                         today.minusMonths(HISTORY_MONTHS_BACK).withDayOfMonth(1),
@@ -186,6 +233,10 @@ class HabitDetailViewModel(
                         weekdayRates = weekdayRates,
                         momentumDeltaPoints = momentumDeltaPoints,
                         typicalTimeOfDay = typicalTimeOfDay,
+                        longestGap = longestGap,
+                        numericTotal = numericTotal,
+                        numericAverage = numericAverage,
+                        recordProgressLabel = recordProgressLabel,
                         history = history,
                         isLoading = false,
                     )

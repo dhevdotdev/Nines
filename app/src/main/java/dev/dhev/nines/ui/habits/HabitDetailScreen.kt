@@ -14,6 +14,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -31,7 +32,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
+import androidx.compose.material.icons.automirrored.filled.TrendingFlat
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.EventBusy
+import androidx.compose.material.icons.filled.Functions
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.outlined.Edit
@@ -302,9 +306,15 @@ fun HabitDetailScreen(
                     style = MaterialTheme.typography.titleMediumEmphasized,
                 )
                 Spacer(Modifier.height(Spacing.default))
+                val longestStreak = uiState.topStreaks.first().length
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.small)) {
                     uiState.topStreaks.forEachIndexed { index, streak ->
-                        StreakRow(rank = index + 1, streak = streak, accent = colors.accent)
+                        StreakRow(
+                            rank = index + 1,
+                            streak = streak,
+                            fraction = (streak.length.toFloat() / longestStreak).coerceIn(0.12f, 1f),
+                            accent = colors.accent,
+                        )
                     }
                 }
             }
@@ -632,44 +642,52 @@ private fun cycleProgressLabel(uiState: HabitDetailUiState): String? {
  * history reads as a set of concrete achievements instead of a proportional-length visualization.
  */
 @Composable
-private fun StreakRow(rank: Int, streak: StreakRun, accent: Color) {
+private fun StreakRow(rank: Int, streak: StreakRun, fraction: Float, accent: Color) {
+    val rowHeight = 56.dp
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surfaceContainer,
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = Spacing.default, vertical = Spacing.small),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            // The fill itself IS the ranking - a #1 row reads as visibly longer than a #5 row
+            // at a glance, rather than making someone compare four-digit-day-count text.
             Box(
                 modifier = Modifier
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .background(accent.copy(alpha = 0.16f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = "$rank",
-                    style = MaterialTheme.typography.labelLargeEmphasized,
-                    color = accent,
-                )
-            }
-            Spacer(Modifier.width(Spacing.default))
-            Text(
-                text = streakRangeLabel(streak),
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.weight(1f),
+                    .width(maxWidth * fraction)
+                    .height(rowHeight)
+                    .background(accent.copy(alpha = 0.14f)),
             )
-            Surface(
-                shape = MaterialTheme.shapes.small,
-                color = accent.copy(alpha = 0.16f),
+            Row(
+                modifier = Modifier
+                    .height(rowHeight)
+                    .fillMaxWidth()
+                    .padding(horizontal = Spacing.default),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(accent.copy(alpha = 0.22f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = "$rank",
+                        style = MaterialTheme.typography.labelMediumEmphasized,
+                        color = accent,
+                    )
+                }
+                Spacer(Modifier.width(Spacing.default))
+                Text(
+                    text = streakRangeLabel(streak),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f),
+                )
                 Text(
                     text = if (streak.length == 1) "1 day" else "${streak.length} days",
                     style = MaterialTheme.typography.labelMediumEmphasized,
                     color = accent,
-                    modifier = Modifier.padding(horizontal = Spacing.small, vertical = 4.dp),
                 )
             }
         }
@@ -695,10 +713,34 @@ private fun streakRangeLabel(streak: StreakRun): String {
  */
 @Composable
 private fun InsightsSection(uiState: HabitDetailUiState, accent: Color) {
-    val hasWeekday = uiState.weekdayRates.size == 7
-    val hasMomentum = uiState.momentumDeltaPoints != null
-    val hasTypicalTime = uiState.typicalTimeOfDay != null
-    if (!hasWeekday && !hasMomentum && !hasTypicalTime) return
+    val rows = buildList<@Composable () -> Unit> {
+        uiState.recordProgressLabel?.let { label ->
+            add { RecordProgressRow(label = label, accent = accent) }
+        }
+        if (uiState.weekdayRates.size == 7) {
+            add { WeekdayBreakdownRow(rates = uiState.weekdayRates, accent = accent) }
+        }
+        uiState.momentumDeltaPoints?.let { delta ->
+            add { MomentumRow(deltaPoints = delta, accent = accent) }
+        }
+        uiState.typicalTimeOfDay?.let { timeOfDay ->
+            add { TypicalTimeRow(timeOfDay = timeOfDay, accent = accent) }
+        }
+        if (uiState.numericTotal != null && uiState.numericAverage != null) {
+            add {
+                NumericTotalsRow(
+                    total = uiState.numericTotal,
+                    average = uiState.numericAverage,
+                    unit = uiState.unit,
+                    accent = accent,
+                )
+            }
+        }
+        uiState.longestGap?.let { gap ->
+            add { LongestGapRow(gap = gap, accent = accent) }
+        }
+    }
+    if (rows.isEmpty()) return
 
     Spacer(Modifier.height(Spacing.extraLarge))
     Text(
@@ -715,18 +757,60 @@ private fun InsightsSection(uiState: HabitDetailUiState, accent: Color) {
             modifier = Modifier.padding(Spacing.default),
             verticalArrangement = Arrangement.spacedBy(Spacing.default),
         ) {
-            if (hasWeekday) {
-                WeekdayBreakdownRow(rates = uiState.weekdayRates, accent = accent)
-            }
-            uiState.momentumDeltaPoints?.let { delta ->
-                if (hasWeekday) HorizontalDivider(color = accent.copy(alpha = 0.12f))
-                MomentumRow(deltaPoints = delta, accent = accent)
-            }
-            uiState.typicalTimeOfDay?.let { timeOfDay ->
-                if (hasWeekday || hasMomentum) HorizontalDivider(color = accent.copy(alpha = 0.12f))
-                TypicalTimeRow(timeOfDay = timeOfDay, accent = accent)
+            rows.forEachIndexed { index, row ->
+                if (index > 0) HorizontalDivider(color = accent.copy(alpha = 0.12f))
+                row()
             }
         }
+    }
+}
+
+@Composable
+private fun RecordProgressRow(label: String, accent: Color) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            imageVector = Icons.Filled.LocalFireDepartment,
+            contentDescription = null,
+            tint = accent,
+            modifier = Modifier.size(20.dp),
+        )
+        Spacer(Modifier.width(Spacing.small))
+        Text(text = label, style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+@Composable
+private fun NumericTotalsRow(total: Double, average: Double, unit: String?, accent: Color) {
+    val unitSuffix = unit?.let { " $it" } ?: ""
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            imageVector = Icons.Filled.Functions,
+            contentDescription = null,
+            tint = accent,
+            modifier = Modifier.size(20.dp),
+        )
+        Spacer(Modifier.width(Spacing.small))
+        Text(
+            text = "${formatDetailValue(total)}$unitSuffix total · averaging ${formatDetailValue(average)}$unitSuffix per entry",
+            style = MaterialTheme.typography.bodyMedium,
+        )
+    }
+}
+
+@Composable
+private fun LongestGapRow(gap: StreakRun, accent: Color) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            imageVector = Icons.Filled.EventBusy,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.error,
+            modifier = Modifier.size(20.dp),
+        )
+        Spacer(Modifier.width(Spacing.small))
+        Text(
+            text = "Longest gap: ${gap.length} days (${streakRangeLabel(gap)})",
+            style = MaterialTheme.typography.bodyMedium,
+        )
     }
 }
 
@@ -779,21 +863,35 @@ private fun weekdayName(index: Int): String =
 
 @Composable
 private fun MomentumRow(deltaPoints: Double, accent: Color) {
-    val improving = deltaPoints >= 0
+    val roundedDelta = kotlin.math.abs(deltaPoints).roundToInt()
+    // A delta that rounds to zero isn't "0% more consistent" (which reads like a broken
+    // template), it's just flat - a distinct third state, not a degenerate case of up or down.
+    val direction = when {
+        roundedDelta == 0 -> null
+        deltaPoints > 0 -> true
+        else -> false
+    }
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(
-            imageVector = if (improving) Icons.AutoMirrored.Filled.TrendingUp else Icons.AutoMirrored.Filled.TrendingDown,
+            imageVector = when (direction) {
+                true -> Icons.AutoMirrored.Filled.TrendingUp
+                false -> Icons.AutoMirrored.Filled.TrendingDown
+                null -> Icons.AutoMirrored.Filled.TrendingFlat
+            },
             contentDescription = null,
-            tint = if (improving) accent else MaterialTheme.colorScheme.error,
+            tint = when (direction) {
+                true -> accent
+                false -> MaterialTheme.colorScheme.error
+                null -> MaterialTheme.colorScheme.onSurfaceVariant
+            },
             modifier = Modifier.size(20.dp),
         )
         Spacer(Modifier.width(Spacing.small))
-        val roundedDelta = kotlin.math.abs(deltaPoints).roundToInt()
         Text(
-            text = if (improving) {
-                "$roundedDelta% more consistent than the previous 30 days"
-            } else {
-                "$roundedDelta% less consistent than the previous 30 days"
+            text = when (direction) {
+                true -> "$roundedDelta% more consistent than the previous 30 days"
+                false -> "$roundedDelta% less consistent than the previous 30 days"
+                null -> "About as consistent as the previous 30 days"
             },
             style = MaterialTheme.typography.bodyMedium,
         )
