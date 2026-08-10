@@ -4,6 +4,9 @@ import dev.dhev.nines.data.local.entity.HabitType
 import dev.dhev.nines.data.local.entity.TargetKind
 import java.time.LocalDate
 
+/** A single run of consecutive completed days, used to list past streaks ranked by length. */
+data class StreakRun(val start: LocalDate, val end: LocalDate, val length: Int)
+
 data class HabitDetailUiState(
     val habitId: Long = -1,
     val name: String = "",
@@ -25,6 +28,7 @@ data class HabitDetailUiState(
     val cycleCompletions: Int? = null,
     val cycleTarget: Int? = null,
     val cycleWindowDays: Int? = null,
+    val topStreaks: List<StreakRun> = emptyList(),
     val history: List<DayCell> = emptyList(),
     val isLoading: Boolean = true,
 )

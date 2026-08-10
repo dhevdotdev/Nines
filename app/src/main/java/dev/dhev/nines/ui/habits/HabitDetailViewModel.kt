@@ -44,18 +44,25 @@ class HabitDetailViewModel(
                         cursor = cursor.minusDays(1)
                     }
 
-                    var bestStreak = 0
+                    // Recorded as full runs (not just the longest length) so the detail screen
+                    // can list past streaks ranked by length, not just report a single number.
+                    val streakRuns = mutableListOf<StreakRun>()
+                    var runStart: LocalDate? = null
                     var running = 0
                     var day = createdDate
                     while (!day.isAfter(today)) {
                         if (entriesByDate[day]?.state == EntryState.COMPLETED) {
+                            if (running == 0) runStart = day
                             running++
-                            if (running > bestStreak) bestStreak = running
                         } else {
+                            if (running > 0) streakRuns.add(StreakRun(runStart!!, day.minusDays(1), running))
                             running = 0
                         }
                         day = day.plusDays(1)
                     }
+                    if (running > 0) streakRuns.add(StreakRun(runStart!!, today, running))
+                    val bestStreak = streakRuns.maxOfOrNull { it.length } ?: 0
+                    val topStreaks = streakRuns.sortedByDescending { it.length }.take(5)
 
                     val totalCompletions = entries.count { it.state == EntryState.COMPLETED }
                     val todayEntry = entriesByDate[today]
@@ -112,6 +119,7 @@ class HabitDetailViewModel(
                         cycleCompletions = cycleCompletions,
                         cycleTarget = cycleTarget,
                         cycleWindowDays = cycleWindowDays,
+                        topStreaks = topStreaks,
                         history = history,
                         isLoading = false,
                     )

@@ -286,6 +286,26 @@ fun HabitDetailScreen(
                 accent = colors.accent,
                 onMonthClick = { month -> expandedMonth = month },
             )
+
+            // Skipped when the only streak on record is the one still running today - that's
+            // already fully represented by the "current streak" stat above, so a one-row list
+            // here would just repeat it instead of adding anything.
+            val showStreaks = uiState.topStreaks.size > 1 ||
+                uiState.topStreaks.firstOrNull()?.end != LocalDate.now()
+            if (uiState.topStreaks.isNotEmpty() && showStreaks) {
+                Spacer(Modifier.height(Spacing.extraLarge))
+                Text(
+                    text = "Best streaks",
+                    style = MaterialTheme.typography.titleMediumEmphasized,
+                )
+                Spacer(Modifier.height(Spacing.default))
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.small)) {
+                    uiState.topStreaks.forEachIndexed { index, streak ->
+                        StreakRow(rank = index + 1, streak = streak, accent = colors.accent)
+                    }
+                }
+            }
+
             Spacer(Modifier.height(Spacing.large))
         }
     }
@@ -599,6 +619,66 @@ private fun cycleProgressLabel(uiState: HabitDetailUiState): String? {
     val windowDays = uiState.cycleWindowDays ?: return null
     val cadence = if (windowDays == 7) "this week" else "this cycle"
     return "$completions/$target $cadence"
+}
+
+/**
+ * A ranked row for one past streak: a numbered badge, the date range it covers, and its length
+ * as a trailing pill — a small ordered list rather than a bar chart, so a habit with a long
+ * history reads as a set of concrete achievements instead of a proportional-length visualization.
+ */
+@Composable
+private fun StreakRow(rank: Int, streak: StreakRun, accent: Color) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceContainer,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = Spacing.default, vertical = Spacing.small),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(accent.copy(alpha = 0.16f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = "$rank",
+                    style = MaterialTheme.typography.labelLargeEmphasized,
+                    color = accent,
+                )
+            }
+            Spacer(Modifier.width(Spacing.default))
+            Text(
+                text = streakRangeLabel(streak),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.weight(1f),
+            )
+            Surface(
+                shape = MaterialTheme.shapes.small,
+                color = accent.copy(alpha = 0.16f),
+            ) {
+                Text(
+                    text = if (streak.length == 1) "1 day" else "${streak.length} days",
+                    style = MaterialTheme.typography.labelMediumEmphasized,
+                    color = accent,
+                    modifier = Modifier.padding(horizontal = Spacing.small, vertical = 4.dp),
+                )
+            }
+        }
+    }
+}
+
+private fun streakRangeLabel(streak: StreakRun): String {
+    val formatter = DateTimeFormatter.ofPattern("MMM d")
+    val startText = if (streak.start.year != LocalDate.now().year) {
+        DateTimeFormatter.ofPattern("MMM d, yyyy").format(streak.start)
+    } else {
+        formatter.format(streak.start)
+    }
+    return if (streak.start == streak.end) startText else "$startText – ${formatter.format(streak.end)}"
 }
 
 /** Plain text now, no chip background — these live inside the hero surface itself (see the
