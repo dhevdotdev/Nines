@@ -85,6 +85,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.BiasAlignment
@@ -95,7 +96,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
@@ -104,7 +104,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.widthIn
-import kotlin.math.abs
 import kotlinx.coroutines.launch
 import dev.dhev.nines.BuildConfig
 import dev.dhev.nines.data.local.entity.HabitType
@@ -134,6 +133,7 @@ fun HabitsScreen(
     // once per theme change, not once per sheet open.
     val paletteColors = rememberHabitColorsForPalette(HabitPalette.seeds)
     val haptics = LocalHapticFeedback.current
+    val coroutineScope = rememberCoroutineScope()
     // Toggled from the top bar rather than a permanent per-row handle, and mutually exclusive
     // with the swipe gestures below - stacking a long-press-drag detector directly on the same
     // element as swipe-to-dismiss is exactly the kind of fragile gesture overlap that broke this
@@ -338,47 +338,33 @@ fun HabitsScreen(
                             // gone anywhere. Archive (left) commits for real and is immediate -
                             // no undo prompt, since archiving was never a real delete to begin
                             // with (see HabitRepository.archiveHabit / the Settings screen).
-                            // Material3's fling-based commit can fire on a quick short flick even
-                            // when the drag barely moved - exactly what turned an ordinary
-                            // diagonal scroll touch into an accidental archive/edit. The explicit
-                            // offset floor below ignores that fling shortcut entirely: only a
-                            // drag that's actually travelled past minDragPx counts, regardless of
-                            // how fast it was released. Combined with the raised positional
-                            // threshold (rememberSwipeToDismissBoxState's third argument), a swipe
-                            // now has to be both far *and* deliberate to commit.
-                            val density = LocalDensity.current
-                            val minDragPx = with(density) { 96.dp.toPx() }
-                            // confirmValueChange can't reference dismissState directly (it's
-                            // still being initialized by the same call) - this ref is reassigned
-                            // to the real state immediately below, long before any gesture could
-                            // actually invoke the lambda.
-                            var dismissStateRef: SwipeToDismissBoxState? = null
+                            //
+                            // The old confirmValueChange-based API is deprecated in this alpha for
+                            // exactly the reason it bit us: currentValue (and confirmValueChange)
+                            // updates live as your finger crosses each anchor mid-drag, so archive
+                            // could fire while you were still holding, well before release. onDismiss
+                            // below is driven by settledValue instead, which this API only updates
+                            // once the drag's release-triggered settle animation has actually
+                            // resolved - so the action now genuinely can't fire until you let go.
                             val dismissState = rememberSwipeToDismissBoxState(
-                                confirmValueChange = { value ->
-                                    val draggedFarEnough =
-                                        abs(dismissStateRef?.requireOffset() ?: 0f) >= minDragPx
-                                    when {
-                                        !draggedFarEnough -> false
-                                        value == SwipeToDismissBoxValue.StartToEnd -> {
-                                            editingHabit = item
-                                            false
-                                        }
-                                        value == SwipeToDismissBoxValue.EndToStart -> {
-                                            archiveImmediately(item)
-                                            true
-                                        }
-                                        else -> false
-                                    }
-                                },
-                                positionalThreshold = { totalDistance -> totalDistance * 0.75f },
+                                positionalThreshold = { totalDistance -> totalDistance * 0.65f },
                             )
-                            dismissStateRef = dismissState
                             SwipeToDismissBox(
                                 state = dismissState,
                                 modifier = Modifier
                                     .shadow(elevation, MaterialTheme.shapes.largeIncreased)
                                     .padding(bottom = Spacing.medium),
                                 backgroundContent = { SwipeBackground(dismissState = dismissState) },
+                                onDismiss = { direction ->
+                                    when (direction) {
+                                        SwipeToDismissBoxValue.StartToEnd -> {
+                                            editingHabit = item
+                                            coroutineScope.launch { dismissState.reset() }
+                                        }
+                                        SwipeToDismissBoxValue.EndToStart -> archiveImmediately(item)
+                                        SwipeToDismissBoxValue.Settled -> Unit
+                                    }
+                                },
                             ) {
                                 HabitRow(
                                     item = item,
