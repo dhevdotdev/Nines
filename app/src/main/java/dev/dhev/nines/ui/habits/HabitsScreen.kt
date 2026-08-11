@@ -48,6 +48,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
@@ -71,16 +72,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Snackbar
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxState
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
@@ -89,7 +84,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.BiasAlignment
@@ -137,8 +131,12 @@ fun HabitsScreen(
     // once per theme change, not once per sheet open.
     val paletteColors = rememberHabitColorsForPalette(HabitPalette.seeds)
     val haptics = LocalHapticFeedback.current
-    val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
+    // Toggled from the top bar rather than a permanent per-row handle, and mutually exclusive
+    // with the swipe gestures below - stacking a long-press-drag detector directly on the same
+    // element as swipe-to-dismiss is exactly the kind of fragile gesture overlap that broke this
+    // the first two times it was attempted. As separate modes, they're never both listening on
+    // the same touch at once.
+    var reorderMode by remember { mutableStateOf(false) }
 
     // Order lives here, not directly on uiState.habits, so a drag can reorder immediately without
     // waiting on a DB write + Flow round-trip, while every other field (score, completedToday)
@@ -155,36 +153,20 @@ fun HabitsScreen(
         orderIds.mapNotNull { id -> uiState.habits.find { it.id == id } }
     }
 
-    // Swiped-away rows are held here rather than deleted immediately - the row disappears from
-    // the list right away (see displayedHabits filtering it out below) while the real delete is
-    // deferred until the undo window closes, so "Undo" genuinely undoes something instead of
-    // re-creating it from scratch.
-    var pendingDeleteIds by remember { mutableStateOf(setOf<Long>()) }
+    // Archiving (never a real delete — see HabitRepository.archiveHabit) is safe to commit
+    // immediately with no undo prompt: it's already recoverable, just not from this screen.
+    // Tracked locally only so the row disappears the instant you swipe, rather than waiting on
+    // the DB write + Flow round-trip.
+    var archivedLocally by remember { mutableStateOf(setOf<Long>()) }
 
-    fun deleteWithUndo(item: HabitListItem) {
-        pendingDeleteIds = pendingDeleteIds + item.id
-        haptics.performHapticFeedback(HapticFeedbackType.GestureEnd)
-        scope.launch {
-            // Long (~10s), not the Short default (~4s, and this app's own Short usage elsewhere
-            // is even tighter) - deciding whether you actually meant to delete something needs
-            // more room than a routine "saved" confirmation does.
-            val result = snackbarHostState.showSnackbar(
-                message = "${item.name} deleted",
-                actionLabel = "Undo",
-                duration = SnackbarDuration.Long,
-            )
-            if (result == SnackbarResult.ActionPerformed) {
-                pendingDeleteIds = pendingDeleteIds - item.id
-            } else {
-                onAction(HabitsAction.DeleteHabit(item.id))
-                pendingDeleteIds = pendingDeleteIds - item.id
-            }
-        }
+    fun archiveImmediately(item: HabitListItem) {
+        archivedLocally = archivedLocally + item.id
+        haptics.performHapticFeedback(HapticFeedbackType.Reject)
+        onAction(HabitsAction.DeleteHabit(item.id))
     }
 
     Scaffold(
         modifier = modifier,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
         // Plain, fixed-height, no scrollBehavior attached — fully sticky/pinned rather than the
         // collapsing-on-scroll LargeTopAppBar, which reserved a lot of empty vertical space at
         // rest and only gave it back once you scrolled. Consistent space from the start instead.
@@ -210,11 +192,32 @@ fun HabitsScreen(
                         },
                     )
                 },
+                actions = {
+                    // A real mode switch, not just a per-row handle — swipe-to-archive/edit is
+                    // disabled while this is on (see the items loop below), so the two gesture
+                    // systems are never live on the same touch at once.
+                    IconButton(
+                        onClick = {
+                            haptics.performHapticFeedback(HapticFeedbackType.ToggleOn)
+                            reorderMode = !reorderMode
+                        },
+                    ) {
+                        Icon(
+                            imageVector = if (reorderMode) Icons.Filled.Check else Icons.Rounded.DragHandle,
+                            contentDescription = if (reorderMode) "Done reordering" else "Reorder habits",
+                        )
+                    }
+                },
             )
         },
         floatingActionButton = {
             // Medium is M3 Expressive's recommended default size, not the plain (small-tier) FAB.
-            MediumFloatingActionButton(onClick = { showAddSheet = true }) {
+            MediumFloatingActionButton(
+                onClick = {
+                    haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+                    showAddSheet = true
+                },
+            ) {
                 Icon(
                     Icons.Filled.Add,
                     contentDescription = "Add habit",
@@ -223,12 +226,12 @@ fun HabitsScreen(
             }
         },
     ) { innerPadding ->
-        val visibleHabits = remember(displayedHabits, pendingDeleteIds) {
-            displayedHabits.filter { it.id !in pendingDeleteIds }
+        val visibleHabits = remember(displayedHabits, archivedLocally) {
+            displayedHabits.filter { it.id !in archivedLocally }
         }
         if (uiState.isLoading) {
             FullScreenLoadingIndicator(modifier = Modifier.padding(innerPadding))
-        } else if (visibleHabits.isEmpty() && pendingDeleteIds.isEmpty()) {
+        } else if (visibleHabits.isEmpty() && archivedLocally.isEmpty()) {
             EmptyHabitsState(
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
                 onAddHabit = { showAddSheet = true },
@@ -279,66 +282,79 @@ fun HabitsScreen(
                             targetValue = if (isDragging) 6.dp else 0.dp,
                             label = "reorderElevation",
                         )
-                        // Both directions now mean the same thing (delete) since edit already
-                        // has a real home on the detail screen's own pencil icon - freeing this
-                        // gesture up entirely instead of splitting it two ways is what actually
-                        // let a commit-and-undo version work, unlike the swipe-opens-edit
-                        // version this replaced: that one deliberately never committed
-                        // (confirmValueChange always returned false), so there was never a
-                        // "dismissed" state to build an undo flow on top of in the first place.
-                        // The two directions mean genuinely different things, so they're handled
-                        // differently: edit (right) never actually commits - it opens the sheet
-                        // as a side effect and springs back to Settled, since the row itself
-                        // hasn't gone anywhere. Delete (left) commits for real - the row
-                        // animates fully away, then the undo window opens.
-                        val dismissState = rememberSwipeToDismissBoxState(
-                            confirmValueChange = { value ->
-                                when (value) {
-                                    SwipeToDismissBoxValue.StartToEnd -> {
-                                        editingHabit = item
-                                        false
+                        if (reorderMode) {
+                            // Swipe is off entirely in this mode - the handle is the only active
+                            // gesture, so there's nothing for a long-press-drag to conflict with.
+                            Box(
+                                modifier = Modifier
+                                    .shadow(elevation, MaterialTheme.shapes.largeIncreased)
+                                    .padding(bottom = Spacing.medium),
+                            ) {
+                                HabitRow(
+                                    item = item,
+                                    onToggle = {},
+                                    onIncrement = {},
+                                    onDecrement = {},
+                                    onSetValue = {},
+                                    onClick = {},
+                                    dragHandle = {
+                                        Icon(
+                                            imageVector = Icons.Rounded.DragHandle,
+                                            contentDescription = "Reorder ${item.name}",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier
+                                                .draggableHandle(
+                                                    onDragStarted = {
+                                                        haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+                                                    },
+                                                    onDragStopped = {
+                                                        haptics.performHapticFeedback(HapticFeedbackType.GestureEnd)
+                                                        onAction(HabitsAction.ReorderHabits(orderIds))
+                                                    },
+                                                )
+                                                .size(24.dp),
+                                        )
+                                    },
+                                )
+                            }
+                        } else {
+                            // The two swipe directions mean genuinely different things: edit
+                            // (right) never actually commits - it opens the sheet as a side
+                            // effect and springs back to Settled, since the row itself hasn't
+                            // gone anywhere. Archive (left) commits for real and is immediate -
+                            // no undo prompt, since archiving was never a real delete to begin
+                            // with (see HabitRepository.archiveHabit / the Settings screen).
+                            val dismissState = rememberSwipeToDismissBoxState(
+                                confirmValueChange = { value ->
+                                    when (value) {
+                                        SwipeToDismissBoxValue.StartToEnd -> {
+                                            editingHabit = item
+                                            false
+                                        }
+                                        SwipeToDismissBoxValue.EndToStart -> {
+                                            archiveImmediately(item)
+                                            true
+                                        }
+                                        SwipeToDismissBoxValue.Settled -> false
                                     }
-                                    SwipeToDismissBoxValue.EndToStart -> {
-                                        deleteWithUndo(item)
-                                        true
-                                    }
-                                    SwipeToDismissBoxValue.Settled -> false
-                                }
-                            },
-                        )
-                        SwipeToDismissBox(
-                            state = dismissState,
-                            modifier = Modifier
-                                .shadow(elevation, MaterialTheme.shapes.largeIncreased)
-                                .padding(bottom = Spacing.medium),
-                            backgroundContent = { SwipeBackground(dismissState = dismissState) },
-                        ) {
-                            HabitRow(
-                                item = item,
-                                onToggle = { onAction(HabitsAction.ToggleHabit(item.id)) },
-                                onIncrement = { delta -> onAction(HabitsAction.IncrementHabit(item.id, delta)) },
-                                onDecrement = { delta -> onAction(HabitsAction.IncrementHabit(item.id, -delta)) },
-                                onSetValue = { value -> onAction(HabitsAction.SetNumericValue(item.id, value)) },
-                                onClick = { onHabitClick(item.id) },
-                                dragHandle = {
-                                    Icon(
-                                        imageVector = Icons.Rounded.DragHandle,
-                                        contentDescription = "Reorder ${item.name}",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                                        modifier = Modifier
-                                            .draggableHandle(
-                                                onDragStarted = {
-                                                    haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
-                                                },
-                                                onDragStopped = {
-                                                    haptics.performHapticFeedback(HapticFeedbackType.GestureEnd)
-                                                    onAction(HabitsAction.ReorderHabits(orderIds))
-                                                },
-                                            )
-                                            .size(20.dp),
-                                    )
                                 },
                             )
+                            SwipeToDismissBox(
+                                state = dismissState,
+                                modifier = Modifier
+                                    .shadow(elevation, MaterialTheme.shapes.largeIncreased)
+                                    .padding(bottom = Spacing.medium),
+                                backgroundContent = { SwipeBackground(dismissState = dismissState) },
+                            ) {
+                                HabitRow(
+                                    item = item,
+                                    onToggle = { onAction(HabitsAction.ToggleHabit(item.id)) },
+                                    onIncrement = { delta -> onAction(HabitsAction.IncrementHabit(item.id, delta)) },
+                                    onDecrement = { delta -> onAction(HabitsAction.IncrementHabit(item.id, -delta)) },
+                                    onSetValue = { value -> onAction(HabitsAction.SetNumericValue(item.id, value)) },
+                                    onClick = { onHabitClick(item.id) },
+                                )
+                            }
                         }
                     }
                 }
@@ -582,6 +598,7 @@ fun AddHabitSheet(
     // sheet doesn't grow when the IME appears — it just gets covered by the keyboard.
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val keyboardController = LocalSoftwareKeyboardController.current
+    val haptics = LocalHapticFeedback.current
 
     val canSubmit = name.isNotBlank() && (type == HabitType.BOOLEAN || targetText.toDoubleOrNull() != null)
 
@@ -602,7 +619,12 @@ fun AddHabitSheet(
                     modifier = Modifier.weight(1f),
                 )
                 if (editing != null && onDelete != null) {
-                    IconButton(onClick = onDelete) {
+                    IconButton(
+                        onClick = {
+                            haptics.performHapticFeedback(HapticFeedbackType.Reject)
+                            onDelete()
+                        },
+                    ) {
                         Icon(Icons.Outlined.Delete, contentDescription = "Delete habit")
                     }
                 }
@@ -628,13 +650,23 @@ fun AddHabitSheet(
             SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                 SegmentedButton(
                     selected = type == HabitType.BOOLEAN,
-                    onClick = { if (editing == null) type = HabitType.BOOLEAN },
+                    onClick = {
+                        if (editing == null) {
+                            haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                            type = HabitType.BOOLEAN
+                        }
+                    },
                     enabled = editing == null,
                     shape = SegmentedButtonDefaults.itemShape(0, 2),
                 ) { Text("Yes / no") }
                 SegmentedButton(
                     selected = type == HabitType.NUMERICAL,
-                    onClick = { if (editing == null) type = HabitType.NUMERICAL },
+                    onClick = {
+                        if (editing == null) {
+                            haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                            type = HabitType.NUMERICAL
+                        }
+                    },
                     enabled = editing == null,
                     shape = SegmentedButtonDefaults.itemShape(1, 2),
                 ) { Text("Measurable") }
@@ -646,17 +678,26 @@ fun AddHabitSheet(
             SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                 SegmentedButton(
                     selected = frequencyType == FrequencyType.DAILY,
-                    onClick = { frequencyType = FrequencyType.DAILY },
+                    onClick = {
+                        haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                        frequencyType = FrequencyType.DAILY
+                    },
                     shape = SegmentedButtonDefaults.itemShape(0, 3),
                 ) { Text("Daily") }
                 SegmentedButton(
                     selected = frequencyType == FrequencyType.TIMES_PER_WEEK,
-                    onClick = { frequencyType = FrequencyType.TIMES_PER_WEEK },
+                    onClick = {
+                        haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                        frequencyType = FrequencyType.TIMES_PER_WEEK
+                    },
                     shape = SegmentedButtonDefaults.itemShape(1, 3),
                 ) { Text("Per week") }
                 SegmentedButton(
                     selected = frequencyType == FrequencyType.EVERY_N_DAYS,
-                    onClick = { frequencyType = FrequencyType.EVERY_N_DAYS },
+                    onClick = {
+                        haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                        frequencyType = FrequencyType.EVERY_N_DAYS
+                    },
                     shape = SegmentedButtonDefaults.itemShape(2, 3),
                 ) { Text("Custom") }
             }
@@ -733,12 +774,18 @@ fun AddHabitSheet(
                     SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                         SegmentedButton(
                             selected = targetKind == TargetKind.AT_LEAST,
-                            onClick = { targetKind = TargetKind.AT_LEAST },
+                            onClick = {
+                                haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                                targetKind = TargetKind.AT_LEAST
+                            },
                             shape = SegmentedButtonDefaults.itemShape(0, 2),
                         ) { Text("At least") }
                         SegmentedButton(
                             selected = targetKind == TargetKind.AT_MOST,
-                            onClick = { targetKind = TargetKind.AT_MOST },
+                            onClick = {
+                                haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                                targetKind = TargetKind.AT_MOST
+                            },
                             shape = SegmentedButtonDefaults.itemShape(1, 2),
                         ) { Text("At most") }
                     }
@@ -773,7 +820,10 @@ fun AddHabitSheet(
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null,
-                            ) { selectedColorIndex = index },
+                            ) {
+                                haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                                selectedColorIndex = index
+                            },
                     )
                 }
             }
@@ -814,7 +864,10 @@ fun AddHabitSheet(
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null,
-                            ) { selectedBackground = style },
+                            ) {
+                                haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                                selectedBackground = style
+                            },
                         contentAlignment = Alignment.Center,
                     ) {
                         // Inset from the true edge so the pattern's own strokes never reach the
@@ -855,7 +908,10 @@ fun AddHabitSheet(
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null,
-                            ) { selectedIcon = key },
+                            ) {
+                                haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                                selectedIcon = key
+                            },
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
@@ -874,6 +930,7 @@ fun AddHabitSheet(
             Spacer(Modifier.height(Spacing.large))
             Button(
                 onClick = {
+                    haptics.performHapticFeedback(HapticFeedbackType.Confirm)
                     val (numerator, denominator) = when (frequencyType) {
                         FrequencyType.DAILY -> 1 to 1
                         FrequencyType.TIMES_PER_WEEK -> timesPerWeek to 7
@@ -927,13 +984,19 @@ private fun NumberStepper(
     range: IntRange,
     modifier: Modifier = Modifier,
 ) {
+    val haptics = LocalHapticFeedback.current
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.medium),
     ) {
         FilledTonalIconButton(
-            onClick = { if (value > range.first) onValueChange(value - 1) },
+            onClick = {
+                if (value > range.first) {
+                    haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                    onValueChange(value - 1)
+                }
+            },
             enabled = value > range.first,
         ) {
             Icon(Icons.Filled.Remove, contentDescription = "Decrease")
@@ -945,7 +1008,12 @@ private fun NumberStepper(
             modifier = Modifier.widthIn(min = 32.dp),
         )
         FilledTonalIconButton(
-            onClick = { if (value < range.last) onValueChange(value + 1) },
+            onClick = {
+                if (value < range.last) {
+                    haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                    onValueChange(value + 1)
+                }
+            },
             enabled = value < range.last,
         ) {
             Icon(Icons.Filled.Add, contentDescription = "Increase")

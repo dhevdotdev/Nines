@@ -72,6 +72,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -103,6 +105,7 @@ fun HabitDetailScreen(
     modifier: Modifier = Modifier,
 ) {
     val colors = rememberHabitColors(Color(uiState.color))
+    val haptics = LocalHapticFeedback.current
     var showEditSheet by remember { mutableStateOf(false) }
     var expandedMonth by remember { mutableStateOf<YearMonth?>(null) }
     var editingDay by remember { mutableStateOf<DayCell?>(null) }
@@ -312,7 +315,10 @@ fun HabitDetailScreen(
             HistoryCalendar(
                 days = uiState.history,
                 accent = colors.accent,
-                onMonthClick = { month -> expandedMonth = month },
+                onMonthClick = { month ->
+                    haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+                    expandedMonth = month
+                },
             )
 
             // Skipped when the only streak on record is the one still running today - that's
@@ -408,8 +414,12 @@ fun HabitDetailScreen(
             accent = colors.accent,
             onDayClick = { day ->
                 if (uiState.type == HabitType.NUMERICAL) {
+                    haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
                     editingDay = day
                 } else {
+                    haptics.performHapticFeedback(
+                        if (day.state == EntryState.COMPLETED) HapticFeedbackType.ToggleOff else HapticFeedbackType.ToggleOn,
+                    )
                     onAction(HabitDetailAction.Toggle(day.date))
                 }
             },
@@ -569,6 +579,7 @@ private fun NumericEditDialog(
     onDismiss: () -> Unit,
 ) {
     var text by remember(day.date) { mutableStateOf(day.numericValue?.let { formatValue(it) } ?: "") }
+    val haptics = LocalHapticFeedback.current
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -598,7 +609,14 @@ private fun NumericEditDialog(
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     TextButton(onClick = onDismiss) { Text("Cancel") }
                     Spacer(Modifier.width(Spacing.small))
-                    Button(onClick = { text.toDoubleOrNull()?.let(onSave) }) { Text("Save") }
+                    Button(
+                        onClick = {
+                            text.toDoubleOrNull()?.let {
+                                haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+                                onSave(it)
+                            }
+                        },
+                    ) { Text("Save") }
                 }
             }
         }
