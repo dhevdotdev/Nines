@@ -1,0 +1,41 @@
+package dev.dhev.nines.ui.settings
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import dev.dhev.nines.data.HabitRepository
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+
+class ArchivedHabitsViewModel(private val repository: HabitRepository) : ViewModel() {
+
+    val uiState: StateFlow<ArchivedHabitsUiState> = repository.observeArchivedHabits()
+        .map { habits ->
+            ArchivedHabitsUiState(
+                archivedHabits = habits.map { habit ->
+                    ArchivedHabitItem(
+                        id = habit.id,
+                        name = habit.name,
+                        color = habit.color,
+                        iconKey = habit.iconKey,
+                    )
+                },
+                isLoading = false,
+            )
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = ArchivedHabitsUiState(),
+        )
+
+    fun onAction(action: ArchivedHabitsAction) {
+        when (action) {
+            is ArchivedHabitsAction.RestoreHabit -> viewModelScope.launch {
+                repository.restoreHabit(action.habitId)
+            }
+        }
+    }
+}

@@ -24,6 +24,8 @@ class HabitRepository(
 ) {
     fun observeActiveHabits(): Flow<List<HabitEntity>> = habitDao.observeActiveHabits()
 
+    fun observeArchivedHabits(): Flow<List<HabitEntity>> = habitDao.observeArchivedHabits()
+
     fun observeHabit(habitId: Long): Flow<HabitEntity?> = habitDao.observeById(habitId)
 
     fun observeEntries(habitId: Long): Flow<List<EntryEntity>> = entryDao.observeEntries(habitId)
@@ -134,6 +136,13 @@ class HabitRepository(
     suspend fun archiveHabit(habitId: Long) {
         val habit = habitDao.getById(habitId) ?: return
         habitDao.update(habit.copy(archivedAt = Instant.now()))
+    }
+
+    /** Undoes [archiveHabit]. Appended to the end of the active list (via [HabitDao.nextPosition])
+     * rather than restored to its old position, which may now belong to a different habit. */
+    suspend fun restoreHabit(habitId: Long) {
+        val habit = habitDao.getById(habitId) ?: return
+        habitDao.update(habit.copy(archivedAt = null, position = habitDao.nextPosition()))
     }
 
     /** Renumbers every habit's position to match [orderedIds] - a full renumber rather than

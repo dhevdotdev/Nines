@@ -20,8 +20,13 @@ import dev.dhev.nines.ui.habits.HabitDetailScreen
 import dev.dhev.nines.ui.habits.HabitDetailViewModel
 import dev.dhev.nines.ui.habits.HabitsScreen
 import dev.dhev.nines.ui.habits.HabitsViewModel
+import dev.dhev.nines.ui.nav.ArchivedHabitsRoute
 import dev.dhev.nines.ui.nav.HabitDetailRoute
 import dev.dhev.nines.ui.nav.HabitsRoute
+import dev.dhev.nines.ui.nav.SettingsRoute
+import dev.dhev.nines.ui.settings.ArchivedHabitsScreen
+import dev.dhev.nines.ui.settings.ArchivedHabitsViewModel
+import dev.dhev.nines.ui.settings.SettingsScreen
 import dev.dhev.nines.ui.theme.NinesTheme
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -66,6 +71,24 @@ private fun NinesNavRoot() {
                     onHabitClick = { habitId ->
                         backStack.add(HabitDetailRoute(habitId))
                     },
+                    onSettingsClick = { backStack.add(SettingsRoute) },
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+            entry<SettingsRoute> {
+                SettingsScreen(
+                    onBack = dropUnlessResumed { backStack.removeLastOrNull() },
+                    onArchivedHabitsClick = { backStack.add(ArchivedHabitsRoute) },
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+            entry<ArchivedHabitsRoute> {
+                val viewModel = koinViewModel<ArchivedHabitsViewModel>()
+                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                ArchivedHabitsScreen(
+                    uiState = uiState,
+                    onAction = viewModel::onAction,
+                    onBack = dropUnlessResumed { backStack.removeLastOrNull() },
                     modifier = Modifier.fillMaxSize(),
                 )
             }

@@ -13,6 +13,11 @@ interface HabitDao {
     @Query("SELECT * FROM habits WHERE archivedAt IS NULL ORDER BY position ASC")
     fun observeActiveHabits(): Flow<List<HabitEntity>>
 
+    // Most recently archived first - what you just swiped away is what you're most likely to
+    // come back looking for.
+    @Query("SELECT * FROM habits WHERE archivedAt IS NOT NULL ORDER BY archivedAt DESC")
+    fun observeArchivedHabits(): Flow<List<HabitEntity>>
+
     @Query("SELECT * FROM habits WHERE id = :habitId")
     suspend fun getById(habitId: Long): HabitEntity?
 

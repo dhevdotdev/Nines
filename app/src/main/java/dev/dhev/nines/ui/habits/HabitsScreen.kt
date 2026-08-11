@@ -50,7 +50,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material3.Button
@@ -103,6 +104,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.widthIn
+import kotlin.math.abs
 import kotlinx.coroutines.launch
 import dev.dhev.nines.BuildConfig
 import dev.dhev.nines.data.local.entity.HabitType
@@ -122,6 +124,7 @@ fun HabitsScreen(
     uiState: HabitsUiState,
     onAction: (HabitsAction) -> Unit,
     onHabitClick: (Long) -> Unit = {},
+    onSettingsClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     var showAddSheet by remember { mutableStateOf(false) }
@@ -205,6 +208,17 @@ fun HabitsScreen(
                         Icon(
                             imageVector = if (reorderMode) Icons.Filled.Check else Icons.Rounded.DragHandle,
                             contentDescription = if (reorderMode) "Done reordering" else "Reorder habits",
+                        )
+                    }
+                    IconButton(
+                        onClick = {
+                            haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
+                            onSettingsClick()
+                        },
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Settings,
+                            contentDescription = "Settings",
                         )
                     }
                 },
@@ -324,21 +338,41 @@ fun HabitsScreen(
                             // gone anywhere. Archive (left) commits for real and is immediate -
                             // no undo prompt, since archiving was never a real delete to begin
                             // with (see HabitRepository.archiveHabit / the Settings screen).
+                            // Material3's fling-based commit can fire on a quick short flick even
+                            // when the drag barely moved - exactly what turned an ordinary
+                            // diagonal scroll touch into an accidental archive/edit. The explicit
+                            // offset floor below ignores that fling shortcut entirely: only a
+                            // drag that's actually travelled past minDragPx counts, regardless of
+                            // how fast it was released. Combined with the raised positional
+                            // threshold (rememberSwipeToDismissBoxState's third argument), a swipe
+                            // now has to be both far *and* deliberate to commit.
+                            val density = LocalDensity.current
+                            val minDragPx = with(density) { 96.dp.toPx() }
+                            // confirmValueChange can't reference dismissState directly (it's
+                            // still being initialized by the same call) - this ref is reassigned
+                            // to the real state immediately below, long before any gesture could
+                            // actually invoke the lambda.
+                            var dismissStateRef: SwipeToDismissBoxState? = null
                             val dismissState = rememberSwipeToDismissBoxState(
                                 confirmValueChange = { value ->
-                                    when (value) {
-                                        SwipeToDismissBoxValue.StartToEnd -> {
+                                    val draggedFarEnough =
+                                        abs(dismissStateRef?.requireOffset() ?: 0f) >= minDragPx
+                                    when {
+                                        !draggedFarEnough -> false
+                                        value == SwipeToDismissBoxValue.StartToEnd -> {
                                             editingHabit = item
                                             false
                                         }
-                                        SwipeToDismissBoxValue.EndToStart -> {
+                                        value == SwipeToDismissBoxValue.EndToStart -> {
                                             archiveImmediately(item)
                                             true
                                         }
-                                        SwipeToDismissBoxValue.Settled -> false
+                                        else -> false
                                     }
                                 },
+                                positionalThreshold = { totalDistance -> totalDistance * 0.75f },
                             )
+                            dismissStateRef = dismissState
                             SwipeToDismissBox(
                                 state = dismissState,
                                 modifier = Modifier
@@ -390,7 +424,7 @@ private fun SwipeBackground(dismissState: SwipeToDismissBoxState) {
     // Settled must render as genuinely nothing — this background sits behind every row at all
     // times, normally just hidden by the opaque card on top of it. Direction now carries real
     // meaning, not just which side your thumb dragged from: right reveals edit, left reveals
-    // delete, matching the well-worn convention (Gmail, Inbox) rather than inventing a new one.
+    // archive, matching the well-worn convention (Gmail, Inbox) rather than inventing a new one.
     val direction = dismissState.dismissDirection
     if (direction == SwipeToDismissBoxValue.Settled) return
 
@@ -413,8 +447,8 @@ private fun SwipeBackground(dismissState: SwipeToDismissBoxState) {
         contentAlignment = if (isStartToEnd) Alignment.CenterStart else Alignment.CenterEnd,
     ) {
         Icon(
-            imageVector = if (isStartToEnd) Icons.Outlined.Edit else Icons.Outlined.Delete,
-            contentDescription = if (isStartToEnd) "Edit" else "Delete",
+            imageVector = if (isStartToEnd) Icons.Outlined.Edit else Icons.Outlined.Archive,
+            contentDescription = if (isStartToEnd) "Edit" else "Archive",
             tint = onContainerColor,
             modifier = Modifier
                 .padding(horizontal = Spacing.large)
@@ -625,7 +659,7 @@ fun AddHabitSheet(
                             onDelete()
                         },
                     ) {
-                        Icon(Icons.Outlined.Delete, contentDescription = "Delete habit")
+                        Icon(Icons.Outlined.Archive, contentDescription = "Archive habit")
                     }
                 }
             }
