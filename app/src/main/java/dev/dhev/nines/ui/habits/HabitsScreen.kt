@@ -96,14 +96,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.widthIn
+import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 import dev.dhev.nines.BuildConfig
 import dev.dhev.nines.data.local.entity.HabitType
@@ -349,6 +352,16 @@ fun HabitsScreen(
                             val dismissState = rememberSwipeToDismissBoxState(
                                 positionalThreshold = { totalDistance -> totalDistance * 0.65f },
                             )
+                            // SwipeToDismissBox's own anchors sit at +/- the row's full width, so a
+                            // held drag can translate the card completely off the edge of the
+                            // screen before it ever settles - it just looks broken, since neither
+                            // direction here is meant to be a real fly-away dismissal (archive is
+                            // committed via archivedLocally/list filtering, not via the card
+                            // leaving; edit springs right back). This offset counter-shifts the
+                            // rendered card back once the real (unclamped) offset passes
+                            // maxRevealPx, capping how far it can visually travel while leaving the
+                            // underlying drag/threshold/settle math untouched.
+                            val maxRevealPx = with(LocalDensity.current) { 120.dp.toPx() }
                             SwipeToDismissBox(
                                 state = dismissState,
                                 modifier = Modifier
@@ -373,6 +386,14 @@ fun HabitsScreen(
                                     onDecrement = { delta -> onAction(HabitsAction.IncrementHabit(item.id, -delta)) },
                                     onSetValue = { value -> onAction(HabitsAction.SetNumericValue(item.id, value)) },
                                     onClick = { onHabitClick(item.id) },
+                                    modifier = Modifier.offset {
+                                        // requireOffset() throws until the row's first measure
+                                        // pass has initialized the drag anchors.
+                                        val raw = runCatching { dismissState.requireOffset() }
+                                            .getOrDefault(0f)
+                                        val clamped = raw.coerceIn(-maxRevealPx, maxRevealPx)
+                                        IntOffset((clamped - raw).roundToInt(), 0)
+                                    },
                                 )
                             }
                         }
