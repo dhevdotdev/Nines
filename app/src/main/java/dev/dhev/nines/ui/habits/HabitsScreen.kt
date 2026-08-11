@@ -39,6 +39,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -50,6 +51,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -69,9 +71,16 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxState
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
@@ -86,10 +95,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -107,6 +119,8 @@ import dev.dhev.nines.ui.theme.HabitColors
 import dev.dhev.nines.ui.theme.contrastingIconColor
 import dev.dhev.nines.ui.theme.rememberHabitColors
 import dev.dhev.nines.ui.theme.rememberHabitColorsForPalette
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -122,9 +136,55 @@ fun HabitsScreen(
     // rebuilt every time the sheet opens): the real HCT/CAM16 math for ~20 swatches should run
     // once per theme change, not once per sheet open.
     val paletteColors = rememberHabitColorsForPalette(HabitPalette.seeds)
+    val haptics = LocalHapticFeedback.current
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // Order lives here, not directly on uiState.habits, so a drag can reorder immediately without
+    // waiting on a DB write + Flow round-trip, while every other field (score, completedToday)
+    // still comes live from uiState. Re-synced only when the *set* of ids changes (a habit was
+    // added or deleted) so it never fights an in-progress drag or a real reorder that just landed.
+    var orderIds by remember { mutableStateOf(uiState.habits.map { it.id }) }
+    LaunchedEffect(uiState.habits.map { it.id }.toSet()) {
+        val newIds = uiState.habits.map { it.id }
+        if (orderIds.toSet() != newIds.toSet()) {
+            orderIds = orderIds.filter { it in newIds.toSet() } + newIds.filter { it !in orderIds.toSet() }
+        }
+    }
+    val displayedHabits = remember(orderIds, uiState.habits) {
+        orderIds.mapNotNull { id -> uiState.habits.find { it.id == id } }
+    }
+
+    // Swiped-away rows are held here rather than deleted immediately - the row disappears from
+    // the list right away (see displayedHabits filtering it out below) while the real delete is
+    // deferred until the undo window closes, so "Undo" genuinely undoes something instead of
+    // re-creating it from scratch.
+    var pendingDeleteIds by remember { mutableStateOf(setOf<Long>()) }
+
+    fun deleteWithUndo(item: HabitListItem) {
+        pendingDeleteIds = pendingDeleteIds + item.id
+        haptics.performHapticFeedback(HapticFeedbackType.GestureEnd)
+        scope.launch {
+            // Long (~10s), not the Short default (~4s, and this app's own Short usage elsewhere
+            // is even tighter) - deciding whether you actually meant to delete something needs
+            // more room than a routine "saved" confirmation does.
+            val result = snackbarHostState.showSnackbar(
+                message = "${item.name} deleted",
+                actionLabel = "Undo",
+                duration = SnackbarDuration.Long,
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                pendingDeleteIds = pendingDeleteIds - item.id
+            } else {
+                onAction(HabitsAction.DeleteHabit(item.id))
+                pendingDeleteIds = pendingDeleteIds - item.id
+            }
+        }
+    }
 
     Scaffold(
         modifier = modifier,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         // Plain, fixed-height, no scrollBehavior attached — fully sticky/pinned rather than the
         // collapsing-on-scroll LargeTopAppBar, which reserved a lot of empty vertical space at
         // rest and only gave it back once you scrolled. Consistent space from the start instead.
@@ -163,15 +223,29 @@ fun HabitsScreen(
             }
         },
     ) { innerPadding ->
+        val visibleHabits = remember(displayedHabits, pendingDeleteIds) {
+            displayedHabits.filter { it.id !in pendingDeleteIds }
+        }
         if (uiState.isLoading) {
             FullScreenLoadingIndicator(modifier = Modifier.padding(innerPadding))
-        } else if (uiState.habits.isEmpty()) {
+        } else if (visibleHabits.isEmpty() && pendingDeleteIds.isEmpty()) {
             EmptyHabitsState(
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
                 onAddHabit = { showAddSheet = true },
             )
         } else {
+            val lazyListState = rememberLazyListState()
+            // Index 1 accounts for the AllDoneBanner's own always-present item {} slot (index 0)
+            // ahead of the reorderable habit items - the library's from/to indices are positions
+            // within the whole LazyColumn, not just the reorderable subset.
+            val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to ->
+                orderIds = orderIds.toMutableList().apply {
+                    add(to.index - 1, removeAt(from.index - 1))
+                }
+                haptics.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
+            }
             LazyColumn(
+                state = lazyListState,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
                     start = Spacing.default,
@@ -187,10 +261,10 @@ fun HabitsScreen(
                     // Shown only once every habit is checked off — a small reward for actually
                     // finishing, not just a status readout that's visible the rest of the time.
                     AnimatedVisibility(
-                        // habits.isNotEmpty() guards the vacuous-truth case: List<T>.all{} on an
-                        // empty list is true, so before the real data loads in (uiState.habits
-                        // starts empty) this would otherwise flash on for a frame every launch.
-                        visible = uiState.habits.isNotEmpty() && uiState.habits.all { it.completedToday },
+                        // isNotEmpty() guards the vacuous-truth case: List<T>.all{} on an empty
+                        // list is true, so before the real data loads in this would otherwise
+                        // flash on for a frame every launch.
+                        visible = visibleHabits.isNotEmpty() && visibleHabits.all { it.completedToday },
                         enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) +
                             expandVertically(animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()),
                         exit = fadeOut(MaterialTheme.motionScheme.defaultEffectsSpec()) +
@@ -199,41 +273,73 @@ fun HabitsScreen(
                         AllDoneBanner(modifier = Modifier.padding(bottom = Spacing.medium))
                     }
                 }
-                items(uiState.habits, key = { it.id }) { item ->
-                    // Swiping in either direction opens edit — the only way to delete is the
-                    // trash icon inside the edit sheet, which is immediate and final (no undo).
-                    // The swipe-to-delete-with-undo version of this kept breaking in ways that
-                    // were never fully pinned down, so it's gone rather than patched further:
-                    // neither direction here ever actually commits (confirmValueChange always
-                    // returns false), it only ever springs back to Settled on its own built-in
-                    // animation after opening the sheet as a side effect.
-                    val dismissState = rememberSwipeToDismissBoxState(
-                        // 90% rather than the library's 50% default, so a normal drag has to go
-                        // nearly all the way across before opening edit — a half-hearted swipe
-                        // (or an incidental diagonal touch while scrolling) shouldn't trigger it.
-                        positionalThreshold = { totalDistance -> totalDistance * 0.9f },
-                        confirmValueChange = { value ->
-                            if (value != SwipeToDismissBoxValue.Settled) {
-                                editingHabit = item
-                            }
-                            false
-                        },
-                    )
-                    SwipeToDismissBox(
-                        state = dismissState,
-                        modifier = Modifier
-                            .animateItem()
-                            .padding(bottom = Spacing.medium),
-                        backgroundContent = { SwipeBackground(direction = dismissState.dismissDirection) },
-                    ) {
-                        HabitRow(
-                            item = item,
-                            onToggle = { onAction(HabitsAction.ToggleHabit(item.id)) },
-                            onIncrement = { delta -> onAction(HabitsAction.IncrementHabit(item.id, delta)) },
-                            onDecrement = { delta -> onAction(HabitsAction.IncrementHabit(item.id, -delta)) },
-                            onSetValue = { value -> onAction(HabitsAction.SetNumericValue(item.id, value)) },
-                            onClick = { onHabitClick(item.id) },
+                items(visibleHabits, key = { it.id }) { item ->
+                    ReorderableItem(reorderableState, key = item.id) { isDragging ->
+                        val elevation by animateDpAsState(
+                            targetValue = if (isDragging) 6.dp else 0.dp,
+                            label = "reorderElevation",
                         )
+                        // Both directions now mean the same thing (delete) since edit already
+                        // has a real home on the detail screen's own pencil icon - freeing this
+                        // gesture up entirely instead of splitting it two ways is what actually
+                        // let a commit-and-undo version work, unlike the swipe-opens-edit
+                        // version this replaced: that one deliberately never committed
+                        // (confirmValueChange always returned false), so there was never a
+                        // "dismissed" state to build an undo flow on top of in the first place.
+                        // The two directions mean genuinely different things, so they're handled
+                        // differently: edit (right) never actually commits - it opens the sheet
+                        // as a side effect and springs back to Settled, since the row itself
+                        // hasn't gone anywhere. Delete (left) commits for real - the row
+                        // animates fully away, then the undo window opens.
+                        val dismissState = rememberSwipeToDismissBoxState(
+                            confirmValueChange = { value ->
+                                when (value) {
+                                    SwipeToDismissBoxValue.StartToEnd -> {
+                                        editingHabit = item
+                                        false
+                                    }
+                                    SwipeToDismissBoxValue.EndToStart -> {
+                                        deleteWithUndo(item)
+                                        true
+                                    }
+                                    SwipeToDismissBoxValue.Settled -> false
+                                }
+                            },
+                        )
+                        SwipeToDismissBox(
+                            state = dismissState,
+                            modifier = Modifier
+                                .shadow(elevation, MaterialTheme.shapes.largeIncreased)
+                                .padding(bottom = Spacing.medium),
+                            backgroundContent = { SwipeBackground(dismissState = dismissState) },
+                        ) {
+                            HabitRow(
+                                item = item,
+                                onToggle = { onAction(HabitsAction.ToggleHabit(item.id)) },
+                                onIncrement = { delta -> onAction(HabitsAction.IncrementHabit(item.id, delta)) },
+                                onDecrement = { delta -> onAction(HabitsAction.IncrementHabit(item.id, -delta)) },
+                                onSetValue = { value -> onAction(HabitsAction.SetNumericValue(item.id, value)) },
+                                onClick = { onHabitClick(item.id) },
+                                dragHandle = {
+                                    Icon(
+                                        imageVector = Icons.Rounded.DragHandle,
+                                        contentDescription = "Reorder ${item.name}",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                        modifier = Modifier
+                                            .draggableHandle(
+                                                onDragStarted = {
+                                                    haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+                                                },
+                                                onDragStopped = {
+                                                    haptics.performHapticFeedback(HapticFeedbackType.GestureEnd)
+                                                    onAction(HabitsAction.ReorderHabits(orderIds))
+                                                },
+                                            )
+                                            .size(20.dp),
+                                    )
+                                },
+                            )
+                        }
                     }
                 }
             }
@@ -264,26 +370,46 @@ fun HabitsScreen(
 }
 
 @Composable
-private fun SwipeBackground(direction: SwipeToDismissBoxValue) {
-    // Settled must render as genuinely nothing, not fall through to the edit look — this
-    // background sits behind every row at all times, normally just hidden by the opaque card on
-    // top of it. Both swipe directions mean the same thing now (open edit), so only alignment
-    // differs — the icon sits on whichever side your thumb is dragging away from.
+private fun SwipeBackground(dismissState: SwipeToDismissBoxState) {
+    // Settled must render as genuinely nothing — this background sits behind every row at all
+    // times, normally just hidden by the opaque card on top of it. Direction now carries real
+    // meaning, not just which side your thumb dragged from: right reveals edit, left reveals
+    // delete, matching the well-worn convention (Gmail, Inbox) rather than inventing a new one.
+    val direction = dismissState.dismissDirection
     if (direction == SwipeToDismissBoxValue.Settled) return
 
     val isStartToEnd = direction == SwipeToDismissBoxValue.StartToEnd
+    val containerColor = if (isStartToEnd) {
+        MaterialTheme.colorScheme.secondaryContainer
+    } else {
+        MaterialTheme.colorScheme.errorContainer
+    }
+    val onContainerColor = if (isStartToEnd) {
+        MaterialTheme.colorScheme.onSecondaryContainer
+    } else {
+        MaterialTheme.colorScheme.onErrorContainer
+    }
     Box(
         modifier = Modifier
             .fillMaxSize()
             .clip(MaterialTheme.shapes.largeIncreased)
-            .background(MaterialTheme.colorScheme.secondaryContainer),
+            .background(containerColor),
         contentAlignment = if (isStartToEnd) Alignment.CenterStart else Alignment.CenterEnd,
     ) {
         Icon(
-            imageVector = Icons.Outlined.Edit,
-            contentDescription = "Edit",
-            tint = MaterialTheme.colorScheme.onSecondaryContainer,
-            modifier = Modifier.padding(horizontal = Spacing.large),
+            imageVector = if (isStartToEnd) Icons.Outlined.Edit else Icons.Outlined.Delete,
+            contentDescription = if (isStartToEnd) "Edit" else "Delete",
+            tint = onContainerColor,
+            modifier = Modifier
+                .padding(horizontal = Spacing.large)
+                // Scales up with the drag itself rather than a separate timed animation - the
+                // gesture IS the animation driver, so the icon growing in reads as a direct,
+                // tactile response to how far your thumb has actually committed to the swipe.
+                .graphicsLayer {
+                    val scale = 0.6f + 0.4f * dismissState.progress.coerceIn(0f, 1f)
+                    scaleX = scale
+                    scaleY = scale
+                },
         )
     }
 }

@@ -66,6 +66,7 @@ fun HabitRow(
     onSetValue: (Double) -> Unit,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    dragHandle: (@Composable () -> Unit)? = null,
 ) {
     val colors = rememberHabitColors(Color(item.color))
     val cardContainer = lerp(MaterialTheme.colorScheme.surfaceContainer, colors.accent, 0.10f)
@@ -96,6 +97,10 @@ fun HabitRow(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Spacing.default),
             ) {
+            // Leads the row rather than trailing it - the trailing slot is already claimed by
+            // the primary check-off/increment action, and a handle needs to be reachable
+            // without fighting that button's touch target.
+            dragHandle?.invoke()
             // The wavy ring itself communicates reliability (score) — a distinctly MD3
             // Expressive stand-in for a flat "X% reliable" text pill.
             Box(modifier = Modifier.size(56.dp), contentAlignment = Alignment.Center) {

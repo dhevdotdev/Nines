@@ -27,4 +27,7 @@ interface HabitDao {
 
     @Query("SELECT COALESCE(MAX(position), -1) + 1 FROM habits")
     suspend fun nextPosition(): Int
+
+    @Query("UPDATE habits SET position = :position WHERE id = :habitId")
+    suspend fun updatePosition(habitId: Long, position: Int)
 }

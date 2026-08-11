@@ -136,6 +136,12 @@ class HabitRepository(
         habitDao.update(habit.copy(archivedAt = Instant.now()))
     }
 
+    /** Renumbers every habit's position to match [orderedIds] - a full renumber rather than
+     * shifting a range is simpler to reason about and cheap at the scale a habit list ever is. */
+    suspend fun reorderHabits(orderedIds: List<Long>) {
+        orderedIds.forEachIndexed { index, habitId -> habitDao.updatePosition(habitId, index) }
+    }
+
     /**
      * Name/color/icon/unit are mutated in place. A schedule change (frequency or target) instead
      * inserts a new [ScheduleVersionEntity] effective today, so past compliance stays judged

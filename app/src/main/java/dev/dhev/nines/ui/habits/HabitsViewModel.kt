@@ -127,6 +127,9 @@ class HabitsViewModel(private val repository: HabitRepository) : ViewModel() {
             is HabitsAction.DeleteHabit -> viewModelScope.launch {
                 repository.archiveHabit(action.habitId)
             }
+            is HabitsAction.ReorderHabits -> viewModelScope.launch {
+                repository.reorderHabits(action.orderedIds)
+            }
             is HabitsAction.SeedDemoData -> viewModelScope.launch { seedDemoData() }
         }
     }
