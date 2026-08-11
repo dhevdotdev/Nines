@@ -19,6 +19,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.AnchoredDraggableDefaults
+import androidx.compose.foundation.gestures.AnchoredDraggableState
+import androidx.compose.foundation.gestures.DraggableAnchors
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.anchoredDraggable
+import androidx.compose.foundation.gestures.animateTo
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -73,19 +79,15 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxState
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.BiasAlignment
@@ -106,8 +108,8 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.widthIn
+import kotlin.math.abs
 import kotlin.math.roundToInt
-import kotlinx.coroutines.launch
 import dev.dhev.nines.BuildConfig
 import dev.dhev.nines.data.local.entity.HabitType
 import dev.dhev.nines.data.local.entity.TargetKind
@@ -136,7 +138,6 @@ fun HabitsScreen(
     // once per theme change, not once per sheet open.
     val paletteColors = rememberHabitColorsForPalette(HabitPalette.seeds)
     val haptics = LocalHapticFeedback.current
-    val coroutineScope = rememberCoroutineScope()
     // Toggled from the top bar rather than a permanent per-row handle, and mutually exclusive
     // with the swipe gestures below - stacking a long-press-drag detector directly on the same
     // element as swipe-to-dismiss is exactly the kind of fragile gesture overlap that broke this
@@ -248,7 +249,7 @@ fun HabitsScreen(
         }
         if (uiState.isLoading) {
             FullScreenLoadingIndicator(modifier = Modifier.padding(innerPadding))
-        } else if (visibleHabits.isEmpty() && archivedLocally.isEmpty()) {
+        } else if (visibleHabits.isEmpty()) {
             EmptyHabitsState(
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
                 onAddHabit = { showAddSheet = true },
@@ -342,43 +343,64 @@ fun HabitsScreen(
                             // no undo prompt, since archiving was never a real delete to begin
                             // with (see HabitRepository.archiveHabit / the Settings screen).
                             //
-                            // The old confirmValueChange-based API is deprecated in this alpha for
-                            // exactly the reason it bit us: currentValue (and confirmValueChange)
-                            // updates live as your finger crosses each anchor mid-drag, so archive
-                            // could fire while you were still holding, well before release. onDismiss
-                            // below is driven by settledValue instead, which this API only updates
-                            // once the drag's release-triggered settle animation has actually
-                            // resolved - so the action now genuinely can't fire until you let go.
-                            val dismissState = rememberSwipeToDismissBoxState(
-                                positionalThreshold = { totalDistance -> totalDistance * 0.65f },
-                            )
-                            // SwipeToDismissBox's own anchors sit at +/- the row's full width, so a
-                            // held drag can translate the card completely off the edge of the
-                            // screen before it ever settles - it just looks broken, since neither
-                            // direction here is meant to be a real fly-away dismissal (archive is
-                            // committed via archivedLocally/list filtering, not via the card
-                            // leaving; edit springs right back). This offset counter-shifts the
-                            // rendered card back once the real (unclamped) offset passes
-                            // maxRevealPx, capping how far it can visually travel while leaving the
-                            // underlying drag/threshold/settle math untouched.
-                            val maxRevealPx = with(LocalDensity.current) { 120.dp.toPx() }
-                            SwipeToDismissBox(
+                            // Hand-rolled on top of AnchoredDraggableState directly, rather than
+                            // M3's SwipeToDismissBox: that composable always anchors a dismissal at
+                            // +/- the row's full width (hundreds of dp), so even after visually
+                            // capping the render, the actual settle animation still had to travel
+                            // that whole real distance before settledValue updated - which read as
+                            // a very real, very noticeable delay between release and the action
+                            // firing. Anchoring at the reveal distance we actually want (revealPx)
+                            // means the settle has almost nothing left to travel, so it resolves
+                            // essentially the instant you let go.
+                            val density = LocalDensity.current
+                            val revealPx = remember(density) { with(density) { 120.dp.toPx() } }
+                            val dismissState = remember {
+                                AnchoredDraggableState(initialValue = SwipeToDismissBoxValue.Settled)
+                            }
+                            LaunchedEffect(dismissState, revealPx) {
+                                dismissState.updateAnchors(
+                                    DraggableAnchors {
+                                        SwipeToDismissBoxValue.Settled at 0f
+                                        SwipeToDismissBoxValue.StartToEnd at revealPx
+                                        SwipeToDismissBoxValue.EndToStart at -revealPx
+                                    },
+                                )
+                            }
+                            val flingBehavior = AnchoredDraggableDefaults.flingBehavior(
                                 state = dismissState,
+                                positionalThreshold = { totalDistance -> totalDistance * 0.6f },
+                                animationSpec = tween(150),
+                            )
+                            // Mirrors M3's own settledValue-gated LaunchedEffect(state.settledValue)
+                            // pattern (see SwipeToDismissBox source) - settledValue only updates once
+                            // release-triggered settling has actually finished, so this still can't
+                            // fire mid-drag.
+                            LaunchedEffect(dismissState.settledValue) {
+                                when (dismissState.settledValue) {
+                                    SwipeToDismissBoxValue.StartToEnd -> {
+                                        editingHabit = item
+                                        dismissState.animateTo(SwipeToDismissBoxValue.Settled)
+                                    }
+                                    SwipeToDismissBoxValue.EndToStart -> archiveImmediately(item)
+                                    SwipeToDismissBoxValue.Settled -> Unit
+                                }
+                            }
+                            Box(
                                 modifier = Modifier
                                     .shadow(elevation, MaterialTheme.shapes.largeIncreased)
-                                    .padding(bottom = Spacing.medium),
-                                backgroundContent = { SwipeBackground(dismissState = dismissState) },
-                                onDismiss = { direction ->
-                                    when (direction) {
-                                        SwipeToDismissBoxValue.StartToEnd -> {
-                                            editingHabit = item
-                                            coroutineScope.launch { dismissState.reset() }
-                                        }
-                                        SwipeToDismissBoxValue.EndToStart -> archiveImmediately(item)
-                                        SwipeToDismissBoxValue.Settled -> Unit
-                                    }
-                                },
+                                    .padding(bottom = Spacing.medium)
+                                    .anchoredDraggable(
+                                        state = dismissState,
+                                        orientation = Orientation.Horizontal,
+                                        flingBehavior = flingBehavior,
+                                    ),
                             ) {
+                                val offsetPx = runCatching { dismissState.requireOffset() }.getOrDefault(0f)
+                                SwipeBackground(
+                                    offsetPx = offsetPx,
+                                    revealPx = revealPx,
+                                    modifier = Modifier.matchParentSize(),
+                                )
                                 HabitRow(
                                     item = item,
                                     onToggle = { onAction(HabitsAction.ToggleHabit(item.id)) },
@@ -386,14 +408,7 @@ fun HabitsScreen(
                                     onDecrement = { delta -> onAction(HabitsAction.IncrementHabit(item.id, -delta)) },
                                     onSetValue = { value -> onAction(HabitsAction.SetNumericValue(item.id, value)) },
                                     onClick = { onHabitClick(item.id) },
-                                    modifier = Modifier.offset {
-                                        // requireOffset() throws until the row's first measure
-                                        // pass has initialized the drag anchors.
-                                        val raw = runCatching { dismissState.requireOffset() }
-                                            .getOrDefault(0f)
-                                        val clamped = raw.coerceIn(-maxRevealPx, maxRevealPx)
-                                        IntOffset((clamped - raw).roundToInt(), 0)
-                                    },
+                                    modifier = Modifier.offset { IntOffset(offsetPx.roundToInt(), 0) },
                                 )
                             }
                         }
@@ -427,15 +442,14 @@ fun HabitsScreen(
 }
 
 @Composable
-private fun SwipeBackground(dismissState: SwipeToDismissBoxState) {
+private fun SwipeBackground(offsetPx: Float, revealPx: Float, modifier: Modifier = Modifier) {
     // Settled must render as genuinely nothing — this background sits behind every row at all
     // times, normally just hidden by the opaque card on top of it. Direction now carries real
     // meaning, not just which side your thumb dragged from: right reveals edit, left reveals
     // archive, matching the well-worn convention (Gmail, Inbox) rather than inventing a new one.
-    val direction = dismissState.dismissDirection
-    if (direction == SwipeToDismissBoxValue.Settled) return
+    if (offsetPx == 0f) return
 
-    val isStartToEnd = direction == SwipeToDismissBoxValue.StartToEnd
+    val isStartToEnd = offsetPx > 0f
     val containerColor = if (isStartToEnd) {
         MaterialTheme.colorScheme.secondaryContainer
     } else {
@@ -447,8 +461,7 @@ private fun SwipeBackground(dismissState: SwipeToDismissBoxState) {
         MaterialTheme.colorScheme.onErrorContainer
     }
     Box(
-        modifier = Modifier
-            .fillMaxSize()
+        modifier = modifier
             .clip(MaterialTheme.shapes.largeIncreased)
             .background(containerColor),
         contentAlignment = if (isStartToEnd) Alignment.CenterStart else Alignment.CenterEnd,
@@ -463,7 +476,8 @@ private fun SwipeBackground(dismissState: SwipeToDismissBoxState) {
                 // gesture IS the animation driver, so the icon growing in reads as a direct,
                 // tactile response to how far your thumb has actually committed to the swipe.
                 .graphicsLayer {
-                    val scale = 0.6f + 0.4f * dismissState.progress.coerceIn(0f, 1f)
+                    val progress = (abs(offsetPx) / revealPx).coerceIn(0f, 1f)
+                    val scale = 0.6f + 0.4f * progress
                     scaleX = scale
                     scaleY = scale
                 },
