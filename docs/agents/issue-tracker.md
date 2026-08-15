@@ -12,15 +12,7 @@ Issues and specs for this repo live as markdown files in `.scratch/`.
 
 ## When a raw idea graduates into a spec + tickets
 
-This is a local-repo convention, not something Matt Pocock's skills specify — the local-markdown tracker's numbering rules are thinner than the GitHub/GitLab case (where issue numbers are platform-assigned and this situation can't arise) and don't cover it.
-
-A raw backlog idea starts life at `.scratch/<feature-slug>/issues/01-<slug>.md`, `Status: needs-triage`. Most ideas stay small enough that `/triage` handles them entirely in place — grill if needed, attach an agent brief, update the `Status:` line on that same file. No new files, no renumbering, nothing below applies.
-
-If an idea instead grows into a full `/to-spec` → `/to-tickets` build, the raw idea file gets superseded by `spec.md` (which fully captures it) and a new `issues/01-NN-<slug>.md` sequence of real tracer-bullet tickets. When that happens:
-
-- Move the original raw idea file out of `issues/` to `.scratch/<feature-slug>/idea.md` — kept for history, but no longer part of the ticket-numbering sequence.
-- Number the real tickets `01`, `02`, ... cleanly from the start, per the normal convention above.
-- Update the moved idea file's `Status:` to `superseded (see below)` and note where the spec/tickets live.
+If a raw idea at `issues/01-<slug>.md` grows into a full `/to-spec` → `/to-tickets` build, move it to `.scratch/<feature-slug>/idea.md` (mark `Status: superseded`) and number the real tickets `01`, `02`, ... fresh in `issues/`.
 
 ## When a skill says "publish to the issue tracker"
 
