@@ -108,6 +108,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.widthIn
+import java.time.LocalDate
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import dev.dhev.nines.BuildConfig
@@ -247,169 +248,200 @@ fun HabitsScreen(
         val visibleHabits = remember(displayedHabits, archivedLocally) {
             displayedHabits.filter { it.id !in archivedLocally }
         }
-        if (uiState.isLoading) {
-            FullScreenLoadingIndicator(modifier = Modifier.padding(innerPadding))
-        } else if (visibleHabits.isEmpty()) {
-            EmptyHabitsState(
-                modifier = Modifier.fillMaxSize().padding(innerPadding),
-                onAddHabit = { showAddSheet = true },
+        val today = remember { LocalDate.now() }
+        Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+            DayRail(
+                selectedDate = uiState.selectedDate,
+                onSelectDate = { date -> onAction(HabitsAction.SelectDate(date)) },
             )
-        } else {
-            val lazyListState = rememberLazyListState()
-            // Index 1 accounts for the AllDoneBanner's own always-present item {} slot (index 0)
-            // ahead of the reorderable habit items - the library's from/to indices are positions
-            // within the whole LazyColumn, not just the reorderable subset.
-            val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to ->
-                orderIds = orderIds.toMutableList().apply {
-                    add(to.index - 1, removeAt(from.index - 1))
-                }
-                haptics.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
-            }
-            LazyColumn(
-                state = lazyListState,
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(
-                    start = Spacing.default,
-                    end = Spacing.default,
-                    top = innerPadding.calculateTopPadding() + Spacing.default,
-                    // Scaffold's innerPadding doesn't reserve room for the FAB — without this,
-                    // the FAB sits on top of (and eats touches meant for) the last row's own
-                    // trailing button.
-                    bottom = innerPadding.calculateBottomPadding() + Spacing.default + 96.dp,
-                ),
+            // Unobtrusive by design: only ever visible while browsing a date other than today,
+            // so a retroactive correction can never get silently mistaken for logging today.
+            AnimatedVisibility(
+                visible = uiState.selectedDate != today,
+                enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) +
+                    expandVertically(animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()),
+                exit = fadeOut(MaterialTheme.motionScheme.defaultEffectsSpec()) +
+                    shrinkVertically(animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()),
             ) {
-                item {
-                    // Shown only once every habit is checked off — a small reward for actually
-                    // finishing, not just a status readout that's visible the rest of the time.
-                    AnimatedVisibility(
-                        // isNotEmpty() guards the vacuous-truth case: List<T>.all{} on an empty
-                        // list is true, so before the real data loads in this would otherwise
-                        // flash on for a frame every launch.
-                        visible = visibleHabits.isNotEmpty() && visibleHabits.all { it.completed },
-                        enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) +
-                            expandVertically(animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()),
-                        exit = fadeOut(MaterialTheme.motionScheme.defaultEffectsSpec()) +
-                            shrinkVertically(animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()),
-                    ) {
-                        AllDoneBanner(modifier = Modifier.padding(bottom = Spacing.medium))
+                NonTodayIndicator(
+                    selectedDate = uiState.selectedDate,
+                    onJumpToToday = { onAction(HabitsAction.SelectDate(today)) },
+                )
+            }
+            Box(modifier = Modifier.weight(1f)) {
+                if (uiState.isLoading) {
+                    FullScreenLoadingIndicator(modifier = Modifier.fillMaxSize())
+                } else if (visibleHabits.isEmpty()) {
+                    EmptyHabitsState(
+                        modifier = Modifier.fillMaxSize(),
+                        onAddHabit = { showAddSheet = true },
+                    )
+                } else {
+                    val lazyListState = rememberLazyListState()
+                    // Index 1 accounts for the AllDoneBanner's own always-present item {} slot (index 0)
+                    // ahead of the reorderable habit items - the library's from/to indices are positions
+                    // within the whole LazyColumn, not just the reorderable subset.
+                    val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to ->
+                        orderIds = orderIds.toMutableList().apply {
+                            add(to.index - 1, removeAt(from.index - 1))
+                        }
+                        haptics.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
                     }
-                }
-                items(visibleHabits, key = { it.id }) { item ->
-                    ReorderableItem(reorderableState, key = item.id) { isDragging ->
-                        val elevation by animateDpAsState(
-                            targetValue = if (isDragging) 6.dp else 0.dp,
-                            label = "reorderElevation",
-                        )
-                        if (reorderMode) {
-                            // Swipe is off entirely in this mode - the handle is the only active
-                            // gesture, so there's nothing for a long-press-drag to conflict with.
-                            Box(
-                                modifier = Modifier
-                                    .shadow(elevation, MaterialTheme.shapes.largeIncreased)
-                                    .padding(bottom = Spacing.medium),
+                    LazyColumn(
+                        state = lazyListState,
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(
+                            start = Spacing.default,
+                            end = Spacing.default,
+                            top = Spacing.default,
+                            // No Scaffold innerPadding to account for here (already consumed by the outer
+                            // Column) — but the FAB still isn't part of that padding, so its clearance is
+                            // still needed or it'll sit on top of (and eat touches meant for) the last
+                            // row's own trailing button.
+                            bottom = Spacing.default + 96.dp,
+                        ),
+                    ) {
+                        item {
+                            // Shown only once every habit is checked off — a small reward for actually
+                            // finishing, not just a status readout that's visible the rest of the time.
+                            // Fully qualified: the outer Column (added for the day rail) makes
+                            // ColumnScope.AnimatedVisibility ambiguous with the plain overload here, even
+                            // though the nearest real receiver at this point is LazyItemScope, not Column.
+                            androidx.compose.animation.AnimatedVisibility(
+                                // isNotEmpty() guards the vacuous-truth case: List<T>.all{} on an empty
+                                // list is true, so before the real data loads in this would otherwise
+                                // flash on for a frame every launch.
+                                // Also gated on today: celebrating "all done" while browsing a past date
+                                // would be nonsensical - that congratulation only means anything for the
+                                // day you're actually tracking live, not a historical correction session.
+                                visible = uiState.selectedDate == today &&
+                                visibleHabits.isNotEmpty() && visibleHabits.all { it.completed },
+                                enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) +
+                                expandVertically(animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()),
+                                exit = fadeOut(MaterialTheme.motionScheme.defaultEffectsSpec()) +
+                                shrinkVertically(animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()),
                             ) {
-                                HabitRow(
-                                    item = item,
-                                    onToggle = {},
-                                    onIncrement = {},
-                                    onDecrement = {},
-                                    onSetValue = {},
-                                    onClick = {},
-                                    dragHandle = {
-                                        Icon(
-                                            imageVector = Icons.Rounded.DragHandle,
-                                            contentDescription = "Reorder ${item.name}",
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier
-                                                .draggableHandle(
-                                                    onDragStarted = {
-                                                        haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
-                                                    },
-                                                    onDragStopped = {
-                                                        haptics.performHapticFeedback(HapticFeedbackType.GestureEnd)
-                                                        onAction(HabitsAction.ReorderHabits(orderIds))
-                                                    },
+                                AllDoneBanner(modifier = Modifier.padding(bottom = Spacing.medium))
+                            }
+                        }
+                        items(visibleHabits, key = { it.id }) { item ->
+                            ReorderableItem(reorderableState, key = item.id) { isDragging ->
+                                val elevation by animateDpAsState(
+                                    targetValue = if (isDragging) 6.dp else 0.dp,
+                                    label = "reorderElevation",
+                                )
+                                if (reorderMode) {
+                                    // Swipe is off entirely in this mode - the handle is the only active
+                                    // gesture, so there's nothing for a long-press-drag to conflict with.
+                                    Box(
+                                        modifier = Modifier
+                                        .shadow(elevation, MaterialTheme.shapes.largeIncreased)
+                                        .padding(bottom = Spacing.medium),
+                                    ) {
+                                        HabitRow(
+                                            item = item,
+                                            onToggle = {},
+                                            onIncrement = {},
+                                            onDecrement = {},
+                                            onSetValue = {},
+                                            onClick = {},
+                                            dragHandle = {
+                                                Icon(
+                                                    imageVector = Icons.Rounded.DragHandle,
+                                                    contentDescription = "Reorder ${item.name}",
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    modifier = Modifier
+                                                    .draggableHandle(
+                                                        onDragStarted = {
+                                                            haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+                                                        },
+                                                        onDragStopped = {
+                                                            haptics.performHapticFeedback(HapticFeedbackType.GestureEnd)
+                                                            onAction(HabitsAction.ReorderHabits(orderIds))
+                                                        },
+                                                    )
+                                                    .size(24.dp),
                                                 )
-                                                .size(24.dp),
+                                            },
                                         )
-                                    },
-                                )
-                            }
-                        } else {
-                            // The two swipe directions mean genuinely different things: edit
-                            // (right) never actually commits - it opens the sheet as a side
-                            // effect and springs back to Settled, since the row itself hasn't
-                            // gone anywhere. Archive (left) commits for real and is immediate -
-                            // no undo prompt, since archiving was never a real delete to begin
-                            // with (see HabitRepository.archiveHabit / the Settings screen).
-                            //
-                            // Hand-rolled on top of AnchoredDraggableState directly, rather than
-                            // M3's SwipeToDismissBox: that composable always anchors a dismissal at
-                            // +/- the row's full width (hundreds of dp), so even after visually
-                            // capping the render, the actual settle animation still had to travel
-                            // that whole real distance before settledValue updated - which read as
-                            // a very real, very noticeable delay between release and the action
-                            // firing. Anchoring at the reveal distance we actually want (revealPx)
-                            // means the settle has almost nothing left to travel, so it resolves
-                            // essentially the instant you let go.
-                            val density = LocalDensity.current
-                            val revealPx = remember(density) { with(density) { 120.dp.toPx() } }
-                            val dismissState = remember {
-                                AnchoredDraggableState(initialValue = SwipeToDismissBoxValue.Settled)
-                            }
-                            LaunchedEffect(dismissState, revealPx) {
-                                dismissState.updateAnchors(
-                                    DraggableAnchors {
-                                        SwipeToDismissBoxValue.Settled at 0f
-                                        SwipeToDismissBoxValue.StartToEnd at revealPx
-                                        SwipeToDismissBoxValue.EndToStart at -revealPx
-                                    },
-                                )
-                            }
-                            val flingBehavior = AnchoredDraggableDefaults.flingBehavior(
-                                state = dismissState,
-                                positionalThreshold = { totalDistance -> totalDistance * 0.6f },
-                                animationSpec = tween(150),
-                            )
-                            // Mirrors M3's own settledValue-gated LaunchedEffect(state.settledValue)
-                            // pattern (see SwipeToDismissBox source) - settledValue only updates once
-                            // release-triggered settling has actually finished, so this still can't
-                            // fire mid-drag.
-                            LaunchedEffect(dismissState.settledValue) {
-                                when (dismissState.settledValue) {
-                                    SwipeToDismissBoxValue.StartToEnd -> {
-                                        editingHabit = item
-                                        dismissState.animateTo(SwipeToDismissBoxValue.Settled)
                                     }
-                                    SwipeToDismissBoxValue.EndToStart -> archiveImmediately(item)
-                                    SwipeToDismissBoxValue.Settled -> Unit
-                                }
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .shadow(elevation, MaterialTheme.shapes.largeIncreased)
-                                    .padding(bottom = Spacing.medium)
-                                    .anchoredDraggable(
+                                } else {
+                                    // The two swipe directions mean genuinely different things: edit
+                                    // (right) never actually commits - it opens the sheet as a side
+                                    // effect and springs back to Settled, since the row itself hasn't
+                                    // gone anywhere. Archive (left) commits for real and is immediate -
+                                    // no undo prompt, since archiving was never a real delete to begin
+                                    // with (see HabitRepository.archiveHabit / the Settings screen).
+                                    //
+                                    // Hand-rolled on top of AnchoredDraggableState directly, rather than
+                                    // M3's SwipeToDismissBox: that composable always anchors a dismissal at
+                                    // +/- the row's full width (hundreds of dp), so even after visually
+                                    // capping the render, the actual settle animation still had to travel
+                                    // that whole real distance before settledValue updated - which read as
+                                    // a very real, very noticeable delay between release and the action
+                                    // firing. Anchoring at the reveal distance we actually want (revealPx)
+                                    // means the settle has almost nothing left to travel, so it resolves
+                                    // essentially the instant you let go.
+                                    val density = LocalDensity.current
+                                    val revealPx = remember(density) { with(density) { 120.dp.toPx() } }
+                                    val dismissState = remember {
+                                        AnchoredDraggableState(initialValue = SwipeToDismissBoxValue.Settled)
+                                    }
+                                    LaunchedEffect(dismissState, revealPx) {
+                                        dismissState.updateAnchors(
+                                            DraggableAnchors {
+                                                SwipeToDismissBoxValue.Settled at 0f
+                                                SwipeToDismissBoxValue.StartToEnd at revealPx
+                                                SwipeToDismissBoxValue.EndToStart at -revealPx
+                                            },
+                                        )
+                                    }
+                                    val flingBehavior = AnchoredDraggableDefaults.flingBehavior(
                                         state = dismissState,
-                                        orientation = Orientation.Horizontal,
-                                        flingBehavior = flingBehavior,
-                                    ),
-                            ) {
-                                val offsetPx = runCatching { dismissState.requireOffset() }.getOrDefault(0f)
-                                SwipeBackground(
-                                    offsetPx = offsetPx,
-                                    revealPx = revealPx,
-                                    modifier = Modifier.matchParentSize(),
-                                )
-                                HabitRow(
-                                    item = item,
-                                    onToggle = { onAction(HabitsAction.ToggleHabit(item.id)) },
-                                    onIncrement = { delta -> onAction(HabitsAction.IncrementHabit(item.id, delta)) },
-                                    onDecrement = { delta -> onAction(HabitsAction.IncrementHabit(item.id, -delta)) },
-                                    onSetValue = { value -> onAction(HabitsAction.SetNumericValue(item.id, value)) },
-                                    onClick = { onHabitClick(item.id) },
-                                    modifier = Modifier.offset { IntOffset(offsetPx.roundToInt(), 0) },
-                                )
+                                        positionalThreshold = { totalDistance -> totalDistance * 0.6f },
+                                        animationSpec = tween(150),
+                                    )
+                                    // Mirrors M3's own settledValue-gated LaunchedEffect(state.settledValue)
+                                    // pattern (see SwipeToDismissBox source) - settledValue only updates once
+                                    // release-triggered settling has actually finished, so this still can't
+                                    // fire mid-drag.
+                                    LaunchedEffect(dismissState.settledValue) {
+                                        when (dismissState.settledValue) {
+                                            SwipeToDismissBoxValue.StartToEnd -> {
+                                                editingHabit = item
+                                                dismissState.animateTo(SwipeToDismissBoxValue.Settled)
+                                            }
+                                            SwipeToDismissBoxValue.EndToStart -> archiveImmediately(item)
+                                            SwipeToDismissBoxValue.Settled -> Unit
+                                        }
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                        .shadow(elevation, MaterialTheme.shapes.largeIncreased)
+                                        .padding(bottom = Spacing.medium)
+                                        .anchoredDraggable(
+                                            state = dismissState,
+                                            orientation = Orientation.Horizontal,
+                                            flingBehavior = flingBehavior,
+                                        ),
+                                    ) {
+                                        val offsetPx = runCatching { dismissState.requireOffset() }.getOrDefault(0f)
+                                        SwipeBackground(
+                                            offsetPx = offsetPx,
+                                            revealPx = revealPx,
+                                            modifier = Modifier.matchParentSize(),
+                                        )
+                                        HabitRow(
+                                            item = item,
+                                            onToggle = { onAction(HabitsAction.ToggleHabit(item.id)) },
+                                            onIncrement = { delta -> onAction(HabitsAction.IncrementHabit(item.id, delta)) },
+                                            onDecrement = { delta -> onAction(HabitsAction.IncrementHabit(item.id, -delta)) },
+                                            onSetValue = { value -> onAction(HabitsAction.SetNumericValue(item.id, value)) },
+                                            onClick = { onHabitClick(item.id) },
+                                            modifier = Modifier.offset { IntOffset(offsetPx.roundToInt(), 0) },
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
