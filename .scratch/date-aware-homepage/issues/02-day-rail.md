@@ -22,3 +22,5 @@ Done. Two deviations from the original description, both from live user feedback
 - **Full-width `Row` with `weight(1f)` per chip, not a `LazyRow`.** A `LazyRow` sized to each chip's natural width overflowed on-device, clipping the 7th day right at the screen edge. Since exactly 7 days always exist, dividing the full available width evenly guarantees every chip renders whole with no scrolling at all.
 
 Motion/shape choices for the selected-day chip (spring pop, animated Circle→Cookie9Sided morph via `androidx.graphics.shapes.Morph`) were verified against m3.material.io before implementing, not guessed - see commit message for citations.
+
+One more unticketed but deliberate call: the "All done for today" banner is now also gated on `selectedDate == today`, so it can't fire while browsing a past date where remaining habits may just not be visible yet.

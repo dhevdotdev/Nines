@@ -73,8 +73,8 @@ class HabitsViewModel(private val repository: HabitRepository) : ViewModel() {
             val score = repository.scoreSeries(habit.id, startDate, date).lastOrNull()?.score ?: 0.0
             val schedule = repository.scheduleEffectiveOn(habit.id, date)
             val recentDays = (RECENT_DAYS_WINDOW - 1 downTo 0).map { offset ->
-                val d = today.minusDays(offset.toLong())
-                DayCell(date = d, state = entriesByDate[d]?.state, isToday = d == today)
+                val recentDayDate = today.minusDays(offset.toLong())
+                DayCell(date = recentDayDate, state = entriesByDate[recentDayDate]?.state, isToday = recentDayDate == today)
             }
             val completedDates = entries.filter { it.state == EntryState.COMPLETED }.map { it.date }.toSet()
             val streak = currentStreakLength(computeStreakRuns(completedDates, startDate, date), date)

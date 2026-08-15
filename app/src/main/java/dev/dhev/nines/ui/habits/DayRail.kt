@@ -63,11 +63,11 @@ private val NON_TODAY_DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPatte
  * seeing that they exist. */
 @Composable
 fun DayRail(
+    today: LocalDate,
     selectedDate: LocalDate,
     onSelectDate: (LocalDate) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val today = remember { LocalDate.now() }
     val weekStart = remember(today) {
         today.minusDays(today.dayOfWeek.value.toLong() % 7) // dayOfWeek.value: Mon=1..Sun=7, so Sun=7%7=0 back
     }

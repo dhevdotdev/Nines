@@ -251,6 +251,7 @@ fun HabitsScreen(
         val today = remember { LocalDate.now() }
         Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
             DayRail(
+                today = today,
                 selectedDate = uiState.selectedDate,
                 onSelectDate = { date -> onAction(HabitsAction.SelectDate(date)) },
             )
