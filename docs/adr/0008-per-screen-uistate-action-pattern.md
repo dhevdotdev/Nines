@@ -1,0 +1,7 @@
+# Every screen is one UiState data class + StateFlow, one sealed Action interface via onAction()
+
+Each screen (`HabitsUiState`/`HabitsAction`, `HabitDetailUiState`/`HabitDetailAction`, `ArchivedHabitsUiState`/`ArchivedHabitsAction`) follows the same shape: a single immutable `data class …UiState` exposed as a `StateFlow` from the ViewModel, and a `sealed interface …Action` whose variants are all funneled through one `onAction(action)` entry point — never individual per-event callback lambdas passed down piecemeal.
+
+**Why**: one state object and one action channel per screen keeps the Compose side pure (`uiState by viewModel.uiState.collectAsStateWithLifecycle()`, then render) and makes every possible user interaction for a screen enumerable by reading its `Action` sealed interface — there's no separate MVI library, no ad-hoc mix of `remember`-based local state and ViewModel state for the same concern. Precedent for new screens: match this shape rather than introducing a different pattern per screen.
+
+**Consequences**: purely local, ephemeral UI state that never needs to survive recomposition loss and never affects domain logic (e.g. a bottom sheet's open/closed flag) is fine as plain `remember { mutableStateOf(...) }` inside the composable — it doesn't need to go through `UiState`/`Action`. The line is: if the ViewModel needs to know about it or act on it, it's in `Action`; if it's purely local view state, it isn't.
