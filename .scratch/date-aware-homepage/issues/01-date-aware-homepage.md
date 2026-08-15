@@ -1,6 +1,6 @@
 # Date-aware homepage with a scrollable top calendar
 
-Status: needs-triage
+Status: ready-for-agent
 
 The habit list currently only ever shows today's state per habit. Idea: add a scrollable calendar at the top of the home screen so the user can pick a past date, and the list shows that date's state instead of today's.
 
@@ -11,3 +11,5 @@ Also raised in the same breath, as something to address as part of this redesign
 Genuinely underspecified — logged as the idea, not a design. Work out the actual layout, what happens to the history strip, and the numeric-edit UX during triage/spec, not now.
 
 ## Comments
+
+Fully grilled and specced — see `spec.md` in this same directory. All the "not settled" questions above are now decided there. Next step is `/to-tickets` against the spec, not further work on this file.
