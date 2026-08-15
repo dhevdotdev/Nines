@@ -20,7 +20,8 @@ data class HabitListItem(
     val iconKey: String,
     val backgroundStyleKey: String? = null,
     val type: HabitType,
-    val completedToday: Boolean,
+    /** Whether this habit is completed on [HabitsUiState.selectedDate] — not necessarily today. */
+    val completed: Boolean,
     val currentScore: Double,
     val currentStreak: Int = 0,
     val recentDays: List<DayCell> = emptyList(),
@@ -35,9 +36,11 @@ data class HabitListItem(
 data class HabitsUiState(
     val habits: List<HabitListItem> = emptyList(),
     val isLoading: Boolean = true,
+    val selectedDate: LocalDate = LocalDate.now(),
 )
 
 sealed interface HabitsAction {
+    data class SelectDate(val date: LocalDate) : HabitsAction
     data class ToggleHabit(val habitId: Long) : HabitsAction
     data class IncrementHabit(val habitId: Long, val delta: Double) : HabitsAction
     data class SetNumericValue(val habitId: Long, val value: Double) : HabitsAction

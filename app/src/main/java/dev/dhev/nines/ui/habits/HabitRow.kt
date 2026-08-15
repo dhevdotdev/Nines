@@ -184,14 +184,14 @@ fun HabitRow(
 
             if (item.type == HabitType.NUMERICAL) {
                 NumericProgressButton(
-                    metTarget = item.completedToday,
+                    metTarget = item.completed,
                     onIncrement = { onIncrement(defaultIncrement(item.targetValue)) },
                     onDecrement = { onDecrement(defaultIncrement(item.targetValue)) },
                     accentColor = colors.accent,
                 )
             } else {
                 CheckOffButton(
-                    completed = item.completedToday,
+                    completed = item.completed,
                     onToggle = onToggle,
                     accentColor = colors.accent,
                 )

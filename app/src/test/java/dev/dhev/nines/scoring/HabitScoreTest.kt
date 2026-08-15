@@ -112,6 +112,20 @@ class HabitScoreTest {
     }
 
     @Test
+    fun `streak as of a past date ignores completions that happened after it`() {
+        val start = LocalDate.of(2026, 1, 1)
+        // Completed every day through day 20, but we only ask about the streak as of day 10 -
+        // days 11-20 must not count, exactly as if day 10 were the last known date.
+        val completed = generateSequence(start) { it.plusDays(1) }.take(20).toSet()
+        val asOfDate = start.plusDays(9) // day 10
+
+        val runs = computeStreakRuns(completed, start, asOfDate)
+        val streak = currentStreakLength(runs, asOfDate)
+
+        assertEquals(10, streak)
+    }
+
+    @Test
     fun `schedule target rejects an impossible numerator`() {
         try {
             ScheduleTarget(numerator = 8, denominator = 7)

@@ -364,7 +364,7 @@ fun HabitDetailScreen(
                 iconKey = uiState.iconKey,
                 backgroundStyleKey = uiState.backgroundStyleKey,
                 type = uiState.type,
-                completedToday = uiState.completedToday,
+                completed = uiState.completedToday,
                 currentScore = uiState.currentScore,
                 currentStreak = uiState.currentStreak,
                 currentValue = uiState.currentValue,

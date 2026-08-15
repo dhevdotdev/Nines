@@ -9,9 +9,11 @@ import dev.dhev.nines.data.local.entity.HabitType
 import dev.dhev.nines.data.local.entity.TargetKind
 import dev.dhev.nines.scoring.computeStreakRuns
 import dev.dhev.nines.scoring.currentStreakLength
+import dev.dhev.nines.scoring.isHabitVisibleOn
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -31,15 +33,23 @@ private const val RECENT_DAYS_WINDOW = 5
 @OptIn(ExperimentalCoroutinesApi::class)
 class HabitsViewModel(private val repository: HabitRepository) : ViewModel() {
 
-    val uiState: StateFlow<HabitsUiState> = repository.observeActiveHabits()
-        .flatMapLatest { habits ->
-            if (habits.isEmpty()) {
-                flowOf(emptyList())
+    private val selectedDate = MutableStateFlow(LocalDate.now())
+
+    val uiState: StateFlow<HabitsUiState> = combine(
+        repository.observeActiveHabits(),
+        selectedDate,
+    ) { habits, date -> habits to date }
+        .flatMapLatest { (habits, date) ->
+            val visibleHabits = habits.filter { habit ->
+                isHabitVisibleOn(habit.createdAt.atZone(ZoneId.systemDefault()).toLocalDate(), date)
+            }
+            if (visibleHabits.isEmpty()) {
+                flowOf(emptyList<HabitListItem>() to date)
             } else {
-                combine(habits.map(::habitItemFlow)) { items -> items.toList() }
+                combine(visibleHabits.map { habitItemFlow(it, date) }) { items -> items.toList() to date }
             }
         }
-        .map { items -> HabitsUiState(habits = items, isLoading = false) }
+        .map { (items, date) -> HabitsUiState(habits = items, isLoading = false, selectedDate = date) }
         // Every habit's score/streak recompute combines here, all on whatever dispatcher
         // collects this flow - without this, that's viewModelScope's Main.immediate, i.e. the
         // main thread, for N habits at once on every entries change.
@@ -50,21 +60,24 @@ class HabitsViewModel(private val repository: HabitRepository) : ViewModel() {
             initialValue = HabitsUiState(),
         )
 
-    private fun habitItemFlow(habit: HabitEntity): Flow<HabitListItem> =
+    /** [date] is the selected date being browsed/edited - not necessarily today. [recentDays]
+     * is the exception: that strip always shows the last few real calendar days regardless of
+     * [date], since it's a fixed "recently" glance, not a view of [date] itself. */
+    private fun habitItemFlow(habit: HabitEntity, date: LocalDate): Flow<HabitListItem> =
         repository.observeEntries(habit.id).map { entries ->
             val today = LocalDate.now()
             val entriesByDate = entries.associateBy { it.date }
-            val todayEntry = entriesByDate[today]
-            val completedToday = todayEntry?.state == EntryState.COMPLETED
+            val selectedEntry = entriesByDate[date]
+            val completed = selectedEntry?.state == EntryState.COMPLETED
             val startDate = habit.createdAt.atZone(ZoneId.systemDefault()).toLocalDate()
-            val score = repository.scoreSeries(habit.id, startDate, today).lastOrNull()?.score ?: 0.0
-            val schedule = repository.scheduleEffectiveOn(habit.id, today)
+            val score = repository.scoreSeries(habit.id, startDate, date).lastOrNull()?.score ?: 0.0
+            val schedule = repository.scheduleEffectiveOn(habit.id, date)
             val recentDays = (RECENT_DAYS_WINDOW - 1 downTo 0).map { offset ->
-                val date = today.minusDays(offset.toLong())
-                DayCell(date = date, state = entriesByDate[date]?.state, isToday = date == today)
+                val d = today.minusDays(offset.toLong())
+                DayCell(date = d, state = entriesByDate[d]?.state, isToday = d == today)
             }
             val completedDates = entries.filter { it.state == EntryState.COMPLETED }.map { it.date }.toSet()
-            val streak = currentStreakLength(computeStreakRuns(completedDates, startDate, today), today)
+            val streak = currentStreakLength(computeStreakRuns(completedDates, startDate, date), date)
             HabitListItem(
                 id = habit.id,
                 name = habit.name,
@@ -72,11 +85,11 @@ class HabitsViewModel(private val repository: HabitRepository) : ViewModel() {
                 iconKey = habit.iconKey,
                 backgroundStyleKey = habit.backgroundStyleKey,
                 type = habit.type,
-                completedToday = completedToday,
+                completed = completed,
                 currentScore = score,
                 currentStreak = streak,
                 recentDays = recentDays,
-                currentValue = todayEntry?.numericValue,
+                currentValue = selectedEntry?.numericValue,
                 targetValue = schedule?.targetValue,
                 targetKind = schedule?.targetKind,
                 unit = habit.unit,
@@ -87,14 +100,15 @@ class HabitsViewModel(private val repository: HabitRepository) : ViewModel() {
 
     fun onAction(action: HabitsAction) {
         when (action) {
+            is HabitsAction.SelectDate -> selectedDate.value = action.date
             is HabitsAction.ToggleHabit -> viewModelScope.launch {
-                repository.toggleCompletion(action.habitId, LocalDate.now())
+                repository.toggleCompletion(action.habitId, selectedDate.value)
             }
             is HabitsAction.IncrementHabit -> viewModelScope.launch {
-                repository.incrementNumericEntry(action.habitId, LocalDate.now(), action.delta)
+                repository.incrementNumericEntry(action.habitId, selectedDate.value, action.delta)
             }
             is HabitsAction.SetNumericValue -> viewModelScope.launch {
-                repository.setNumericEntry(action.habitId, LocalDate.now(), action.value)
+                repository.setNumericEntry(action.habitId, selectedDate.value, action.value)
             }
             is HabitsAction.CreateHabit -> viewModelScope.launch {
                 repository.createHabit(

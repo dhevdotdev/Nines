@@ -146,7 +146,7 @@ fun HabitsScreen(
     var reorderMode by remember { mutableStateOf(false) }
 
     // Order lives here, not directly on uiState.habits, so a drag can reorder immediately without
-    // waiting on a DB write + Flow round-trip, while every other field (score, completedToday)
+    // waiting on a DB write + Flow round-trip, while every other field (score, completed)
     // still comes live from uiState. Re-synced only when the *set* of ids changes (a habit was
     // added or deleted) so it never fights an in-progress drag or a real reorder that just landed.
     var orderIds by remember { mutableStateOf(uiState.habits.map { it.id }) }
@@ -285,7 +285,7 @@ fun HabitsScreen(
                         // isNotEmpty() guards the vacuous-truth case: List<T>.all{} on an empty
                         // list is true, so before the real data loads in this would otherwise
                         // flash on for a frame every launch.
-                        visible = visibleHabits.isNotEmpty() && visibleHabits.all { it.completedToday },
+                        visible = visibleHabits.isNotEmpty() && visibleHabits.all { it.completed },
                         enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) +
                             expandVertically(animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()),
                         exit = fadeOut(MaterialTheme.motionScheme.defaultEffectsSpec()) +
