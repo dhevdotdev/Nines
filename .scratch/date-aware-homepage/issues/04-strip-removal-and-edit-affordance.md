@@ -1,8 +1,8 @@
-# 05 — Remove the history strip, make numeric editing more prominent
+# 04 — Remove the history strip, make numeric editing more prominent
 
 **What to build:** The per-row 5-dot history strip is removed from the homepage list — it's redundant now that the day rail/calendar is the shared date-navigation control, and the habit detail screen keeps its own separate history view untouched. The vertical space it freed goes toward a materially larger, more discoverable numeric-edit affordance than the current small value-text tap target — not just a tighter row with everything else unchanged.
 
-**Blocked by:** 03 — day rail (touches the same row layout that ticket reworks for per-date state).
+**Blocked by:** 02 — day rail (touches the same row layout that ticket reworks for per-date state).
 
 **Status:** ready-for-agent
 

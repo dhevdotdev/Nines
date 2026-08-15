@@ -1,8 +1,8 @@
-# 06 — Gate reorder mode on the selected date
+# 05 — Gate reorder mode on the selected date
 
 **What to build:** The reorder-mode toggle becomes unavailable while a past date is selected — reordering has nothing to do with which date is showing. If a past date gets selected while reorder mode is already active, reorder mode exits automatically. The toggle becomes available again once the selected date returns to today. Swipe-to-archive and swipe-to-edit are unaffected by any of this, since they're habit-level actions — this ticket confirms that explicitly rather than assuming it.
 
-**Blocked by:** 03 — day rail.
+**Blocked by:** 02 — day rail.
 
 **Status:** ready-for-agent
 

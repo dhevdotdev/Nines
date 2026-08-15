@@ -1,8 +1,8 @@
-# 04 — Full calendar for older history
+# 03 — Full calendar for older history
 
 **What to build:** An affordance on the day rail opens a full calendar for reaching dates further back than the rail's window. Picking a date there selects it exactly as tapping a day in the rail would — same list update, same read/write behavior. Future dates stay unreachable everywhere, in both the rail and the calendar.
 
-**Blocked by:** 03 — day rail.
+**Blocked by:** 02 — day rail.
 
 **Status:** ready-for-agent
 

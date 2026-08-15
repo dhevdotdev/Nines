@@ -1,4 +1,4 @@
-# 02 — Date-scoped state and pure visibility logic
+# 01 — Date-scoped state and pure visibility logic
 
 **What to build:** The data/state foundation for a date-aware homepage. `HabitsUiState` gains a `selectedDate`, defaulting to today. Every habit row's completion state, numeric value, score, and streak get computed against `selectedDate` (reusing the existing date-parameterized scoring functions) instead of hardcoded "today." A new action selects a date; the existing toggle/increment/set-value actions write to `selectedDate` instead of always today. A new pure function decides whether a habit is visible on an arbitrary date, based on when it was created. No new UI in this ticket — with `selectedDate` defaulting to today, the app behaves exactly as it does now.
 

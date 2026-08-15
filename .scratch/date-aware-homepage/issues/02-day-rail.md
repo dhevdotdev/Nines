@@ -1,8 +1,8 @@
-# 03 — Day rail: select a recent date, see and edit that date's entries
+# 02 — Day rail: select a recent date, see and edit that date's entries
 
 **What to build:** The core of the feature. A horizontally-scrollable day rail appears at the top of the homepage, showing a fixed window of recent days ending at today. Tapping a day selects it, and every row updates to show and allow editing that date's actual state — completion, numeric value, score ring, and streak, all as-of the selected date. Habits that didn't exist yet as of that date are excluded. Editing a past date behaves exactly like editing today: instant, no extra confirmation. A clear but unobtrusive indicator shows whenever the selected date isn't today.
 
-**Blocked by:** 02 — date-scoped state and pure visibility logic.
+**Blocked by:** 01 — date-scoped state and pure visibility logic.
 
 **Status:** ready-for-agent
 

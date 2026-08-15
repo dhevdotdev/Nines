@@ -1,6 +1,6 @@
 # Date-aware homepage with a scrollable top calendar
 
-Status: ready-for-agent
+Status: superseded (see below)
 
 The habit list currently only ever shows today's state per habit. Idea: add a scrollable calendar at the top of the home screen so the user can pick a past date, and the list shows that date's state instead of today's.
 
@@ -12,4 +12,4 @@ Genuinely underspecified — logged as the idea, not a design. Work out the actu
 
 ## Comments
 
-Fully grilled and specced — see `spec.md` in this same directory. All the "not settled" questions above are now decided there. Next step is `/to-tickets` against the spec, not further work on this file.
+Fully grilled and specced — see `spec.md` in this same directory. All the "not settled" questions above are now decided there. Split into real tracer-bullet tickets at `issues/01-05.md`. This file is kept for history only, not part of the ticket-numbering sequence — moved out of `issues/` for that reason. Nothing left to do against this file directly.
