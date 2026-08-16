@@ -3,17 +3,14 @@ package dev.dhev.nines.ui.habits
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.dhev.nines.data.HabitRepository
-import dev.dhev.nines.data.local.entity.EntryState
 import dev.dhev.nines.data.local.entity.HabitEntity
 import dev.dhev.nines.data.local.entity.HabitType
 import dev.dhev.nines.data.local.entity.TargetKind
-import dev.dhev.nines.scoring.computeStreakRuns
-import dev.dhev.nines.scoring.currentStreakLength
-import dev.dhev.nines.scoring.FrequencyProgressInput
 import dev.dhev.nines.scoring.FrequencyTargetKind
-import dev.dhev.nines.scoring.ScheduleTarget
-import dev.dhev.nines.scoring.computeFrequencyProgress
-import dev.dhev.nines.scoring.isHabitVisibleOn
+import dev.dhev.nines.scoring.HabitTimelineInput
+import dev.dhev.nines.scoring.TimelineEntryState
+import dev.dhev.nines.scoring.TimelineHabitKind
+import dev.dhev.nines.scoring.buildHabitTimeline
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -42,13 +39,12 @@ class HabitsViewModel(private val repository: HabitRepository) : ViewModel() {
         selectedDate,
     ) { habits, date -> habits to date }
         .flatMapLatest { (habits, date) ->
-            val visibleHabits = habits.filter { habit ->
-                isHabitVisibleOn(habit.createdAt.atZone(ZoneId.systemDefault()).toLocalDate(), date)
-            }
-            if (visibleHabits.isEmpty()) {
+            if (habits.isEmpty()) {
                 flowOf(emptyList<HabitListItem>() to date)
             } else {
-                combine(visibleHabits.map { habitItemFlow(it, date) }) { items -> items.toList() to date }
+                combine(habits.map { habitItemFlow(it, date) }) { items ->
+                    items.filterNotNull() to date
+                }
             }
         }
         .map { (items, date) -> HabitsUiState(habits = items, isLoading = false, selectedDate = date) }
@@ -63,63 +59,46 @@ class HabitsViewModel(private val repository: HabitRepository) : ViewModel() {
         )
 
     /** [date] is the selected date being browsed/edited - not necessarily today. */
-    private fun habitItemFlow(habit: HabitEntity, date: LocalDate): Flow<HabitListItem> =
-        repository.observeEntries(habit.id).map { entries ->
-            val entriesByDate = entries.associateBy { it.date }
-            val selectedEntry = entriesByDate[date]
-            val completed = selectedEntry?.state == EntryState.COMPLETED
-            val startDate = habit.createdAt.atZone(ZoneId.systemDefault()).toLocalDate()
-            val score = repository.scoreSeries(habit.id, startDate, date).lastOrNull()?.score ?: 0.0
-            val schedule = repository.scheduleEffectiveOn(habit.id, date)
-            val completedDates = entries.filter { it.state == EntryState.COMPLETED }.map { it.date }.toSet()
-            val streak = currentStreakLength(computeStreakRuns(completedDates, startDate, date), date)
-            val scheduleTarget = ScheduleTarget(
-                numerator = schedule?.targetNumerator ?: 1,
-                denominator = schedule?.targetDenominator ?: 1,
-            )
-            val frequencyProgress = when (habit.type) {
-                HabitType.BOOLEAN -> computeFrequencyProgress(
+    private fun habitItemFlow(habit: HabitEntity, date: LocalDate): Flow<HabitListItem?> =
+        repository.observeHabitTimelineData(habit.id)
+            .map { timelineData ->
+            val entries = timelineData.entries
+            val schedules = timelineData.schedules
+            val timeline = buildHabitTimeline(
+                HabitTimelineInput(
+                    kind = if (habit.type == HabitType.NUMERICAL) TimelineHabitKind.NUMERICAL else TimelineHabitKind.BOOLEAN,
+                    createdDate = habit.createdAt.atZone(ZoneId.systemDefault()).toLocalDate(),
                     selectedDate = date,
-                    target = scheduleTarget,
-                    input = FrequencyProgressInput.BooleanEntries(completedDates),
-                )
-                HabitType.NUMERICAL -> schedule?.targetValue?.let { targetValue ->
-                    computeFrequencyProgress(
-                        selectedDate = date,
-                        target = scheduleTarget,
-                        input = FrequencyProgressInput.NumericEntries(
-                            valuesByDate = entries
-                                .filter { it.state != EntryState.SKIPPED }
-                                .mapNotNull { entry -> entry.numericValue?.let { entry.date to it } }
-                                .toMap(),
-                            targetValue = targetValue,
-                            targetKind = if (schedule.targetKind == TargetKind.AT_MOST) {
-                                FrequencyTargetKind.AT_MOST
-                            } else {
-                                FrequencyTargetKind.AT_LEAST
-                            },
-                        ),
-                    )
-                }
-            }
-            HabitListItem(
-                id = habit.id,
-                name = habit.name,
-                color = habit.color,
-                iconKey = habit.iconKey,
-                backgroundStyleKey = habit.backgroundStyleKey,
-                type = habit.type,
-                completed = completed,
-                currentScore = score,
-                currentStreak = streak,
-                currentValue = selectedEntry?.numericValue,
-                targetValue = schedule?.targetValue,
-                targetKind = schedule?.targetKind,
-                unit = habit.unit,
-                targetNumerator = schedule?.targetNumerator ?: 1,
-                targetDenominator = schedule?.targetDenominator ?: 1,
-                frequencyProgress = frequencyProgress,
+                    entries = entries,
+                    schedules = schedules,
+                ),
             )
+            if (!timeline.isVisible) {
+                null
+            } else {
+                val selectedSchedule = timeline.selectedSchedule
+                val selectedEntry = timeline.selectedEntry
+                HabitListItem(
+                    id = habit.id,
+                    name = habit.name,
+                    color = habit.color,
+                    iconKey = habit.iconKey,
+                    backgroundStyleKey = habit.backgroundStyleKey,
+                    type = habit.type,
+                    completed = selectedEntry?.state == TimelineEntryState.COMPLETED,
+                    currentScore = timeline.score,
+                    currentStreak = timeline.currentStreak,
+                    currentValue = selectedEntry?.numericValue,
+                    targetValue = selectedSchedule?.targetValue,
+                    targetKind = selectedSchedule?.targetKind?.let {
+                        if (it == FrequencyTargetKind.AT_MOST) TargetKind.AT_MOST else TargetKind.AT_LEAST
+                    },
+                    unit = habit.unit,
+                    targetNumerator = selectedSchedule?.target?.numerator ?: 1,
+                    targetDenominator = selectedSchedule?.target?.denominator ?: 1,
+                    frequencyProgress = timeline.frequencyProgress,
+                )
+            }
         }
 
     fun onAction(action: HabitsAction) {

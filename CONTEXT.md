@@ -16,6 +16,10 @@ _Avoid_: Record, log (as the noun for one day's data).
 The calendar date whose Entries, Score, Streak, and homepage status are currently being viewed or edited. It defaults to today, but may be any past date.
 _Avoid_: Current day — the selected date may be historical.
 
+**Habit timeline**:
+A date-bounded view of a Habit's Entries and the Schedule in force across those dates, used to derive selected-date status and historical compliance measures consistently across screens.
+_Avoid_: History — that describes the presentation of past Entries, not the date-aware domain view used for derivation.
+
 **Schedule** (`ScheduleVersion`):
 The frequency/target rule in force for a habit as of a given date. Versioned by effective-from date, so a rule change never retroactively changes how past days were judged.
 _Avoid_: Config, settings — as a synonym for the versioned rule itself.

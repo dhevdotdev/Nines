@@ -52,18 +52,47 @@ fun computeScoreSeries(
     skippedDates: Set<LocalDate>,
     startDate: LocalDate,
     endDate: LocalDate,
+): List<ScorePoint> = computeScoreSeriesForDates(
+    scheduleForDate = { target },
+    completedDates = completedDates,
+    skippedDates = skippedDates,
+    startDate = startDate,
+    endDate = endDate,
+)
+
+/** Computes a Score series when the Schedule may change inside the date range. */
+fun computeScheduleAwareScoreSeries(
+    scheduleForDate: (LocalDate) -> ScheduleTarget?,
+    completedDates: Set<LocalDate>,
+    skippedDates: Set<LocalDate>,
+    startDate: LocalDate,
+    endDate: LocalDate,
+): List<ScorePoint> = computeScoreSeriesForDates(
+    scheduleForDate = scheduleForDate,
+    completedDates = completedDates,
+    skippedDates = skippedDates,
+    startDate = startDate,
+    endDate = endDate,
+)
+
+private fun computeScoreSeriesForDates(
+    scheduleForDate: (LocalDate) -> ScheduleTarget?,
+    completedDates: Set<LocalDate>,
+    skippedDates: Set<LocalDate>,
+    startDate: LocalDate,
+    endDate: LocalDate,
 ): List<ScorePoint> {
     require(!endDate.isBefore(startDate)) { "endDate must not be before startDate" }
-
-    val isDaily = target.denominator == 1
-    val effectiveNumerator = if (isDaily) target.numerator else target.numerator * 2
-    val effectiveWindow = if (isDaily) target.denominator else target.denominator * 2
-    val m = decayMultiplier(target.frequency)
 
     val results = ArrayList<ScorePoint>()
     var score = 0.0
     var date = startDate
     while (!date.isAfter(endDate)) {
+        val target = scheduleForDate(date) ?: ScheduleTarget.DAILY
+        val isDaily = target.denominator == 1
+        val effectiveNumerator = if (isDaily) target.numerator else target.numerator * 2
+        val effectiveWindow = if (isDaily) target.denominator else target.denominator * 2
+        val m = decayMultiplier(target.frequency)
         if (date !in skippedDates) {
             var completions = 0
             var windowDate = date
