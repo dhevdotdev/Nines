@@ -7,14 +7,14 @@ import dev.dhev.nines.scoring.FrequencyTargetKind
 import dev.dhev.nines.scoring.TimelineEntryState
 
 /**
- * Adapts the shared date-bounded observation into the homepage row read model.
+ * Adapts the shared date-bounded timeline snapshot into the homepage row read model.
  *
  * Visibility and all date/scoring semantics belong to the observation's timeline;
  * this adapter only chooses the fields the homepage presents.
  */
 fun habitListItemFromSnapshot(snapshot: HabitRepository.HabitObservationSnapshot): HabitListItem? {
     val habit = snapshot.habit
-    val timeline = snapshot.observation.timeline
+    val timeline = snapshot.timeline
     if (!timeline.isVisible) return null
 
     val selectedSchedule = timeline.selectedSchedule

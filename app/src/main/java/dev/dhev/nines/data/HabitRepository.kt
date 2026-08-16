@@ -10,8 +10,8 @@ import dev.dhev.nines.data.local.entity.HabitType
 import dev.dhev.nines.data.local.entity.ScheduleVersionEntity
 import dev.dhev.nines.data.local.entity.TargetKind
 import dev.dhev.nines.scoring.FrequencyTargetKind
-import dev.dhev.nines.scoring.HabitObservation
-import dev.dhev.nines.scoring.HabitObservationInput
+import dev.dhev.nines.scoring.HabitTimeline
+import dev.dhev.nines.scoring.HabitTimelineInput
 import dev.dhev.nines.scoring.HabitTimelineData
 import dev.dhev.nines.scoring.ScheduleTarget
 import dev.dhev.nines.scoring.ScorePoint
@@ -19,7 +19,7 @@ import dev.dhev.nines.scoring.TimelineEntry
 import dev.dhev.nines.scoring.TimelineEntryState
 import dev.dhev.nines.scoring.TimelineHabitKind
 import dev.dhev.nines.scoring.TimelineSchedule
-import dev.dhev.nines.scoring.buildHabitObservation
+import dev.dhev.nines.scoring.buildHabitTimeline
 import dev.dhev.nines.scoring.computeScheduleAwareScoreSeries
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -35,7 +35,8 @@ class HabitRepository(
 ) {
     data class HabitObservationSnapshot(
         val habit: HabitEntity,
-        val observation: HabitObservation,
+        val timeline: HabitTimeline,
+        val entriesThroughAsOfDate: List<TimelineEntry>,
     )
 
     fun observeActiveHabits(): Flow<List<HabitEntity>> = habitDao.observeActiveHabits()
@@ -85,30 +86,35 @@ class HabitRepository(
         habitId: Long,
         selectedDate: Flow<LocalDate>,
         asOfDate: LocalDate,
-        historyStartDate: LocalDate,
     ): Flow<HabitObservationSnapshot?> = combine(
         observeHabit(habitId),
         observeHabitTimelineData(habitId),
         selectedDate,
     ) { habit, timelineData, date ->
         habit?.let {
+            val createdDate = it.createdAt.atZone(ZoneId.systemDefault()).toLocalDate()
+            val effectiveSelectedDate = minOf(date, asOfDate)
+            val boundedEntries = timelineData.entries
+                .filter { entry ->
+                    !entry.date.isBefore(createdDate) && !entry.date.isAfter(asOfDate)
+                }
+                .sortedBy { it.date }
             HabitObservationSnapshot(
                 habit = it,
-                observation = buildHabitObservation(
-                    HabitObservationInput(
+                timeline = buildHabitTimeline(
+                    HabitTimelineInput(
                         kind = if (it.type == HabitType.NUMERICAL) {
                             TimelineHabitKind.NUMERICAL
                         } else {
                             TimelineHabitKind.BOOLEAN
                         },
-                        createdDate = it.createdAt.atZone(ZoneId.systemDefault()).toLocalDate(),
-                        selectedDate = date,
-                        asOfDate = asOfDate,
-                        historyStartDate = historyStartDate,
-                        entries = timelineData.entries,
+                        createdDate = createdDate,
+                        selectedDate = effectiveSelectedDate,
+                        entries = boundedEntries,
                         schedules = timelineData.schedules,
                     ),
                 ),
+                entriesThroughAsOfDate = boundedEntries,
             )
         }
     }

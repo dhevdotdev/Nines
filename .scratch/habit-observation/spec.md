@@ -8,7 +8,11 @@ The homepage and detail screen both consume the same Habit history, but each ada
 
 ## Solution
 
-Create one domain-only Habit observation module. Given a Habit creation date, Entries, versioned Schedules, a selected date, and an explicit as-of date, it returns the date-bounded Habit timeline plus a bounded calendar-day observation that both screen adapters can map into their existing UI state. The Room repository supplies one domain observation stream; the homepage and detail ViewModels become thin adapters over that stream. Detail analytics remains its own module and consumes the observation's bounded inputs. UI copy, colors, Compose state, and history presentation remain in screen adapters.
+Create one domain-only Habit timeline projection. Given a Habit creation date,
+Entries, versioned Schedules, a selected date, and an explicit as-of date, the
+Room repository returns one date-bounded timeline snapshot to both screen
+adapters. Detail-only calendar cells are built by the detail adapter from the
+bounded Entries; they are not part of the shared domain projection.
 
 ## User Stories
 
@@ -27,18 +31,17 @@ Create one domain-only Habit observation module. Given a Habit creation date, En
 
 ## Implementation Decisions
 
-- The observation module is domain-only and owns date clipping, Habit visibility, selected-date projection, schedule-as-of-date selection, and bounded calendar-day data.
+- The timeline module is domain-only and owns date clipping, Habit visibility, selected-date projection, and schedule-as-of-date selection.
 - Its input uses domain types, not Room entities, Compose state, or `LocalDate.now()` calls hidden inside the implementation. Callers provide selected/as-of dates explicitly.
 - The existing Habit timeline remains the source of score, streak, gap, and frequency-progress semantics; the observation module composes it rather than duplicating it.
-- The bounded calendar-day output is a domain record containing date, Entry state, and numeric value. UI adapters convert it to `DayCell` or homepage presentation types. Its end is the effective selected date, capped by the explicit as-of date; future selected dates are projected at as-of.
-- The repository exposes one observation snapshot stream built from the Habit, Entry, and Schedule DAO streams. Both ViewModels consume that snapshot rather than independently combining raw streams; presentation metadata remains in the repository adapter snapshot.
-- Detail analytics remains separate and consumes the observation's bounded Entries/as-of context.
+- The repository exposes one timeline snapshot stream built from the Habit, Entry, and Schedule DAO streams. Both ViewModels consume that snapshot rather than independently combining raw streams; presentation metadata remains in the repository adapter snapshot.
+- Detail analytics remains separate and consumes the snapshot's bounded Entries/as-of context. Detail calendar cells are a detail-only projection beside that consumer.
 - Screen-specific copy, “today” visual treatment, dialogs, and navigation remain in the UI adapters.
 - Existing archive, reorder, swipe, Room schema, and persistence semantics do not change.
 
 ## Testing Decisions
 
-- Plain-JUnit tests exercise the observation module through its domain interface: pre-creation visibility, future-entry exclusion, selected-date changes, schedule boundaries, bounded history range, and return-to-today inputs.
+- Plain-JUnit tests exercise the timeline and detail-history interfaces: pre-creation visibility, future-entry exclusion, selected-date changes, schedule boundaries, bounded history range, and return-to-today inputs.
 - Repository instrumentation verifies the real Room observation stream maps Entries and Schedules correctly and remains ordered.
 - Existing coroutine/ViewModel contract tests are extended to prove both adapters receive the same selected-date observation.
 - Existing Compose semantics and connected smoke tests remain the client-level verification for date selection, detail navigation, and historical agreement.
@@ -47,7 +50,7 @@ Create one domain-only Habit observation module. Given a Habit creation date, En
 ## Completion evidence
 
 - Domain and coroutine verification: `./gradlew test` passed.
-- Room and Compose/device verification: `./gradlew :app:connectedDebugAndroidTest` passed all 9 tests on `CPH2691 - 16`; the device was USB-plugged, awake, and stay-on enabled.
+- Room and Compose/device verification: `./gradlew :app:connectedDebugAndroidTest` passed all 10 tests on `CPH2691 - 16`; the device was USB-plugged, awake, and stay-on enabled.
 - Review follow-up is recorded in commit `3945f7e`: future-date projection, duplicated metadata observation, and Room stream coverage were corrected. Homepage and detail presentation now consume their ViewModel-provided today boundary; refreshing that boundary across midnight via an injected live clock remains a separate future seam.
 
 ## Out of Scope
@@ -60,4 +63,9 @@ Create one domain-only Habit observation module. Given a Habit creation date, En
 
 ## Further Notes
 
-The observation seam is justified because homepage and detail are already two production callers with separate test adapters. A generic repository interface without another real adapter would fail the deletion test and is intentionally not part of this work.
+The shared timeline seam is justified because homepage and detail are already two
+production callers with separate test adapters. The former `HabitObservation`
+wrapper failed the deletion test: its calendar data was detail-only and its
+remaining fields merely travelled together. It was removed in the follow-up
+architecture refactor; the repository now projects the timeline directly and
+the detail adapter owns calendar-day construction.

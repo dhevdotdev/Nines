@@ -60,7 +60,6 @@ class HabitsViewModel(private val repository: HabitRepository) : ViewModel() {
             habitId = habit.id,
             selectedDate = flowOf(date),
             asOfDate = today,
-            historyStartDate = today,
         ).map { snapshot ->
             snapshot?.let(::habitListItemFromSnapshot)
         }

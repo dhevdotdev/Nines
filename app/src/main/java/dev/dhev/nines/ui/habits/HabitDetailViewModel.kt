@@ -8,7 +8,9 @@ import dev.dhev.nines.data.local.entity.HabitType
 import dev.dhev.nines.data.local.entity.TargetKind
 import dev.dhev.nines.scoring.HabitAnalyticsInput
 import dev.dhev.nines.scoring.FrequencyTargetKind
+import dev.dhev.nines.scoring.TimelineEntry
 import dev.dhev.nines.scoring.TimelineEntryState
+import dev.dhev.nines.scoring.TimelineHabitKind
 import dev.dhev.nines.scoring.RecordProgress
 import dev.dhev.nines.scoring.computeHabitAnalytics
 import kotlinx.coroutines.Dispatchers
@@ -37,21 +39,23 @@ class HabitDetailViewModel(
         habitId = habitId,
         selectedDate = selectedDate,
         asOfDate = today,
-        historyStartDate = today.minusMonths(HISTORY_MONTHS_BACK).withDayOfMonth(1),
     ).map { snapshot ->
         if (snapshot == null) {
             HabitDetailUiState(habitId = habitId, today = today, isLoading = false)
         } else {
             val habit = snapshot.habit
-            val observation = snapshot.observation
-            val timeline = observation.timeline
+            val timeline = snapshot.timeline
             val schedule = timeline.selectedSchedule
             val analytics = computeHabitAnalytics(
                 HabitAnalyticsInput(
-                    kind = observation.kind,
+                    kind = if (habit.type == HabitType.NUMERICAL) {
+                        TimelineHabitKind.NUMERICAL
+                    } else {
+                        TimelineHabitKind.BOOLEAN
+                    },
                     createdDate = habit.createdAt.atZone(ZoneId.systemDefault()).toLocalDate(),
                     asOfDate = timeline.selectedDate,
-                    entries = observation.entriesThroughAsOfDate,
+                    entries = snapshot.entriesThroughAsOfDate,
                     runAnalysis = timeline.runAnalysis,
                 ),
             )
@@ -75,20 +79,14 @@ class HabitDetailViewModel(
                 else -> "${analytics.bestStreak - analytics.currentStreak} days to beat your record of ${analytics.bestStreak}"
             }
 
-            val history = observation.calendarDays.map { observedDay ->
-                DayCell(
-                    date = observedDay.date,
-                    state = observedDay.state?.let {
-                        when (it) {
-                            TimelineEntryState.COMPLETED -> EntryState.COMPLETED
-                            TimelineEntryState.SKIPPED -> EntryState.SKIPPED
-                            TimelineEntryState.IN_PROGRESS -> EntryState.IN_PROGRESS
-                        }
-                    },
-                    isToday = observedDay.date == today,
-                    numericValue = observedDay.numericValue,
-                )
-            }
+            val history = buildDetailHistory(
+                entries = snapshot.entriesThroughAsOfDate,
+                createdDate = habit.createdAt.atZone(ZoneId.systemDefault()).toLocalDate(),
+                historyStartDate = today.minusMonths(HISTORY_MONTHS_BACK).withDayOfMonth(1),
+                selectedDate = timeline.selectedDate,
+                asOfDate = today,
+                today = today,
+            )
 
             HabitDetailUiState(
                 habitId = habitId,
@@ -170,4 +168,39 @@ class HabitDetailViewModel(
             }
         }
     }
+}
+
+/** Builds the calendar data used only by the detail history presentation. */
+internal fun buildDetailHistory(
+    entries: List<TimelineEntry>,
+    createdDate: LocalDate,
+    historyStartDate: LocalDate,
+    selectedDate: LocalDate,
+    asOfDate: LocalDate,
+    today: LocalDate,
+): List<DayCell> {
+    val boundedEntries = entries
+        .filter { !it.date.isBefore(createdDate) && !it.date.isAfter(asOfDate) }
+        .associateBy { it.date }
+    val start = maxOf(createdDate, historyStartDate)
+    val end = minOf(selectedDate, asOfDate)
+    if (end.isBefore(start)) return emptyList()
+    return generateSequence(start) { it.plusDays(1) }
+        .takeWhile { !it.isAfter(end) }
+        .map { date ->
+            val entry = boundedEntries[date]
+            DayCell(
+                date = date,
+                state = entry?.state?.let {
+                    when (it) {
+                        TimelineEntryState.COMPLETED -> EntryState.COMPLETED
+                        TimelineEntryState.SKIPPED -> EntryState.SKIPPED
+                        TimelineEntryState.IN_PROGRESS -> EntryState.IN_PROGRESS
+                    }
+                },
+                isToday = date == today,
+                numericValue = entry?.numericValue,
+            )
+        }
+        .toList()
 }

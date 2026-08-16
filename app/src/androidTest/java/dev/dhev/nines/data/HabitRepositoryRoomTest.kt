@@ -128,7 +128,6 @@ class HabitRepositoryRoomTest {
             habitId = habitId,
             selectedDate = selectedDate,
             asOfDate = selected.plusDays(2),
-            historyStartDate = created,
         ).produceIn(this)
         val snapshot = snapshots.receive()
         selectedDate.value = selected.minusDays(1)
@@ -137,16 +136,15 @@ class HabitRepositoryRoomTest {
 
         assertNotNull(snapshot)
         assertEquals("Observe", snapshot?.habit?.name)
-        assertEquals(selected, snapshot?.observation?.timeline?.selectedDate)
-        assertEquals(EntryState.COMPLETED, snapshot?.observation?.timeline?.selectedEntry?.state?.let {
+        assertEquals(selected, snapshot?.timeline?.selectedDate)
+        assertEquals(EntryState.COMPLETED, snapshot?.timeline?.selectedEntry?.state?.let {
             when (it) {
                 dev.dhev.nines.scoring.TimelineEntryState.COMPLETED -> EntryState.COMPLETED
                 dev.dhev.nines.scoring.TimelineEntryState.SKIPPED -> EntryState.SKIPPED
                 dev.dhev.nines.scoring.TimelineEntryState.IN_PROGRESS -> EntryState.IN_PROGRESS
             }
         })
-        assertEquals(selected, snapshot?.observation?.calendarDays?.last()?.date)
-        assertEquals(selected.minusDays(1), historicalSnapshot?.observation?.timeline?.selectedDate)
+        assertEquals(selected.minusDays(1), historicalSnapshot?.timeline?.selectedDate)
     }
 
     @Test

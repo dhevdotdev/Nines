@@ -3,12 +3,12 @@ package dev.dhev.nines.ui.habits
 import dev.dhev.nines.data.HabitRepository
 import dev.dhev.nines.data.local.entity.HabitEntity
 import dev.dhev.nines.data.local.entity.HabitType
-import dev.dhev.nines.scoring.HabitObservation
-import dev.dhev.nines.scoring.HabitTimelineInput
 import dev.dhev.nines.scoring.TimelineEntry
 import dev.dhev.nines.scoring.TimelineHabitKind
 import dev.dhev.nines.scoring.TimelineSchedule
-import dev.dhev.nines.scoring.buildHabitObservation
+import dev.dhev.nines.scoring.HabitTimeline
+import dev.dhev.nines.scoring.HabitTimelineInput
+import dev.dhev.nines.scoring.buildHabitTimeline
 import dev.dhev.nines.scoring.ScheduleTarget
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
@@ -61,21 +61,20 @@ class HabitListItemAdapterTest {
         assertEquals(1, item.targetDenominator)
     }
 
-    private fun snapshot(observation: HabitObservation) = HabitRepository.HabitObservationSnapshot(
+    private fun snapshot(timeline: HabitTimeline) = HabitRepository.HabitObservationSnapshot(
         habit = habit,
-        observation = observation,
+        timeline = timeline,
+        entriesThroughAsOfDate = emptyList(),
     )
 
     private fun buildObservation(
         selectedDate: LocalDate = this.selectedDate,
         entries: List<TimelineEntry> = emptyList(),
-    ): HabitObservation = buildHabitObservation(
-        dev.dhev.nines.scoring.HabitObservationInput(
+    ): HabitTimeline = buildHabitTimeline(
+        HabitTimelineInput(
             kind = TimelineHabitKind.NUMERICAL,
             createdDate = createdDate,
             selectedDate = selectedDate,
-            asOfDate = this.selectedDate,
-            historyStartDate = createdDate,
             entries = entries,
             schedules = listOf(
                 TimelineSchedule(
