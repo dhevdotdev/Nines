@@ -12,6 +12,10 @@ _Avoid_: Task, item.
 A single day's recorded state for a habit — `COMPLETED`, `IN_PROGRESS`, or `SKIPPED` — plus a numeric value for numeric habits.
 _Avoid_: Record, log (as the noun for one day's data).
 
+**Selected date**:
+The calendar date whose Entries, Score, Streak, and homepage status are currently being viewed or edited. It defaults to today, but may be any past date.
+_Avoid_: Current day — the selected date may be historical.
+
 **Schedule** (`ScheduleVersion`):
 The frequency/target rule in force for a habit as of a given date. Versioned by effective-from date, so a rule change never retroactively changes how past days were judged.
 _Avoid_: Config, settings — as a synonym for the versioned rule itself.

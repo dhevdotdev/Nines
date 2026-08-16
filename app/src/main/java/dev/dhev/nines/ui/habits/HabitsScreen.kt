@@ -355,7 +355,9 @@ fun HabitsScreen(
                                             onIncrement = {},
                                             onDecrement = {},
                                             onSetValue = {},
+                                            onEdit = {},
                                             onClick = {},
+                                            actionsEnabled = false,
                                             dragHandle = {
                                                 Icon(
                                                     imageVector = Icons.Rounded.DragHandle,
@@ -448,6 +450,7 @@ fun HabitsScreen(
                                             onIncrement = { delta -> onAction(HabitsAction.IncrementHabit(item.id, delta)) },
                                             onDecrement = { delta -> onAction(HabitsAction.IncrementHabit(item.id, -delta)) },
                                             onSetValue = { value -> onAction(HabitsAction.SetNumericValue(item.id, value)) },
+                                            onEdit = { editingHabit = item },
                                             onClick = { onHabitClick(item.id) },
                                             modifier = Modifier.offset { IntOffset(offsetPx.roundToInt(), 0) },
                                         )

@@ -29,6 +29,10 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import dev.dhev.nines.ui.theme.contrastingIconColor
 import dev.dhev.nines.ui.theme.habitCompleteSpatialSpec
 import kotlinx.coroutines.launch
@@ -39,6 +43,9 @@ fun CheckOffButton(
     completed: Boolean,
     onToggle: () -> Unit,
     accentColor: Color,
+    contentDescription: String = if (completed) "Mark incomplete" else "Mark complete",
+    enabled: Boolean = true,
+    interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
     modifier: Modifier = Modifier,
 ) {
     val haptics = LocalHapticFeedback.current
@@ -73,11 +80,16 @@ fun CheckOffButton(
                 scaleX = scale.value
                 scaleY = scale.value
             }
+            .semantics {
+                this.contentDescription = contentDescription
+                role = Role.Button
+            }
             .clip(shape)
             .background(containerColor)
             .border(width = 2.dp, color = borderColor, shape = shape)
             .clickable(
-                interactionSource = remember { MutableInteractionSource() },
+                enabled = enabled,
+                interactionSource = interactionSource,
                 indication = ripple(bounded = false),
             ) {
                 haptics.performHapticFeedback(

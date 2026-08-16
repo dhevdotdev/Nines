@@ -47,6 +47,9 @@ fun NumericProgressButton(
     onIncrement: () -> Unit,
     onDecrement: () -> Unit,
     accentColor: Color,
+    contentDescription: String = "Add progress",
+    enabled: Boolean = true,
+    interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
     modifier: Modifier = Modifier,
 ) {
     val haptics = LocalHapticFeedback.current
@@ -79,7 +82,8 @@ fun NumericProgressButton(
             .background(containerColor)
             .border(width = 2.dp, color = accentColor, shape = shape)
             .combinedClickable(
-                interactionSource = remember { MutableInteractionSource() },
+                enabled = enabled,
+                interactionSource = interactionSource,
                 indication = ripple(bounded = false),
                 onClick = {
                     haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
@@ -96,7 +100,7 @@ fun NumericProgressButton(
     ) {
         Icon(
             imageVector = Icons.Filled.Add,
-            contentDescription = null,
+            contentDescription = contentDescription,
             tint = if (metTarget) contrastingIconColor(accentColor) else accentColor,
         )
     }

@@ -1,5 +1,6 @@
 package dev.dhev.nines.ui.habits
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -20,15 +22,18 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularWavyProgressIndicator
+import androidx.compose.material3.ButtonGroup
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableDoubleStateOf
@@ -40,12 +45,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import dev.dhev.nines.data.local.entity.HabitType
 import dev.dhev.nines.ui.theme.HabitColors
 import dev.dhev.nines.ui.theme.Spacing
@@ -61,7 +68,9 @@ fun HabitRow(
     onIncrement: (Double) -> Unit,
     onDecrement: (Double) -> Unit,
     onSetValue: (Double) -> Unit,
+    onEdit: () -> Unit,
     onClick: () -> Unit,
+    actionsEnabled: Boolean = true,
     modifier: Modifier = Modifier,
     dragHandle: (@Composable () -> Unit)? = null,
 ) {
@@ -90,110 +99,79 @@ fun HabitRow(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = Spacing.large, vertical = Spacing.default),
+                    .padding(horizontal = Spacing.large, vertical = Spacing.small),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Spacing.default),
             ) {
-            // Leads the row rather than trailing it - the trailing slot is already claimed by
-            // the primary check-off/increment action, and a handle needs to be reachable
-            // without fighting that button's touch target.
-            dragHandle?.invoke()
-            // The wavy ring itself communicates reliability (score) — a distinctly MD3
-            // Expressive stand-in for a flat "X% reliable" text pill.
-            Box(modifier = Modifier.size(56.dp), contentAlignment = Alignment.Center) {
-                CircularWavyProgressIndicator(
-                    progress = { item.currentScore.toFloat() },
-                    modifier = Modifier.size(56.dp),
-                    color = colors.accent,
-                    trackColor = colors.container,
-                )
-                Box(
-                    modifier = Modifier
-                        .size(38.dp)
-                        .clip(CircleShape)
-                        .background(colors.accent),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = HabitIcons.iconFor(item.iconKey),
-                        contentDescription = null,
-                        tint = contrastingIconColor(colors.accent),
-                        modifier = Modifier.size(20.dp),
+                // Leads the row rather than trailing it - the handle stays reachable without
+                // competing with the action group.
+                dragHandle?.invoke()
+                // The wavy ring communicates reliability (Score) and gives every habit a
+                // persistent expressive identity.
+                Box(modifier = Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                    CircularWavyProgressIndicator(
+                        progress = { item.currentScore.toFloat() },
+                        modifier = Modifier.size(48.dp),
+                        color = colors.accent,
+                        trackColor = colors.container,
                     )
-                }
-            }
-
-            // weight(1f) is what keeps a long name/value from ever pushing the trailing button
-            // off-card — every child below must wrap or ellipsize rather than grow unbounded.
-            // Deliberately just two lines: name, then one compact status line. Piling on a
-            // score ring AND lettered history AND several chip-pills AND an accent stripe read
-            // as clutter — real habit trackers keep the row itself minimal and push detail
-            // (frequency, exact history) into the edit sheet instead.
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = item.name,
-                    style = MaterialTheme.typography.titleLargeEmphasized,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Spacer(Modifier.height(Spacing.small))
-                val valueText = if (item.type == HabitType.NUMERICAL && item.targetValue != null) {
-                    "${formatValue(item.currentValue ?: 0.0)}/${formatValue(item.targetValue)}${item.unit?.let { " $it" } ?: ""}"
-                } else {
-                    null
-                }
-                if (item.currentStreak > 0 || valueText != null) {
-                    Spacer(Modifier.height(2.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.small)) {
-                        if (item.currentStreak > 0) {
-                            Icon(
-                                imageVector = Icons.Filled.LocalFireDepartment,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(14.dp),
-                            )
-                            Text(
-                                text = "${item.currentStreak}",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        valueText?.let {
-                            Text(
-                                text = it,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = colors.accent,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(CircleShape)
+                            .background(colors.accent),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = HabitIcons.iconFor(item.iconKey),
+                            contentDescription = null,
+                            tint = contrastingIconColor(colors.accent),
+                            modifier = Modifier.size(18.dp),
+                        )
                     }
                 }
-            }
 
-            if (item.type == HabitType.NUMERICAL) {
-                FilledTonalIconButton(
-                    onClick = { showValueDialog = true },
-                    modifier = Modifier.size(48.dp),
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.Center,
                 ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Edit,
-                        contentDescription = "Edit ${item.name} value",
+                    Text(
+                        text = item.name,
+                        style = MaterialTheme.typography.titleLargeEmphasized,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    SelectedDateStatus(
+                        item = item,
+                        accent = colors.accent,
                     )
                 }
-                NumericProgressButton(
-                    metTarget = item.completed,
-                    onIncrement = { onIncrement(defaultIncrement(item.targetValue)) },
-                    onDecrement = { onDecrement(defaultIncrement(item.targetValue)) },
-                    accentColor = colors.accent,
+
+                HabitActionGroup(
+                    item = item,
+                    accent = colors.accent,
+                    enabled = actionsEnabled,
+                    onPrimaryAction = if (item.type == HabitType.NUMERICAL) {
+                        { onIncrement(defaultIncrement(item.targetValue)) }
+                    } else {
+                        onToggle
+                    },
+                    onDecrement = if (item.type == HabitType.NUMERICAL) {
+                        { onDecrement(defaultIncrement(item.targetValue)) }
+                    } else {
+                        null
+                    },
+                    onSecondaryAction = if (item.type == HabitType.NUMERICAL) {
+                        { showValueDialog = true }
+                    } else {
+                        onEdit
+                    },
+                    secondaryDescription = if (item.type == HabitType.NUMERICAL) {
+                        "Set ${item.name} value"
+                    } else {
+                        "Edit ${item.name}"
+                    },
                 )
-            } else {
-                CheckOffButton(
-                    completed = item.completed,
-                    onToggle = onToggle,
-                    accentColor = colors.accent,
-                )
-            }
             }
         }
     }
@@ -211,6 +189,167 @@ fun HabitRow(
                 showValueDialog = false
             },
             onDismiss = { showValueDialog = false },
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun SelectedDateStatus(
+    item: HabitListItem,
+    accent: Color,
+    modifier: Modifier = Modifier,
+) {
+    val hasEntry = item.type == HabitType.NUMERICAL && item.currentValue != null
+    val isMeaningfullyComplete = item.completed || hasEntry
+    val markerColor by animateColorAsState(
+        targetValue = if (isMeaningfullyComplete) accent else MaterialTheme.colorScheme.outlineVariant,
+        animationSpec = MaterialTheme.motionScheme.fastEffectsSpec(),
+        label = "selectedDateStatusMarker",
+    )
+    val statusText = when (item.type) {
+        HabitType.BOOLEAN -> if (item.completed) "Done" else "Not logged"
+        HabitType.NUMERICAL -> when {
+            item.targetValue != null && item.currentValue != null -> {
+                "${formatValue(item.currentValue)}/${formatValue(item.targetValue)}${item.unit?.let { " $it" } ?: ""}"
+            }
+            item.targetValue != null -> "Not logged · target ${formatValue(item.targetValue)}${item.unit?.let { " $it" } ?: ""}"
+            item.currentValue != null -> "${formatValue(item.currentValue)} · No target"
+            else -> "Not logged"
+        }
+    }
+    val markerShape = if (isMeaningfullyComplete) {
+        MaterialShapes.Cookie9Sided.toShape()
+    } else {
+        CircleShape
+    }
+
+    Column(
+        modifier = modifier.heightIn(min = 44.dp),
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.small),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(14.dp)
+                    .clip(markerShape)
+                    .background(markerColor),
+            )
+            Text(
+                text = statusText,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (isMeaningfullyComplete) accent else MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        if (item.currentStreak > 0) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.extraSmall),
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.LocalFireDepartment,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(14.dp),
+                )
+                Text(
+                    text = "${item.currentStreak} day streak",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun HabitActionGroup(
+    item: HabitListItem,
+    accent: Color,
+    enabled: Boolean,
+    onPrimaryAction: () -> Unit,
+    onDecrement: (() -> Unit)?,
+    onSecondaryAction: () -> Unit,
+    secondaryDescription: String,
+) {
+    val primaryInteractionSource = remember { MutableInteractionSource() }
+    val secondaryInteractionSource = remember { MutableInteractionSource() }
+    val primaryDescription = if (item.type == HabitType.NUMERICAL) {
+        "Add ${formatValue(defaultIncrement(item.targetValue))} to ${item.name}; hold to subtract"
+    } else if (item.completed) {
+        "Mark ${item.name} incomplete"
+    } else {
+        "Mark ${item.name} complete"
+    }
+    ButtonGroup(
+        overflowIndicator = { },
+        horizontalArrangement = Arrangement.spacedBy(Spacing.extraSmall),
+    ) {
+        customItem(
+            buttonGroupContent = {
+                if (item.type == HabitType.NUMERICAL) {
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        NumericProgressButton(
+                            metTarget = item.completed,
+                            onIncrement = onPrimaryAction,
+                            onDecrement = onDecrement ?: {},
+                            accentColor = accent,
+                            contentDescription = primaryDescription,
+                            enabled = enabled,
+                            interactionSource = primaryInteractionSource,
+                        )
+                    }
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CheckOffButton(
+                            completed = item.completed,
+                            onToggle = onPrimaryAction,
+                            accentColor = accent,
+                            contentDescription = if (item.completed) {
+                                "Mark ${item.name} incomplete"
+                            } else {
+                                "Mark ${item.name} complete"
+                            },
+                            enabled = enabled,
+                            interactionSource = primaryInteractionSource,
+                        )
+                    }
+                }
+            },
+            menuContent = {},
+        )
+        customItem(
+            buttonGroupContent = {
+                OutlinedIconButton(
+                    onClick = onSecondaryAction,
+                    enabled = enabled,
+                    interactionSource = secondaryInteractionSource,
+                    modifier = Modifier.size(48.dp),
+                    shape = MaterialTheme.shapes.medium,
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Edit,
+                        contentDescription = secondaryDescription,
+                    )
+                }
+            },
+            menuContent = {},
         )
     }
 }
