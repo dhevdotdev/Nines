@@ -1,6 +1,6 @@
 # Layered test infrastructure and coverage diagnostics
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Problem
 

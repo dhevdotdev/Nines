@@ -39,7 +39,7 @@ class HabitViewModelContractTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     @Test
-    fun `homepage selected date changes and return to today use matching entry`() = runTest {
+    fun `homepage selected date changes and return to today use matching entry`() = runTest(mainDispatcherRule.dispatcher) {
         val today = LocalDate.now()
         val fixture = Fixture(today)
         val viewModel = HabitsViewModel(fixture.repository)
@@ -58,7 +58,7 @@ class HabitViewModelContractTest {
     }
 
     @Test
-    fun `homepage toggle writes to the selected date`() = runTest {
+    fun `homepage toggle writes to the selected date`() = runTest(mainDispatcherRule.dispatcher) {
         val today = LocalDate.now()
         val fixture = Fixture(today)
         val viewModel = HabitsViewModel(fixture.repository)
@@ -79,7 +79,7 @@ class HabitViewModelContractTest {
     }
 
     @Test
-    fun `homepage numeric logging writes value to the selected date`() = runTest {
+    fun `homepage numeric logging writes value to the selected date`() = runTest(mainDispatcherRule.dispatcher) {
         val today = LocalDate.now()
         val fixture = Fixture(today, HabitType.NUMERICAL)
         val viewModel = HabitsViewModel(fixture.repository)
@@ -98,7 +98,7 @@ class HabitViewModelContractTest {
     }
 
     @Test
-    fun `detail selected date changes and missing habit resolves without loading`() = runTest {
+    fun `detail selected date changes and missing habit resolves without loading`() = runTest(mainDispatcherRule.dispatcher) {
         val today = LocalDate.now()
         val fixture = Fixture(today)
         val viewModel = HabitDetailViewModel(fixture.habit.id, fixture.repository)
@@ -119,7 +119,7 @@ class HabitViewModelContractTest {
     }
 
     @Test
-    fun `detail logging action uses selected date`() = runTest {
+    fun `detail logging action uses selected date`() = runTest(mainDispatcherRule.dispatcher) {
         val today = LocalDate.now()
         val fixture = Fixture(today)
         val viewModel = HabitDetailViewModel(fixture.habit.id, fixture.repository)
@@ -213,7 +213,7 @@ class HabitViewModelContractTest {
 
     class MainDispatcherRule : TestWatcher() {
         private val scheduler = TestCoroutineScheduler()
-        private val dispatcher = StandardTestDispatcher(scheduler)
+        val dispatcher = StandardTestDispatcher(scheduler)
 
         override fun starting(description: Description) {
             Dispatchers.setMain(dispatcher)
