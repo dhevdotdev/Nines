@@ -1,6 +1,6 @@
 # Shared Habit observation
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Problem Statement
 
@@ -30,8 +30,8 @@ Create one domain-only Habit observation module. Given a Habit creation date, En
 - The observation module is domain-only and owns date clipping, Habit visibility, selected-date projection, schedule-as-of-date selection, and bounded calendar-day data.
 - Its input uses domain types, not Room entities, Compose state, or `LocalDate.now()` calls hidden inside the implementation. Callers provide selected/as-of dates explicitly.
 - The existing Habit timeline remains the source of score, streak, gap, and frequency-progress semantics; the observation module composes it rather than duplicating it.
-- The bounded calendar-day output is a domain record containing date, Entry state, and numeric value. UI adapters convert it to `DayCell` or homepage presentation types.
-- The repository exposes one observation stream built from the Habit, Entry, and Schedule DAO streams. Both ViewModels consume it rather than independently combining raw streams.
+- The bounded calendar-day output is a domain record containing date, Entry state, and numeric value. UI adapters convert it to `DayCell` or homepage presentation types. Its end is the effective selected date, capped by the explicit as-of date; future selected dates are projected at as-of.
+- The repository exposes one observation snapshot stream built from the Habit, Entry, and Schedule DAO streams. Both ViewModels consume that snapshot rather than independently combining raw streams; presentation metadata remains in the repository adapter snapshot.
 - Detail analytics remains separate and consumes the observation's bounded Entries/as-of context.
 - Screen-specific copy, “today” visual treatment, dialogs, and navigation remain in the UI adapters.
 - Existing archive, reorder, swipe, Room schema, and persistence semantics do not change.
@@ -43,6 +43,12 @@ Create one domain-only Habit observation module. Given a Habit creation date, En
 - Existing coroutine/ViewModel contract tests are extended to prove both adapters receive the same selected-date observation.
 - Existing Compose semantics and connected smoke tests remain the client-level verification for date selection, detail navigation, and historical agreement.
 - Tests assert observable outputs and domain invariants, not private helper structure.
+
+## Completion evidence
+
+- Domain and coroutine verification: `./gradlew test` passed.
+- Room and Compose/device verification: `./gradlew :app:connectedDebugAndroidTest` passed all 9 tests on `CPH2691 - 16`; the device was USB-plugged, awake, and stay-on enabled.
+- The final two-axis review found and corrected future-date projection, duplicated metadata observation, and missing Room stream coverage. The remaining “today” source is intentionally captured once per ViewModel/UI session; a live injected clock is a separate future seam, not part of this projection refactor.
 
 ## Out of Scope
 

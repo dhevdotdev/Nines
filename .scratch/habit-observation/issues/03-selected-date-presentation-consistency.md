@@ -15,5 +15,5 @@
 ## Comments
 
 - Implemented in the current architecture pass. Detail UI state now carries the ViewModel's captured `today`; streak labels, calendar markers, upcoming/not-logged copy, and expanded history editing all use that boundary.
-- Selected date remains the timeline/analytics context, while real today remains the calendar's future/today boundary. This distinction is now explicit instead of being reconstructed independently in composables.
-- Verification and device smoke are part of the final architecture-pass handoff.
+- Selected date remains the timeline/analytics/calendar context, while real today remains the future/today visual boundary. This distinction is now explicit instead of being reconstructed independently in composables.
+- Verification: `./gradlew test` passed; `./gradlew :app:connectedDebugAndroidTest` passed all 9 device tests. No new UI-specific historical test was invented because the existing device suite has no detail navigation fixture; the domain and Room contracts cover the boundary directly.

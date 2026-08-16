@@ -12,6 +12,7 @@ import dev.dhev.nines.data.local.entity.ScheduleVersionEntity
 import dev.dhev.nines.data.local.entity.TargetKind
 import dev.dhev.nines.scoring.decayMultiplier
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -105,6 +106,40 @@ class HabitRepositoryRoomTest {
         assertEquals(EntryState.COMPLETED, entry?.state)
         assertEquals(listOf(date.minusDays(1), date), timeline.entries.map { it.date })
         assertEquals(2.5, timeline.entries.last().numericValue ?: 0.0, 0.0)
+    }
+
+    @Test
+    fun observationStreamMapsRoomRowsAndSelectedDateBoundary() = runBlocking {
+        val created = LocalDate.of(2026, 8, 1)
+        val selected = LocalDate.of(2026, 8, 5)
+        val habitId = repository.createHabit(
+            name = "Observe",
+            type = HabitType.BOOLEAN,
+            color = 0xFF000000.toInt(),
+            iconKey = "check",
+            createdAt = created.atStartOfDay(java.time.ZoneOffset.UTC).toInstant(),
+            scheduleEffectiveFrom = created,
+        )
+        database.entryDao().upsert(completedEntry(habitId, selected))
+
+        val snapshot = repository.observeHabitSnapshot(
+            habitId = habitId,
+            selectedDate = flowOf(selected),
+            asOfDate = selected.plusDays(2),
+            historyStartDate = created,
+        ).first()
+
+        assertNotNull(snapshot)
+        assertEquals("Observe", snapshot?.habit?.name)
+        assertEquals(selected, snapshot?.observation?.timeline?.selectedDate)
+        assertEquals(EntryState.COMPLETED, snapshot?.observation?.timeline?.selectedEntry?.state?.let {
+            when (it) {
+                dev.dhev.nines.scoring.TimelineEntryState.COMPLETED -> EntryState.COMPLETED
+                dev.dhev.nines.scoring.TimelineEntryState.SKIPPED -> EntryState.SKIPPED
+                dev.dhev.nines.scoring.TimelineEntryState.IN_PROGRESS -> EntryState.IN_PROGRESS
+            }
+        })
+        assertEquals(selected, snapshot?.observation?.calendarDays?.last()?.date)
     }
 
     @Test

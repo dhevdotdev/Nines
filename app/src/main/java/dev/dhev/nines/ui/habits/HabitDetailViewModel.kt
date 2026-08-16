@@ -16,7 +16,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
@@ -35,19 +34,17 @@ class HabitDetailViewModel(
     private val today = LocalDate.now()
     private val selectedDate = kotlinx.coroutines.flow.MutableStateFlow(today)
 
-    val uiState: StateFlow<HabitDetailUiState> = combine(
-        repository.observeHabit(habitId),
-        repository.observeHabitObservation(
+    val uiState: StateFlow<HabitDetailUiState> = repository.observeHabitSnapshot(
             habitId = habitId,
             selectedDate = selectedDate,
             asOfDate = today,
             historyStartDate = today.minusMonths(HISTORY_MONTHS_BACK).withDayOfMonth(1),
-        ),
-    ) { habit, observation -> habit to observation }
-        .map { (habit, observation) ->
-            if (habit == null || observation == null) {
+        ).map { snapshot ->
+            if (snapshot == null) {
                 HabitDetailUiState(habitId = habitId, today = today, isLoading = false)
             } else {
+                    val habit = snapshot.habit
+                    val observation = snapshot.observation
                     val timeline = observation.timeline
                     val habitKind = if (habit.type == HabitType.NUMERICAL) TimelineHabitKind.NUMERICAL else TimelineHabitKind.BOOLEAN
                     val schedule = timeline.selectedSchedule

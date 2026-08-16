@@ -35,7 +35,7 @@ class HabitObservationTest {
 
         assertEquals(listOf(created, selected, asOf), observation.entriesThroughAsOfDate.map { it.date })
         assertEquals(created, observation.calendarDays.first().date)
-        assertEquals(asOf, observation.calendarDays.last().date)
+        assertEquals(selected, observation.calendarDays.last().date)
         assertEquals(selected, observation.timeline.selectedDate)
         assertTrue(observation.timeline.selectedEntry != null)
     }
@@ -55,7 +55,26 @@ class HabitObservationTest {
         )
 
         assertEquals(asOf, observation.calendarDays.last().date)
+        assertEquals(asOf, observation.timeline.selectedDate)
         assertFalse(observation.entriesThroughAsOfDate.any { it.date.isAfter(asOf) })
+    }
+
+    @Test
+    fun `habit created after selected date is not visible`() {
+        val observation = buildHabitObservation(
+            HabitObservationInput(
+                kind = TimelineHabitKind.BOOLEAN,
+                createdDate = selected.plusDays(1),
+                selectedDate = selected,
+                asOfDate = asOf,
+                historyStartDate = created,
+                entries = emptyList(),
+                schedules = listOf(TimelineSchedule(selected, ScheduleTarget.DAILY)),
+            ),
+        )
+
+        assertFalse(observation.timeline.isVisible)
+        assertTrue(observation.calendarDays.isEmpty())
     }
 
     private fun entry(date: LocalDate) = TimelineEntry(date, TimelineEntryState.COMPLETED)

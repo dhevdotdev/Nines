@@ -14,3 +14,4 @@
 ## Comments
 
 - Added the domain-only `HabitObservation` module. It preserves the existing timeline implementation and adds explicitly bounded Entry and calendar-day projections. `HabitObservationTest` passes.
+- Future selected dates now project at the explicit as-of date. Added coverage for future projection and post-creation invisibility; Room coverage verifies the real snapshot mapping and selected-date calendar boundary.

@@ -58,15 +58,17 @@ class HabitsViewModel(private val repository: HabitRepository) : ViewModel() {
 
     /** [date] is the selected date being browsed/edited - not necessarily today. */
     private fun habitItemFlow(habit: HabitEntity, date: LocalDate): Flow<HabitListItem?> =
-        repository.observeHabitObservation(
+        repository.observeHabitSnapshot(
             habitId = habit.id,
             selectedDate = flowOf(date),
             asOfDate = today,
             historyStartDate = today,
-        ).map { observation ->
-            if (observation == null) {
+        ).map { snapshot ->
+            if (snapshot == null) {
                 null
             } else {
+            val habit = snapshot.habit
+            val observation = snapshot.observation
             val timeline = observation.timeline
             if (!timeline.isVisible) {
                 null
