@@ -12,25 +12,34 @@ import dev.dhev.nines.data.local.entity.ScheduleVersionEntity
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.TestCoroutineScheduler
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TestWatcher
+import org.junit.runner.Description
 import java.time.Instant
 import java.time.LocalDate
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class HabitViewModelContractTest {
 
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
+
     @Test
     fun `homepage selected date changes and return to today use matching entry`() = runTest {
-        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
         val today = LocalDate.now()
         val fixture = Fixture(today)
         val viewModel = HabitsViewModel(fixture.repository)
@@ -50,7 +59,6 @@ class HabitViewModelContractTest {
 
     @Test
     fun `homepage toggle writes to the selected date`() = runTest {
-        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
         val today = LocalDate.now()
         val fixture = Fixture(today)
         val viewModel = HabitsViewModel(fixture.repository)
@@ -72,7 +80,6 @@ class HabitViewModelContractTest {
 
     @Test
     fun `detail selected date changes and missing habit resolves without loading`() = runTest {
-        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
         val today = LocalDate.now()
         val fixture = Fixture(today)
         val viewModel = HabitDetailViewModel(fixture.habit.id, fixture.repository)
@@ -82,15 +89,18 @@ class HabitViewModelContractTest {
         viewModel.onAction(HabitDetailAction.SelectDate(historicalDate))
         advanceUntilIdle()
         assertEquals(historicalDate, viewModel.uiState.first { it.selectedDate == historicalDate }.selectedDate)
+        viewModel.onAction(HabitDetailAction.SelectDate(today))
+        advanceUntilIdle()
+        assertEquals(today, viewModel.uiState.first { it.selectedDate == today }.selectedDate)
 
         val missing = HabitDetailViewModel(999L, fixture.repository)
         val missingState = missing.uiState.first { !it.isLoading }
         assertEquals(999L, missingState.habitId)
+        assertEquals("", missingState.name)
     }
 
     @Test
     fun `detail logging action uses selected date`() = runTest {
-        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
         val today = LocalDate.now()
         val fixture = Fixture(today)
         val viewModel = HabitDetailViewModel(fixture.habit.id, fixture.repository)
@@ -102,6 +112,7 @@ class HabitViewModelContractTest {
         advanceUntilIdle()
 
         assertTrue(fixture.entries.value.any { it.date == historicalDate && it.state == EntryState.COMPLETED })
+        assertTrue(viewModel.uiState.first { it.selectedDate == historicalDate && it.completed }.completed)
     }
 
     private class Fixture(today: LocalDate) {
@@ -145,7 +156,7 @@ class HabitViewModelContractTest {
         override fun observeActiveHabits(): Flow<List<HabitEntity>> = habit.value?.let { MutableStateFlow(listOf(it)) } ?: MutableStateFlow(emptyList())
         override fun observeArchivedHabits(): Flow<List<HabitEntity>> = MutableStateFlow(emptyList())
         override suspend fun getById(habitId: Long): HabitEntity? = habit.value?.takeIf { it.id == habitId }
-        override fun observeById(habitId: Long): Flow<HabitEntity?> = habit
+        override fun observeById(habitId: Long): Flow<HabitEntity?> = if (habit.value?.id == habitId) habit else flowOf(null)
         override suspend fun insert(habit: HabitEntity): Long = habit.id
         override suspend fun update(habit: HabitEntity) { this.habit.value = habit }
         override suspend fun nextPosition(): Int = 0
@@ -157,10 +168,12 @@ class HabitViewModelContractTest {
             schedules.value = schedules.value + scheduleVersion
             return scheduleVersion.id
         }
-        override fun observeVersions(habitId: Long): Flow<List<ScheduleVersionEntity>> = schedules
-        override suspend fun getVersions(habitId: Long): List<ScheduleVersionEntity> = schedules.value
+        override fun observeVersions(habitId: Long): Flow<List<ScheduleVersionEntity>> =
+            schedules.map { values -> values.filter { it.habitId == habitId } }
+        override suspend fun getVersions(habitId: Long): List<ScheduleVersionEntity> = schedules.value.filter { it.habitId == habitId }
         override suspend fun versionEffectiveOn(habitId: Long, date: LocalDate): ScheduleVersionEntity? =
-            schedules.value.filter { !it.effectiveFromDate.isAfter(date) }.maxWithOrNull(compareBy<ScheduleVersionEntity> { it.effectiveFromDate }.thenBy { it.id })
+            schedules.value.filter { it.habitId == habitId && !it.effectiveFromDate.isAfter(date) }
+                .maxWithOrNull(compareBy<ScheduleVersionEntity> { it.effectiveFromDate }.thenBy { it.id })
     }
 
     private class FakeEntryDao(val entries: MutableStateFlow<List<EntryEntity>>) : EntryDao {
@@ -168,8 +181,25 @@ class HabitViewModelContractTest {
             entries.value = entries.value.filterNot { it.habitId == entry.habitId && it.date == entry.date } + entry
         }
         override suspend fun delete(entry: EntryEntity) { entries.value = entries.value - entry }
-        override fun observeEntries(habitId: Long): Flow<List<EntryEntity>> = entries
-        override suspend fun entriesBetween(habitId: Long, from: LocalDate, to: LocalDate): List<EntryEntity> = entries.value.filter { !it.date.isBefore(from) && !it.date.isAfter(to) }
+        override fun observeEntries(habitId: Long): Flow<List<EntryEntity>> =
+            entries.map { values -> values.filter { it.habitId == habitId } }
+        override suspend fun entriesBetween(habitId: Long, from: LocalDate, to: LocalDate): List<EntryEntity> =
+            entries.value.filter { it.habitId == habitId && !it.date.isBefore(from) && !it.date.isAfter(to) }
         override suspend fun entryOn(habitId: Long, date: LocalDate): EntryEntity? = entries.value.firstOrNull { it.habitId == habitId && it.date == date }
+    }
+
+    class MainDispatcherRule : TestWatcher() {
+        private val scheduler = TestCoroutineScheduler()
+        private val dispatcher = StandardTestDispatcher(scheduler)
+
+        override fun starting(description: Description) {
+            Dispatchers.setMain(dispatcher)
+        }
+
+        override fun finished(description: Description) {
+            scheduler.advanceTimeBy(5_000)
+            scheduler.runCurrent()
+            Dispatchers.resetMain()
+        }
     }
 }
