@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -197,10 +196,13 @@ private fun SelectedDateStatus(
             item.targetValue != null && item.currentValue != null -> {
                 "${formatValue(item.currentValue)}/${formatValue(item.targetValue)}${item.unit?.let { " $it" } ?: ""}"
             }
-            item.targetValue != null -> "Not logged · target ${formatValue(item.targetValue)}${item.unit?.let { " $it" } ?: ""}"
-            item.currentValue != null -> "${formatValue(item.currentValue)} · No target"
+            item.currentValue != null -> "${formatValue(item.currentValue)}${item.unit?.let { " $it" } ?: ""}"
             else -> "Not logged"
         }
+    }
+    val targetText = item.targetValue?.let {
+        val operator = if (item.targetKind == TargetKind.AT_MOST) "≤" else "≥"
+        "Target $operator ${formatValue(it)}${item.unit?.let { value -> " $value" } ?: ""}"
     }
     val markerShape = if (isMeaningfullyComplete) {
         MaterialShapes.Cookie9Sided.toShape()
@@ -209,8 +211,8 @@ private fun SelectedDateStatus(
     }
 
     Column(
-        modifier = modifier.heightIn(min = 44.dp),
-        verticalArrangement = Arrangement.Center,
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(1.dp, Alignment.CenterVertically),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -226,6 +228,15 @@ private fun SelectedDateStatus(
                 text = statusText,
                 style = MaterialTheme.typography.bodyMedium,
                 color = if (isMeaningfullyComplete) accent else MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        targetText?.let { text ->
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )

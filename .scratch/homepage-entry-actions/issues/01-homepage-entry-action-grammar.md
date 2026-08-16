@@ -9,6 +9,8 @@
 - [x] Boolean cards expose one completion action with Done/Not done semantics.
 - [x] Measurable cards expose one selected-date value-editor action.
 - [x] Boolean and measurable actions share the same visual button shell and differ by icon/meaning only.
+- [x] Entry status, Target, and Streak use separate compact metadata rows so Target remains readable.
+- [x] Cards without Target or Streak do not reserve unnecessary empty status space.
 - [x] Measurable cards no longer expose separate homepage increment/decrement controls.
 - [x] Action labels distinguish completion and Entry value editing.
 - [x] Historical selected dates use the same action behavior.
