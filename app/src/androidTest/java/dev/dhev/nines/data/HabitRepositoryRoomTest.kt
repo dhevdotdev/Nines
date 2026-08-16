@@ -10,6 +10,7 @@ import dev.dhev.nines.data.local.entity.EntryState
 import dev.dhev.nines.data.local.entity.HabitType
 import dev.dhev.nines.data.local.entity.ScheduleVersionEntity
 import dev.dhev.nines.data.local.entity.TargetKind
+import dev.dhev.nines.scoring.decayMultiplier
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -90,9 +91,11 @@ class HabitRepositoryRoomTest {
             iconKey = "water",
             targetValue = 2.0,
             targetKind = TargetKind.AT_LEAST,
+            scheduleEffectiveFrom = LocalDate.of(2026, 8, 1),
         )
         val date = LocalDate.of(2026, 8, 16)
 
+        database.entryDao().upsert(completedEntry(habitId, date.minusDays(1)))
         repository.setNumericEntry(habitId, date, 2.5)
 
         val entry = database.entryDao().entryOn(habitId, date)
@@ -100,7 +103,8 @@ class HabitRepositoryRoomTest {
 
         assertEquals(2.5, entry?.numericValue ?: 0.0, 0.0)
         assertEquals(EntryState.COMPLETED, entry?.state)
-        assertEquals(2.5, timeline.entries.single().numericValue ?: 0.0, 0.0)
+        assertEquals(listOf(date.minusDays(1), date), timeline.entries.map { it.date })
+        assertEquals(2.5, timeline.entries.last().numericValue ?: 0.0, 0.0)
     }
 
     @Test
@@ -115,9 +119,11 @@ class HabitRepositoryRoomTest {
         )
 
         val selected = database.scheduleVersionDao().versionEffectiveOn(habitId, effectiveDate)
+        val timeline = repository.observeHabitTimelineData(habitId).first()
 
         assertEquals(3, selected?.targetNumerator)
         assertEquals(7, selected?.targetDenominator)
+        assertEquals(3, timeline.schedules.last().target.numerator)
     }
 
     @Test
@@ -131,12 +137,15 @@ class HabitRepositoryRoomTest {
         database.entryDao().upsert(completedEntry(habitId, boundary.plusDays(1)))
 
         val points = repository.scoreSeries(habitId, boundary.minusDays(1), boundary.plusDays(1))
+        val multiplier = decayMultiplier(2.0 / 3.0)
+        val expectedAtBoundary = 0.25 * (1.0 - multiplier)
+        val expectedAfterBoundary = expectedAtBoundary * multiplier + 0.5 * (1.0 - multiplier)
 
         assertEquals(3, points.size)
         assertEquals(boundary.minusDays(1), points[0].date)
         assertEquals(0.0, points[0].score, 0.0)
-        assertTrue(points[1].score > 0.0)
-        assertTrue(points[2].score > 0.0)
+        assertEquals(expectedAtBoundary, points[1].score, 0.000_001)
+        assertEquals(expectedAfterBoundary, points[2].score, 0.000_001)
     }
 
     private suspend fun createHabit(name: String): Long = repository.createHabit(
