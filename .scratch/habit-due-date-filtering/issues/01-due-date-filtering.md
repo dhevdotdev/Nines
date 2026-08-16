@@ -1,11 +1,14 @@
-# Frequency-based "due today" filtering for habits
+# Frequency-aware progress windows
 
-Status: needs-triage
+Status: done
 
-Right now every non-archived, already-created habit shows on the list every single day, regardless of its target frequency — a "3×/week" habit shows daily exactly the same as a daily habit. There is no concept anywhere in the app of a habit being "not due" on a given date.
+Right now every non-archived, already-created habit shows on the list every single day, but a frequency target such as "3×/week" gives the user no useful progress context. The original proposal was to hide habits on arbitrary "not due" days, but flexible numerator/denominator schedules do not define particular weekdays.
 
-Surfaced while grilling the date-aware-homepage redesign (`.scratch/date-aware-homepage/`): a real "is this habit due" filter needs to answer a question the current schedule model was never designed to answer — for a frequency-target habit (numerator/denominator, e.g. 3/7), *which specific days* count is undefined. The EWMA scoring math (`docs/adr/0002-score-and-streaks-are-derived.md`) works fine on a ratio without ever needing to pick specific days, so this gap has never mattered until now.
+Surfaced while grilling the date-aware-homepage redesign (`.scratch/date-aware-homepage/`): a real "is this habit due" filter would need to answer which specific days count for a flexible ratio, but that is undefined. The approved direction is frequency-aware progress in a rolling window ending on the Selected date. The existing EWMA scoring math (`docs/adr/0002-score-and-streaks-are-derived.md`) remains separate and unchanged.
 
-Deliberately deferred out of the date-aware-homepage redesign rather than solved shallowly just for that ticket — see that redesign's grilling notes. When this gets picked up for real, it needs its own design pass on the which-days-count question before any filtering UI gets built on top of it.
+Deliberately deferred out of the date-aware-homepage redesign rather than solved shallowly just for that ticket. It was specified in `.scratch/habit-due-date-filtering/spec.md` and implemented through tickets 01 and 02.
 
 ## Comments
+
+- Reframed during the approved uHabits/Loop-inspired grilling pass. The product decision is flexible rolling frequency progress, not arbitrary due weekdays or homepage filtering.
+- Implemented and verified on-device: active habits remain visible, rolling progress updates for selected dates, and historical progress uses the effective schedule without future-entry leakage.

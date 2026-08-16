@@ -3,6 +3,7 @@ package dev.dhev.nines.ui.habits
 import dev.dhev.nines.data.local.entity.EntryState
 import dev.dhev.nines.data.local.entity.HabitType
 import dev.dhev.nines.data.local.entity.TargetKind
+import dev.dhev.nines.scoring.FrequencyProgress
 import java.time.LocalDate
 
 /** One day in a habit's detailed history. [state] is null when no entry was logged. */
@@ -30,6 +31,7 @@ data class HabitListItem(
     val unit: String? = null,
     val targetNumerator: Int = 1,
     val targetDenominator: Int = 1,
+    val frequencyProgress: FrequencyProgress? = null,
 )
 
 data class HabitsUiState(

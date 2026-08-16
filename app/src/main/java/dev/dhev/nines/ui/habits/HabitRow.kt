@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardOptions
 import dev.dhev.nines.data.local.entity.HabitType
 import dev.dhev.nines.data.local.entity.TargetKind
+import dev.dhev.nines.scoring.FrequencyTargetKind
 import dev.dhev.nines.ui.theme.HabitColors
 import dev.dhev.nines.ui.theme.Spacing
 import dev.dhev.nines.ui.theme.contrastingIconColor
@@ -190,11 +191,16 @@ private fun SelectedDateStatus(
         animationSpec = MaterialTheme.motionScheme.fastEffectsSpec(),
         label = "selectedDateStatusMarker",
     )
+    val frequencyProgress = item.frequencyProgress?.takeIf { item.targetDenominator > 1 }
     val statusText = when (item.type) {
         HabitType.BOOLEAN -> if (item.completed) "Done" else "Not logged"
         HabitType.NUMERICAL -> when {
-            item.targetValue != null && item.currentValue != null -> {
-                "${formatValue(item.currentValue)}/${formatValue(item.targetValue)}${item.unit?.let { " $it" } ?: ""}"
+            item.targetValue != null && item.currentValue != null && frequencyProgress == null -> {
+                if (item.targetKind == TargetKind.AT_MOST) {
+                    "${formatValue(item.currentValue)} ≤ ${formatValue(item.targetValue)}${item.unit?.let { " $it" } ?: ""}"
+                } else {
+                    "${formatValue(item.currentValue)}/${formatValue(item.targetValue)}${item.unit?.let { " $it" } ?: ""}"
+                }
             }
             item.currentValue != null -> "${formatValue(item.currentValue)}${item.unit?.let { " $it" } ?: ""}"
             else -> "Not logged"
@@ -203,6 +209,14 @@ private fun SelectedDateStatus(
     val targetText = item.targetValue?.takeIf { item.currentValue == null }?.let {
         val operator = if (item.targetKind == TargetKind.AT_MOST) "≤" else "≥"
         "Target $operator ${formatValue(it)}${item.unit?.let { value -> " $value" } ?: ""}"
+    }
+    val frequencyText = frequencyProgress?.let { progress ->
+        val progressLabel = if (progress.targetKind == FrequencyTargetKind.AT_MOST) {
+            "${formatValue(progress.achieved)} ≤ ${formatValue(progress.target)}"
+        } else {
+            "${formatValue(progress.achieved)}/${formatValue(progress.target)}"
+        }
+        "$progressLabel · last ${item.targetDenominator} days"
     }
     val markerShape = if (isMeaningfullyComplete) {
         MaterialShapes.Cookie9Sided.toShape()
@@ -233,10 +247,25 @@ private fun SelectedDateStatus(
             )
         }
         targetText?.let { text ->
+            if (frequencyText == null) {
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        if (frequencyProgress != null && frequencyText != null) {
             Text(
-                text = text,
+                text = frequencyText,
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = if (frequencyProgress.isMet) {
+                    accent
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )

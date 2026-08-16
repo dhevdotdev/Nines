@@ -9,6 +9,10 @@ import dev.dhev.nines.data.local.entity.HabitType
 import dev.dhev.nines.data.local.entity.TargetKind
 import dev.dhev.nines.scoring.computeStreakRuns
 import dev.dhev.nines.scoring.currentStreakLength
+import dev.dhev.nines.scoring.FrequencyProgressInput
+import dev.dhev.nines.scoring.FrequencyTargetKind
+import dev.dhev.nines.scoring.ScheduleTarget
+import dev.dhev.nines.scoring.computeFrequencyProgress
 import dev.dhev.nines.scoring.isHabitVisibleOn
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -69,6 +73,35 @@ class HabitsViewModel(private val repository: HabitRepository) : ViewModel() {
             val schedule = repository.scheduleEffectiveOn(habit.id, date)
             val completedDates = entries.filter { it.state == EntryState.COMPLETED }.map { it.date }.toSet()
             val streak = currentStreakLength(computeStreakRuns(completedDates, startDate, date), date)
+            val scheduleTarget = ScheduleTarget(
+                numerator = schedule?.targetNumerator ?: 1,
+                denominator = schedule?.targetDenominator ?: 1,
+            )
+            val frequencyProgress = when (habit.type) {
+                HabitType.BOOLEAN -> computeFrequencyProgress(
+                    selectedDate = date,
+                    target = scheduleTarget,
+                    input = FrequencyProgressInput.BooleanEntries(completedDates),
+                )
+                HabitType.NUMERICAL -> schedule?.targetValue?.let { targetValue ->
+                    computeFrequencyProgress(
+                        selectedDate = date,
+                        target = scheduleTarget,
+                        input = FrequencyProgressInput.NumericEntries(
+                            valuesByDate = entries
+                                .filter { it.state != EntryState.SKIPPED }
+                                .mapNotNull { entry -> entry.numericValue?.let { entry.date to it } }
+                                .toMap(),
+                            targetValue = targetValue,
+                            targetKind = if (schedule.targetKind == TargetKind.AT_MOST) {
+                                FrequencyTargetKind.AT_MOST
+                            } else {
+                                FrequencyTargetKind.AT_LEAST
+                            },
+                        ),
+                    )
+                }
+            }
             HabitListItem(
                 id = habit.id,
                 name = habit.name,
@@ -85,6 +118,7 @@ class HabitsViewModel(private val repository: HabitRepository) : ViewModel() {
                 unit = habit.unit,
                 targetNumerator = schedule?.targetNumerator ?: 1,
                 targetDenominator = schedule?.targetDenominator ?: 1,
+                frequencyProgress = frequencyProgress,
             )
         }
 
