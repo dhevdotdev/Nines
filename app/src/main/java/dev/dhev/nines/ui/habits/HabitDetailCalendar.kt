@@ -449,6 +449,9 @@ fun HistoryCalendar(
 }
 
 private val MonthCardWidth = 84.dp
+// A month can occupy at most six Sunday-starting weeks. Keeping every card at that height
+// prevents the content below the history rail from jumping as different months become visible.
+private val MonthCardHeight = 96.dp
 private val DayCellSize = 9.dp
 
 @Composable
@@ -463,6 +466,7 @@ fun MonthCalendar(
     Column(
         modifier = Modifier
             .width(MonthCardWidth)
+            .height(MonthCardHeight)
             .clip(RoundedCornerShape(12.dp))
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
