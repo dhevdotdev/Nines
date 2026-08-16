@@ -159,11 +159,11 @@ fun HabitRow(
     }
 
     if (showValueDialog) {
-        EditValueDialog(
+        NumericEntryEditor(
             habitName = item.name,
             iconKey = item.iconKey,
             colors = colors,
-            initialValue = item.currentValue ?: 0.0,
+            initialValue = item.currentValue,
             targetValue = item.targetValue,
             targetKind = item.targetKind,
             unit = item.unit,
@@ -318,135 +318,7 @@ private fun HabitActionGroup(
     )
 }
 
-/** Edits the selected date's numeric Entry without changing the Habit or its Schedule. */
-@Suppress("DEPRECATION")
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-private fun EditValueDialog(
-    habitName: String,
-    iconKey: String,
-    colors: HabitColors,
-    initialValue: Double,
-    targetValue: Double?,
-    targetKind: TargetKind?,
-    unit: String?,
-    selectedDate: LocalDate,
-    onConfirm: (Double) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    var value by remember { mutableDoubleStateOf(initialValue) }
-    var text by remember { mutableStateOf(formatValue(initialValue)) }
-
-    val animatedValue by animateFloatAsState(
-        targetValue = value.toFloat(),
-        animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
-        label = "editValueNumber",
-    )
-
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val dateLabel = selectedDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
-    val targetLabel = targetValue?.let {
-        val kind = if (targetKind == TargetKind.AT_MOST) "at most" else "at least"
-        "Target: $kind ${formatValue(it)}${unit?.let { value -> " $value" } ?: ""}"
-    } ?: "No target set"
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(horizontal = Spacing.large)
-                .padding(bottom = Spacing.large),
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.default),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(MaterialShapes.Cookie9Sided.toShape())
-                        .background(colors.accent),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = HabitIcons.iconFor(iconKey),
-                        contentDescription = null,
-                        tint = contrastingIconColor(colors.accent),
-                        modifier = Modifier.size(24.dp),
-                    )
-                }
-                Column {
-                    Text(text = "Edit value", style = MaterialTheme.typography.titleLargeEmphasized)
-                    Text(text = habitName, style = MaterialTheme.typography.bodyMedium)
-                    Text(
-                        text = dateLabel,
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(Spacing.large))
-            Row(verticalAlignment = Alignment.Bottom) {
-                Text(
-                    text = formatValue(animatedValue.toDouble()),
-                    style = MaterialTheme.typography.displaySmallEmphasized,
-                    color = colors.accent,
-                )
-                unit?.let {
-                    Spacer(Modifier.width(Spacing.small))
-                    Text(
-                        text = it,
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 6.dp),
-                    )
-                }
-            }
-            Text(
-                text = targetLabel,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-
-            Spacer(Modifier.height(Spacing.default))
-            OutlinedTextField(
-                value = text,
-                onValueChange = { newText ->
-                    val numericText = newText.filter { it.isDigit() || it == '.' }
-                    if (numericText.count { it == '.' } <= 1) {
-                        text = numericText
-                        numericText.toDoubleOrNull()?.let { value = it }
-                    }
-                },
-                singleLine = true,
-                label = { Text("Value for $dateLabel") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
-                isError = text.toDoubleOrNull() == null,
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            Spacer(Modifier.height(Spacing.default))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-            ) {
-                TextButton(onClick = onDismiss) { Text("Cancel") }
-                Spacer(Modifier.width(Spacing.small))
-                Button(
-                    onClick = { text.toDoubleOrNull()?.let(onConfirm) },
-                    enabled = text.toDoubleOrNull() != null,
-                ) { Text("Save") }
-            }
-        }
-    }
-}
-
-/** Shared with the detail screen (same package) - "12" for a whole number, "12.5" otherwise. */
+/** Shared numeric formatting: whole numbers stay compact, decimals retain one place. */
 fun formatValue(value: Double): String =
     if (value == value.roundToInt().toDouble()) value.roundToInt().toString() else "%.1f".format(value)
 
