@@ -4,10 +4,13 @@
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Define domain observation input/output using explicit selected and as-of dates.
-- [ ] Compose the existing Habit timeline without changing score, streak, gap, or frequency-progress semantics.
-- [ ] Produce bounded calendar-day observations that exclude pre-creation and post-as-of dates.
-- [ ] Add plain-JUnit coverage for visibility, date clipping, schedule boundaries, ordering, and return-to-today inputs.
+- [x] Define domain observation input/output using explicit selected and as-of dates.
+- [x] Compose the existing Habit timeline without changing score, streak, gap, or frequency-progress semantics.
+- [x] Produce bounded calendar-day observations that exclude pre-creation and post-as-of dates.
+- [x] Add plain-JUnit coverage for visibility, date clipping, schedule boundaries, ordering, and return-to-today inputs.
 
+## Comments
+
+- Added the domain-only `HabitObservation` module. It preserves the existing timeline implementation and adds explicitly bounded Entry and calendar-day projections. `HabitObservationTest` passes.
