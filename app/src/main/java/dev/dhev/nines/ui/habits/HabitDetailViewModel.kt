@@ -64,7 +64,7 @@ class HabitDetailViewModel(
                         HabitAnalyticsInput(
                             kind = if (habit.type == HabitType.NUMERICAL) TimelineHabitKind.NUMERICAL else TimelineHabitKind.BOOLEAN,
                             createdDate = createdDate,
-                            asOfDate = today,
+                            asOfDate = selectedDate,
                             entries = entries,
                             currentStreak = timeline.currentStreak,
                         ),

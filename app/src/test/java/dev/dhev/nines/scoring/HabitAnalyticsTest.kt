@@ -20,6 +20,7 @@ class HabitAnalyticsTest {
                 asOfDate = asOf,
                 currentStreak = 3,
                 entries = listOf(
+                    entry(0),
                     entry(1), entry(2), entry(3),
                     entry(8), entry(9), entry(10),
                     entry(11),
@@ -44,7 +45,8 @@ class HabitAnalyticsTest {
                 currentStreak = 0,
                 entries = (1..5).map { day ->
                     entry(day, value = day.toDouble(), createdAt = Instant.parse("2026-01-0${day}T08:00:00Z"))
-                } + entry(6, state = TimelineEntryState.IN_PROGRESS, value = 100.0),
+                } + entry(0, value = 200.0, createdAt = Instant.parse("2025-12-31T08:00:00Z"))
+                    + entry(6, state = TimelineEntryState.IN_PROGRESS, value = 100.0),
             ),
         )
 
@@ -53,6 +55,42 @@ class HabitAnalyticsTest {
         assertEquals("morning", result.typicalTimeOfDay)
         assertEquals(RecordProgress.NONE, result.recordProgress)
         assertNull(result.momentumDeltaPoints)
+    }
+
+    @Test
+    fun `thresholds expose weekday rates at fourteen days and gaps at three days`() {
+        val fourteenDay = computeHabitAnalytics(
+            HabitAnalyticsInput(
+                kind = TimelineHabitKind.BOOLEAN,
+                createdDate = created,
+                asOfDate = created.plusDays(13),
+                entries = listOf(entry(1)),
+                currentStreak = 0,
+            ),
+        )
+        val thirteenDay = computeHabitAnalytics(
+            HabitAnalyticsInput(
+                kind = TimelineHabitKind.BOOLEAN,
+                createdDate = created,
+                asOfDate = created.plusDays(12),
+                entries = listOf(entry(1)),
+                currentStreak = 0,
+            ),
+        )
+        val gap = computeHabitAnalytics(
+            HabitAnalyticsInput(
+                kind = TimelineHabitKind.BOOLEAN,
+                createdDate = created,
+                asOfDate = created.plusDays(5),
+                entries = listOf(entry(1), entry(2), entry(6)),
+                currentStreak = 1,
+            ),
+        )
+
+        assertEquals(7, fourteenDay.weekdayRates.size)
+        assertTrue(thirteenDay.weekdayRates.isEmpty())
+        assertEquals(3, gap.longestGap?.length)
+        assertEquals(RecordProgress.CHASING_RECORD, gap.recordProgress)
     }
 
     private fun entry(
