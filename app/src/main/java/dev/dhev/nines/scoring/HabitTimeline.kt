@@ -55,6 +55,7 @@ data class HabitTimeline(
     val score: Double,
     val currentStreak: Int,
     val currentGap: Int,
+    val runAnalysis: HabitRunAnalysis,
     val frequencyProgress: FrequencyProgress?,
 )
 
@@ -76,6 +77,7 @@ fun buildHabitTimeline(input: HabitTimelineInput): HabitTimeline {
             score = 0.0,
             currentStreak = 0,
             currentGap = 0,
+            runAnalysis = HabitRunAnalysis(emptyList(), emptyList(), 0, 0),
             frequencyProgress = null,
         )
     }
@@ -99,8 +101,7 @@ fun buildHabitTimeline(input: HabitTimelineInput): HabitTimeline {
         startDate = input.createdDate,
         endDate = input.selectedDate,
     ).lastOrNull()?.score ?: 0.0
-    val streakRuns = computeStreakRuns(completedDates, input.createdDate, input.selectedDate)
-    val gapRuns = computeGapRuns(completedDates, input.createdDate, input.selectedDate)
+    val runAnalysis = analyzeHabitRuns(completedDates, input.createdDate, input.selectedDate)
     val frequencyProgress = selectedSchedule?.let { schedule ->
         when (input.kind) {
             TimelineHabitKind.BOOLEAN -> computeFrequencyProgress(
@@ -131,8 +132,9 @@ fun buildHabitTimeline(input: HabitTimelineInput): HabitTimeline {
         selectedEntry = entriesByDate[input.selectedDate],
         selectedSchedule = selectedSchedule,
         score = score,
-        currentStreak = currentStreakLength(streakRuns, input.selectedDate),
-        currentGap = currentGapLength(gapRuns, input.selectedDate),
+        currentStreak = runAnalysis.currentStreak,
+        currentGap = runAnalysis.currentGap,
+        runAnalysis = runAnalysis,
         frequencyProgress = frequencyProgress,
     )
 }
@@ -143,8 +145,3 @@ fun scheduleEffectiveOn(
 ): TimelineSchedule? = schedules
     .filter { !it.effectiveFromDate.isAfter(date) }
     .maxWithOrNull(compareBy<TimelineSchedule> { it.effectiveFromDate }.thenBy { it.versionOrder })
-
-private fun currentGapLength(runs: List<StreakRun>, selectedDate: LocalDate): Int {
-    val last = runs.lastOrNull() ?: return 0
-    return if (!last.end.isBefore(selectedDate.minusDays(1))) last.length else 0
-}

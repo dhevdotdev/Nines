@@ -143,6 +143,31 @@ class HabitAnalyticsTest {
         assertEquals(0.0, momentum60Days.momentumDeltaPoints ?: -1.0, 0.0)
     }
 
+    @Test
+    fun `analytics honors upstream run analysis from the timeline`() {
+        val entries = listOf(entry(1), entry(2), entry(5))
+        val upstream = analyzeHabitRuns(
+            completedDates = entries.map { it.date }.toSet(),
+            startDate = created,
+            endDate = asOf,
+        )
+
+        val result = computeHabitAnalytics(
+            HabitAnalyticsInput(
+                kind = TimelineHabitKind.BOOLEAN,
+                createdDate = created,
+                asOfDate = asOf,
+                entries = entries,
+                currentStreak = 99,
+                runAnalysis = upstream,
+            ),
+        )
+
+        assertEquals(upstream.currentStreak, result.currentStreak)
+        assertEquals(upstream.streakRuns.maxOf { it.length }, result.bestStreak)
+        assertEquals(upstream.gapRuns.filter { it.length >= 3 }.maxBy { it.length }, result.longestGap)
+    }
+
     private fun entry(
         day: Int,
         state: TimelineEntryState = TimelineEntryState.COMPLETED,

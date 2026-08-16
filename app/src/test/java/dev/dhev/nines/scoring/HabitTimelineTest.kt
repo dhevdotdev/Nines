@@ -39,6 +39,8 @@ class HabitTimelineTest {
         assertEquals(2.0, timeline.frequencyProgress?.achieved ?: -1.0, 0.0)
         assertEquals(1, timeline.currentStreak)
         assertEquals(1, timeline.currentGap)
+        assertEquals(timeline.runAnalysis.currentStreak, timeline.currentStreak)
+        assertEquals(timeline.runAnalysis.currentGap, timeline.currentGap)
         assertNotNull(timeline.selectedSchedule)
         assertTrue(timeline.score > 0.0)
     }

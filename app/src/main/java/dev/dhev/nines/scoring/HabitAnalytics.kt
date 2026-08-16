@@ -9,6 +9,7 @@ data class HabitAnalyticsInput(
     val asOfDate: LocalDate,
     val entries: List<TimelineEntry>,
     val currentStreak: Int,
+    val runAnalysis: HabitRunAnalysis? = null,
 )
 
 enum class RecordProgress {
@@ -41,7 +42,8 @@ fun computeHabitAnalytics(input: HabitAnalyticsInput): HabitAnalytics {
         .filter { it.state == TimelineEntryState.COMPLETED }
         .map { it.date }
         .toSet()
-    val streakRuns = computeStreakRuns(completedDates, input.createdDate, input.asOfDate)
+    val runAnalysis = input.runAnalysis ?: analyzeHabitRuns(completedDates, input.createdDate, input.asOfDate)
+    val streakRuns = runAnalysis.streakRuns
     val bestStreak = streakRuns.maxOfOrNull { it.length } ?: 0
     val totalCompletions = completedDates.size
 
@@ -101,7 +103,7 @@ fun computeHabitAnalytics(input: HabitAnalyticsInput): HabitAnalytics {
         null
     }
 
-    val longestGap = computeGapRuns(completedDates, input.createdDate, input.asOfDate)
+    val longestGap = runAnalysis.gapRuns
         .filter { it.length >= 3 }
         .maxByOrNull { it.length }
     val loggedValues = entries
@@ -115,13 +117,13 @@ fun computeHabitAnalytics(input: HabitAnalyticsInput): HabitAnalytics {
     }
     val numericAverage = numericTotal?.let { it / loggedValues.size }
     val recordProgress = when {
-        bestStreak == 0 || input.currentStreak == 0 -> RecordProgress.NONE
-        input.currentStreak >= bestStreak -> RecordProgress.CURRENT_RECORD
+        bestStreak == 0 || runAnalysis.currentStreak == 0 -> RecordProgress.NONE
+        runAnalysis.currentStreak >= bestStreak -> RecordProgress.CURRENT_RECORD
         else -> RecordProgress.CHASING_RECORD
     }
 
     return HabitAnalytics(
-        currentStreak = input.currentStreak,
+        currentStreak = runAnalysis.currentStreak,
         bestStreak = bestStreak,
         totalCompletions = totalCompletions,
         topStreaks = streakRuns.sortedByDescending { it.length }.take(5),
