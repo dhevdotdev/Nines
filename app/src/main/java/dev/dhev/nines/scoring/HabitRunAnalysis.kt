@@ -6,6 +6,7 @@ import java.time.LocalDate
 data class HabitRunAnalysis(
     val startDate: LocalDate,
     val endDate: LocalDate,
+    val completedDates: Set<LocalDate>,
     val streakRuns: List<StreakRun>,
     val gapRuns: List<StreakRun>,
     val currentStreak: Int,
@@ -28,6 +29,7 @@ fun analyzeHabitRuns(
     return HabitRunAnalysis(
         startDate = startDate,
         endDate = endDate,
+        completedDates = completedDates,
         streakRuns = streakRuns,
         gapRuns = gapRuns,
         currentStreak = currentStreakLength(streakRuns, endDate),
@@ -38,6 +40,7 @@ fun analyzeHabitRuns(
 fun emptyHabitRunAnalysis(startDate: LocalDate, endDate: LocalDate): HabitRunAnalysis = HabitRunAnalysis(
     startDate = startDate,
     endDate = endDate,
+    completedDates = emptySet(),
     streakRuns = emptyList(),
     gapRuns = emptyList(),
     currentStreak = 0,

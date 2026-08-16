@@ -38,10 +38,10 @@ callable by falling back to the same projector when no upstream analysis is supp
 - Existing `computeStreakRuns`, `computeGapRuns`, and current-length semantics remain the source
   behavior; the new projection composes them rather than changing their meaning.
 - `HabitTimeline` carries the computed `HabitRunAnalysis` alongside its existing scalar fields.
-- `HabitAnalyticsInput` requires a `HabitRunAnalysis`; its default derives that analysis from the
-  same bounded Entries for standalone callers. Production detail wiring supplies the timeline's
-  analysis, eliminating duplicate work and giving the two adapters one shared result. The input
-  validates that the supplied analysis covers the same date range.
+- `HabitAnalyticsInput` always contains a resolved `HabitRunAnalysis`; callers may omit the
+  argument and receive one derived from the same bounded Entries. Production detail wiring
+  supplies the timeline's analysis, eliminating duplicate work and giving the two adapters one
+  shared result. The input validates the same date range and completed-date provenance.
 - No score caching, persistence changes, UI redesign, generic read-model framework, or clock work
   is included. ADR-0002 remains unchanged: Score, Streak, and Gap are always derived.
 

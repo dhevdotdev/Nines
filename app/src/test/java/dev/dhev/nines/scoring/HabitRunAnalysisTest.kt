@@ -35,6 +35,18 @@ class HabitRunAnalysisTest {
     }
 
     @Test
+    fun `analysis current streak includes a completion on the end date`() {
+        val analysis = analyzeHabitRuns(
+            completedDates = setOf(end),
+            startDate = start,
+            endDate = end,
+        )
+
+        assertEquals(1, analysis.currentStreak)
+        assertEquals(6, analysis.currentGap)
+    }
+
+    @Test
     fun `analysis ignores completed dates outside its bounded range`() {
         val analysis = analyzeHabitRuns(
             completedDates = setOf(start.minusDays(1), start.plusDays(1), end.plusDays(1)),

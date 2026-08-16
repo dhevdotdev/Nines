@@ -10,7 +10,11 @@ data class HabitAnalyticsInput(
     val entries: List<TimelineEntry>,
     val runAnalysis: HabitRunAnalysis = analyzeHabitRuns(
         completedDates = entries
-            .filter { it.state == TimelineEntryState.COMPLETED }
+            .filter {
+                it.state == TimelineEntryState.COMPLETED &&
+                    !it.date.isBefore(createdDate) &&
+                    !it.date.isAfter(asOfDate)
+            }
             .map { it.date }
             .toSet(),
         startDate = createdDate,
@@ -48,8 +52,12 @@ fun computeHabitAnalytics(input: HabitAnalyticsInput): HabitAnalytics {
         .filter { it.state == TimelineEntryState.COMPLETED }
         .map { it.date }
         .toSet()
-    require(input.runAnalysis.startDate == input.createdDate && input.runAnalysis.endDate == input.asOfDate) {
-        "runAnalysis must cover the same date range as analytics"
+    require(
+        input.runAnalysis.startDate == input.createdDate &&
+            input.runAnalysis.endDate == input.asOfDate &&
+            input.runAnalysis.completedDates == completedDates,
+    ) {
+        "runAnalysis must cover the same completed dates and date range as analytics"
     }
     val runAnalysis = input.runAnalysis
     val streakRuns = runAnalysis.streakRuns

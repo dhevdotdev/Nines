@@ -16,5 +16,6 @@ their current Streak, best Streak, and longest Gap cannot drift apart.
 ## Comments
 
 - The first implementation commit was `f48b79a`; review hardening removes the dead `currentStreak`
-  input, makes run analysis the sole source of timeline streak/gap scalars, and adds range provenance.
+  input, makes run analysis the sole source of timeline streak/gap scalars, and adds date-range plus
+  completed-date provenance.
 - Final verification: `./gradlew test` passed; connected device verification passed all 10 tests.

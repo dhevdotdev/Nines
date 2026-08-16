@@ -51,8 +51,8 @@ class HabitDetailViewModel(
                     kind = observation.kind,
                     createdDate = habit.createdAt.atZone(ZoneId.systemDefault()).toLocalDate(),
                     asOfDate = timeline.selectedDate,
-                            entries = observation.entriesThroughAsOfDate,
-                            runAnalysis = timeline.runAnalysis,
+                    entries = observation.entriesThroughAsOfDate,
+                    runAnalysis = timeline.runAnalysis,
                 ),
             )
             val selectedEntry = timeline.selectedEntry
