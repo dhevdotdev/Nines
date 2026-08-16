@@ -79,6 +79,25 @@ class HabitViewModelContractTest {
     }
 
     @Test
+    fun `homepage numeric logging writes value to the selected date`() = runTest {
+        val today = LocalDate.now()
+        val fixture = Fixture(today, HabitType.NUMERICAL)
+        val viewModel = HabitsViewModel(fixture.repository)
+        val historicalDate = today.minusDays(1)
+
+        viewModel.onAction(HabitsAction.SelectDate(historicalDate))
+        advanceUntilIdle()
+        viewModel.onAction(HabitsAction.SetNumericValue(fixture.habit.id, 3.5))
+        advanceUntilIdle()
+
+        val updated = viewModel.uiState.first {
+            it.selectedDate == historicalDate && it.habits.single().currentValue == 3.5
+        }
+        assertEquals(3.5, updated.habits.single().currentValue ?: 0.0, 0.0)
+        assertEquals(3.5, fixture.entries.value.first { it.date == historicalDate }.numericValue ?: 0.0, 0.0)
+    }
+
+    @Test
     fun `detail selected date changes and missing habit resolves without loading`() = runTest {
         val today = LocalDate.now()
         val fixture = Fixture(today)
@@ -115,11 +134,14 @@ class HabitViewModelContractTest {
         assertTrue(viewModel.uiState.first { it.selectedDate == historicalDate && it.completed }.completed)
     }
 
-    private class Fixture(today: LocalDate) {
+    private class Fixture(
+        today: LocalDate,
+        type: HabitType = HabitType.BOOLEAN,
+    ) {
         val habit = HabitEntity(
             id = 1L,
             name = "Test habit",
-            type = HabitType.BOOLEAN,
+            type = type,
             color = 0xFF000000.toInt(),
             iconKey = "check",
             position = 0,
@@ -146,6 +168,7 @@ class HabitViewModelContractTest {
                     effectiveFromDate = habit.createdAt.atZone(java.time.ZoneId.systemDefault()).toLocalDate(),
                     targetNumerator = 1,
                     targetDenominator = 1,
+                    targetValue = if (type == HabitType.NUMERICAL) 5.0 else null,
                 ),
             ),
         )
