@@ -40,97 +40,96 @@ class HabitDetailViewModel(
         asOfDate = today,
         historyStartDate = today.minusMonths(HISTORY_MONTHS_BACK).withDayOfMonth(1),
     ).map { snapshot ->
-            if (snapshot == null) {
-                HabitDetailUiState(habitId = habitId, today = today, isLoading = false)
+        if (snapshot == null) {
+            HabitDetailUiState(habitId = habitId, today = today, isLoading = false)
+        } else {
+            val habit = snapshot.habit
+            val observation = snapshot.observation
+            val timeline = observation.timeline
+            val habitKind = if (habit.type == HabitType.NUMERICAL) TimelineHabitKind.NUMERICAL else TimelineHabitKind.BOOLEAN
+            val schedule = timeline.selectedSchedule
+            val analytics = computeHabitAnalytics(
+                HabitAnalyticsInput(
+                    kind = habitKind,
+                    createdDate = habit.createdAt.atZone(ZoneId.systemDefault()).toLocalDate(),
+                    asOfDate = timeline.selectedDate,
+                    entries = observation.entriesThroughAsOfDate,
+                    currentStreak = timeline.currentStreak,
+                ),
+            )
+            val selectedEntry = timeline.selectedEntry
+
+            // Daily habits (1/1) don't need this - the streak already says everything there is
+            // to say. It only adds information for a habit with real slack ("3x per week").
+            val cycleTarget = schedule?.target?.numerator
+            val cycleWindowDays = schedule?.target?.denominator
+            val cycleCompletions = if (habit.type == HabitType.BOOLEAN && cycleWindowDays != null && cycleWindowDays > 1) {
+                timeline.frequencyProgress?.achieved?.toInt()
             } else {
-                val habit = snapshot.habit
-                val observation = snapshot.observation
-                val timeline = observation.timeline
-                val habitKind = if (habit.type == HabitType.NUMERICAL) TimelineHabitKind.NUMERICAL else TimelineHabitKind.BOOLEAN
-                val schedule = timeline.selectedSchedule
-                val analytics = computeHabitAnalytics(
-                        HabitAnalyticsInput(
-                            kind = habitKind,
-                            createdDate = habit.createdAt.atZone(ZoneId.systemDefault()).toLocalDate(),
-                            asOfDate = timeline.selectedDate,
-                            entries = observation.entriesThroughAsOfDate,
-                            currentStreak = timeline.currentStreak,
-                        ),
-                    )
-                val selectedEntry = timeline.selectedEntry
-
-                    // Daily habits (1/1) don't need this - the streak already says everything
-                    // there is to say. It only adds information for a habit with real slack
-                    // ("3x per week"): how much of that slack is left in the window closing today.
-                val cycleTarget = schedule?.target?.numerator
-                val cycleWindowDays = schedule?.target?.denominator
-                val cycleCompletions = if (habit.type == HabitType.BOOLEAN && cycleWindowDays != null && cycleWindowDays > 1) {
-                        timeline.frequencyProgress?.achieved?.toInt()
-                    } else {
-                        null
-                    }
-
-                    // Forward-looking rather than retrospective like everything else on this
-                    // screen - "how close am I" instead of only "how have I done".
-                val recordProgressLabel = when {
-                        analytics.recordProgress == RecordProgress.NONE -> null
-                        analytics.recordProgress == RecordProgress.CURRENT_RECORD -> "You're on your longest streak yet"
-                        else -> "${analytics.bestStreak - analytics.currentStreak} days to beat your record of ${analytics.bestStreak}"
-                    }
-
-                val history = observation.calendarDays.map { observedDay ->
-                        DayCell(
-                                date = observedDay.date,
-                                state = observedDay.state?.let {
-                                    when (it) {
-                                        TimelineEntryState.COMPLETED -> EntryState.COMPLETED
-                                        TimelineEntryState.SKIPPED -> EntryState.SKIPPED
-                                        TimelineEntryState.IN_PROGRESS -> EntryState.IN_PROGRESS
-                                    }
-                                },
-                                isToday = observedDay.date == today,
-                                numericValue = observedDay.numericValue,
-                        )
-                    }
-
-                HabitDetailUiState(
-                        habitId = habitId,
-                        today = today,
-                        selectedDate = timeline.selectedDate,
-                        name = habit.name,
-                        iconKey = habit.iconKey,
-                        backgroundStyleKey = habit.backgroundStyleKey,
-                        color = habit.color,
-                        type = habit.type,
-                        unit = habit.unit,
-                        currentScore = timeline.score,
-                        currentStreak = analytics.currentStreak,
-                        bestStreak = analytics.bestStreak,
-                        totalCompletions = analytics.totalCompletions,
-                        completed = selectedEntry?.state == TimelineEntryState.COMPLETED,
-                        currentValue = selectedEntry?.numericValue,
-                        targetValue = schedule?.targetValue,
-                        targetKind = schedule?.targetKind?.let {
-                            if (it == FrequencyTargetKind.AT_MOST) TargetKind.AT_MOST else TargetKind.AT_LEAST
-                        },
-                        targetNumerator = schedule?.target?.numerator ?: 1,
-                        targetDenominator = schedule?.target?.denominator ?: 1,
-                        cycleCompletions = cycleCompletions,
-                        cycleTarget = cycleTarget,
-                        cycleWindowDays = cycleWindowDays,
-                        topStreaks = analytics.topStreaks,
-                        weekdayRates = analytics.weekdayRates,
-                        momentumDeltaPoints = analytics.momentumDeltaPoints,
-                        typicalTimeOfDay = analytics.typicalTimeOfDay,
-                        longestGap = analytics.longestGap,
-                        numericTotal = analytics.numericTotal,
-                        numericAverage = analytics.numericAverage,
-                        recordProgressLabel = recordProgressLabel,
-                        history = history,
-                        isLoading = false,
-                    )
+                null
             }
+
+            // Forward-looking rather than retrospective: "how close am I" instead of only
+            // "how have I done".
+            val recordProgressLabel = when {
+                analytics.recordProgress == RecordProgress.NONE -> null
+                analytics.recordProgress == RecordProgress.CURRENT_RECORD -> "You're on your longest streak yet"
+                else -> "${analytics.bestStreak - analytics.currentStreak} days to beat your record of ${analytics.bestStreak}"
+            }
+
+            val history = observation.calendarDays.map { observedDay ->
+                DayCell(
+                    date = observedDay.date,
+                    state = observedDay.state?.let {
+                        when (it) {
+                            TimelineEntryState.COMPLETED -> EntryState.COMPLETED
+                            TimelineEntryState.SKIPPED -> EntryState.SKIPPED
+                            TimelineEntryState.IN_PROGRESS -> EntryState.IN_PROGRESS
+                        }
+                    },
+                    isToday = observedDay.date == today,
+                    numericValue = observedDay.numericValue,
+                )
+            }
+
+            HabitDetailUiState(
+                habitId = habitId,
+                today = today,
+                selectedDate = timeline.selectedDate,
+                name = habit.name,
+                iconKey = habit.iconKey,
+                backgroundStyleKey = habit.backgroundStyleKey,
+                color = habit.color,
+                type = habit.type,
+                unit = habit.unit,
+                currentScore = timeline.score,
+                currentStreak = analytics.currentStreak,
+                bestStreak = analytics.bestStreak,
+                totalCompletions = analytics.totalCompletions,
+                completed = selectedEntry?.state == TimelineEntryState.COMPLETED,
+                currentValue = selectedEntry?.numericValue,
+                targetValue = schedule?.targetValue,
+                targetKind = schedule?.targetKind?.let {
+                    if (it == FrequencyTargetKind.AT_MOST) TargetKind.AT_MOST else TargetKind.AT_LEAST
+                },
+                targetNumerator = schedule?.target?.numerator ?: 1,
+                targetDenominator = schedule?.target?.denominator ?: 1,
+                cycleCompletions = cycleCompletions,
+                cycleTarget = cycleTarget,
+                cycleWindowDays = cycleWindowDays,
+                topStreaks = analytics.topStreaks,
+                weekdayRates = analytics.weekdayRates,
+                momentumDeltaPoints = analytics.momentumDeltaPoints,
+                typicalTimeOfDay = analytics.typicalTimeOfDay,
+                longestGap = analytics.longestGap,
+                numericTotal = analytics.numericTotal,
+                numericAverage = analytics.numericAverage,
+                recordProgressLabel = recordProgressLabel,
+                history = history,
+                isLoading = false,
+            )
         }
+    }
         // Score decay, six-plus O(history-length) passes for streaks/gaps/weekday/momentum, and
         // building up to ~270 DayCells all ran on this flow's collection context with no
         // dispatcher specified, which defaults to viewModelScope's Main.immediate - i.e. the main
