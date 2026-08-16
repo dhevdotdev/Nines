@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -22,15 +23,16 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularWavyProgressIndicator
-import androidx.compose.material3.ButtonGroup
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MaterialShapes
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.toShape
@@ -45,29 +47,29 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import dev.dhev.nines.data.local.entity.HabitType
+import dev.dhev.nines.data.local.entity.TargetKind
 import dev.dhev.nines.ui.theme.HabitColors
 import dev.dhev.nines.ui.theme.Spacing
 import dev.dhev.nines.ui.theme.contrastingIconColor
 import dev.dhev.nines.ui.theme.rememberHabitColors
 import kotlin.math.roundToInt
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun HabitRow(
     item: HabitListItem,
     onToggle: () -> Unit,
-    onIncrement: (Double) -> Unit,
-    onDecrement: (Double) -> Unit,
     onSetValue: (Double) -> Unit,
+    selectedDate: LocalDate,
     onEdit: () -> Unit,
     onClick: () -> Unit,
     actionsEnabled: Boolean = true,
@@ -151,26 +153,9 @@ fun HabitRow(
                     item = item,
                     accent = colors.accent,
                     enabled = actionsEnabled,
-                    onPrimaryAction = if (item.type == HabitType.NUMERICAL) {
-                        { onIncrement(defaultIncrement(item.targetValue)) }
-                    } else {
-                        onToggle
-                    },
-                    onDecrement = if (item.type == HabitType.NUMERICAL) {
-                        { onDecrement(defaultIncrement(item.targetValue)) }
-                    } else {
-                        null
-                    },
-                    onSecondaryAction = if (item.type == HabitType.NUMERICAL) {
-                        { showValueDialog = true }
-                    } else {
-                        onEdit
-                    },
-                    secondaryDescription = if (item.type == HabitType.NUMERICAL) {
-                        "Set ${item.name} value"
-                    } else {
-                        "Edit ${item.name}"
-                    },
+                    onToggle = onToggle,
+                    onValueEdit = { showValueDialog = true },
+                    onHabitEdit = onEdit,
                 )
             }
         }
@@ -183,7 +168,9 @@ fun HabitRow(
             colors = colors,
             initialValue = item.currentValue ?: 0.0,
             targetValue = item.targetValue,
+            targetKind = item.targetKind,
             unit = item.unit,
+            selectedDate = selectedDate,
             onConfirm = { value ->
                 onSetValue(value)
                 showValueDialog = false
@@ -275,91 +262,58 @@ private fun HabitActionGroup(
     item: HabitListItem,
     accent: Color,
     enabled: Boolean,
-    onPrimaryAction: () -> Unit,
-    onDecrement: (() -> Unit)?,
-    onSecondaryAction: () -> Unit,
-    secondaryDescription: String,
+    onToggle: () -> Unit,
+    onValueEdit: () -> Unit,
+    onHabitEdit: () -> Unit,
 ) {
-    val primaryInteractionSource = remember { MutableInteractionSource() }
-    val secondaryInteractionSource = remember { MutableInteractionSource() }
-    val primaryDescription = if (item.type == HabitType.NUMERICAL) {
-        "Add ${formatValue(defaultIncrement(item.targetValue))} to ${item.name}; hold to subtract"
-    } else if (item.completed) {
-        "Mark ${item.name} incomplete"
-    } else {
-        "Mark ${item.name} complete"
-    }
-    ButtonGroup(
-        overflowIndicator = { },
-        horizontalArrangement = Arrangement.spacedBy(Spacing.extraSmall),
-    ) {
-        customItem(
-            buttonGroupContent = {
-                if (item.type == HabitType.NUMERICAL) {
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        NumericProgressButton(
-                            metTarget = item.completed,
-                            onIncrement = onPrimaryAction,
-                            onDecrement = onDecrement ?: {},
-                            accentColor = accent,
-                            contentDescription = primaryDescription,
-                            enabled = enabled,
-                            interactionSource = primaryInteractionSource,
-                        )
-                    }
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        CheckOffButton(
-                            completed = item.completed,
-                            onToggle = onPrimaryAction,
-                            accentColor = accent,
-                            contentDescription = if (item.completed) {
-                                "Mark ${item.name} incomplete"
-                            } else {
-                                "Mark ${item.name} complete"
-                            },
-                            enabled = enabled,
-                            interactionSource = primaryInteractionSource,
-                        )
-                    }
-                }
-            },
-            menuContent = {},
-        )
-        customItem(
-            buttonGroupContent = {
-                OutlinedIconButton(
-                    onClick = onSecondaryAction,
+    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.extraSmall)) {
+        if (item.type == HabitType.NUMERICAL) {
+            FilledTonalIconButton(
+                onClick = onValueEdit,
+                enabled = enabled,
+                modifier = Modifier.size(48.dp),
+                shape = MaterialTheme.shapes.medium,
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Edit,
+                    contentDescription = "Edit ${item.name} value",
+                )
+            }
+        } else {
+            Box(
+                modifier = Modifier.size(48.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                CheckOffButton(
+                    completed = item.completed,
+                    onToggle = onToggle,
+                    accentColor = accent,
+                    contentDescription = if (item.completed) {
+                        "Mark ${item.name} incomplete"
+                    } else {
+                        "Mark ${item.name} complete"
+                    },
                     enabled = enabled,
-                    interactionSource = secondaryInteractionSource,
-                    modifier = Modifier.size(48.dp),
-                    shape = MaterialTheme.shapes.medium,
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Edit,
-                        contentDescription = secondaryDescription,
-                    )
-                }
-            },
-            menuContent = {},
-        )
+                )
+            }
+            OutlinedIconButton(
+                onClick = onHabitEdit,
+                enabled = enabled,
+                modifier = Modifier.size(48.dp),
+                shape = MaterialTheme.shapes.medium,
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Edit,
+                    contentDescription = "Edit ${item.name}",
+                )
+            }
+        }
     }
 }
 
-/**
- * Manual entry — tapping the value directly to set an exact number, uhabits-style, rather than
- * only being able to nudge it with +/- taps. A slider and quick-add chips do the fun/fast part
- * of the job; the typed field underneath is there for when you want to be exact, not the star.
- */
-@OptIn(ExperimentalMaterial3Api::class)
+/** Edits the selected date's numeric Entry without changing the Habit or its Schedule. */
+@Suppress("DEPRECATION")
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun EditValueDialog(
     habitName: String,
@@ -367,7 +321,9 @@ private fun EditValueDialog(
     colors: HabitColors,
     initialValue: Double,
     targetValue: Double?,
+    targetKind: TargetKind?,
     unit: String?,
+    selectedDate: LocalDate,
     onConfirm: (Double) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -380,21 +336,32 @@ private fun EditValueDialog(
         label = "editValueNumber",
     )
 
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            shape = MaterialTheme.shapes.extraLargeIncreased,
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val dateLabel = selectedDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
+    val targetLabel = targetValue?.let {
+        val kind = if (targetKind == TargetKind.AT_MOST) "at most" else "at least"
+        "Target: $kind ${formatValue(it)}${unit?.let { value -> " $value" } ?: ""}"
+    } ?: "No target set"
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = Spacing.large)
+                .padding(bottom = Spacing.large),
         ) {
-            Column(
-                modifier = Modifier
-                    .padding(Spacing.large)
-                    .fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.default),
             ) {
                 Box(
                     modifier = Modifier
                         .size(48.dp)
-                        .clip(CircleShape)
+                        .clip(MaterialShapes.Cookie9Sided.toShape())
                         .background(colors.accent),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -405,58 +372,68 @@ private fun EditValueDialog(
                         modifier = Modifier.size(24.dp),
                     )
                 }
-                Spacer(Modifier.height(Spacing.small))
-                Text(text = habitName, style = MaterialTheme.typography.titleMedium)
-
-                Spacer(Modifier.height(Spacing.large))
-                Row(verticalAlignment = Alignment.Bottom) {
+                Column {
+                    Text(text = "Edit value", style = MaterialTheme.typography.titleLargeEmphasized)
+                    Text(text = habitName, style = MaterialTheme.typography.bodyMedium)
                     Text(
-                        text = formatValue(animatedValue.toDouble()),
-                        style = MaterialTheme.typography.displayMedium,
-                        color = colors.accent,
+                        text = dateLabel,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    unit?.let {
-                        Spacer(Modifier.width(Spacing.small))
-                        Text(
-                            text = it,
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = 8.dp),
-                        )
-                    }
                 }
+            }
 
-                Spacer(Modifier.height(Spacing.large))
-                OutlinedTextField(
-                    value = text,
-                    // Digits only, filtered as you type — a decimal point can't be entered at
-                    // all rather than being accepted then rejected on save.
-                    onValueChange = { newText ->
-                        val digitsOnly = newText.filter { it.isDigit() }
-                        text = digitsOnly
-                        digitsOnly.toDoubleOrNull()?.let { value = it }
-                    },
-                    singleLine = true,
-                    label = { Text("Exact value") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
-                    isError = text.toDoubleOrNull() == null,
-                    modifier = Modifier.fillMaxWidth(),
+            Spacer(Modifier.height(Spacing.large))
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(
+                    text = formatValue(animatedValue.toDouble()),
+                    style = MaterialTheme.typography.displaySmallEmphasized,
+                    color = colors.accent,
                 )
-
-                Spacer(Modifier.height(Spacing.large))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End,
-                ) {
-                    TextButton(onClick = onDismiss) { Text("Cancel") }
+                unit?.let {
                     Spacer(Modifier.width(Spacing.small))
-                    Button(
-                        onClick = { text.toDoubleOrNull()?.let(onConfirm) },
-                        enabled = text.toDoubleOrNull() != null,
-                    ) {
-                        Text("Save")
-                    }
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 6.dp),
+                    )
                 }
+            }
+            Text(
+                text = targetLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            Spacer(Modifier.height(Spacing.default))
+            OutlinedTextField(
+                value = text,
+                onValueChange = { newText ->
+                    val numericText = newText.filter { it.isDigit() || it == '.' }
+                    if (numericText.count { it == '.' } <= 1) {
+                        text = numericText
+                        numericText.toDoubleOrNull()?.let { value = it }
+                    }
+                },
+                singleLine = true,
+                label = { Text("Value for $dateLabel") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+                isError = text.toDoubleOrNull() == null,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            Spacer(Modifier.height(Spacing.default))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                TextButton(onClick = onDismiss) { Text("Cancel") }
+                Spacer(Modifier.width(Spacing.small))
+                Button(
+                    onClick = { text.toDoubleOrNull()?.let(onConfirm) },
+                    enabled = text.toDoubleOrNull() != null,
+                ) { Text("Save") }
             }
         }
     }

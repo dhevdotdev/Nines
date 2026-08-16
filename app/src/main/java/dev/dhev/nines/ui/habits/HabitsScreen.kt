@@ -352,9 +352,8 @@ fun HabitsScreen(
                                         HabitRow(
                                             item = item,
                                             onToggle = {},
-                                            onIncrement = {},
-                                            onDecrement = {},
                                             onSetValue = {},
+                                            selectedDate = uiState.selectedDate,
                                             onEdit = {},
                                             onClick = {},
                                             actionsEnabled = false,
@@ -447,9 +446,8 @@ fun HabitsScreen(
                                         HabitRow(
                                             item = item,
                                             onToggle = { onAction(HabitsAction.ToggleHabit(item.id)) },
-                                            onIncrement = { delta -> onAction(HabitsAction.IncrementHabit(item.id, delta)) },
-                                            onDecrement = { delta -> onAction(HabitsAction.IncrementHabit(item.id, -delta)) },
                                             onSetValue = { value -> onAction(HabitsAction.SetNumericValue(item.id, value)) },
+                                            selectedDate = uiState.selectedDate,
                                             onEdit = { editingHabit = item },
                                             onClick = { onHabitClick(item.id) },
                                             modifier = Modifier.offset { IntOffset(offsetPx.roundToInt(), 0) },
