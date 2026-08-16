@@ -211,7 +211,7 @@ fun HabitsScreen(
                     // disabled while this is on (see the items loop below), so the two gesture
                     // systems are never live on the same touch at once.
                     IconButton(
-                        enabled = uiState.selectedDate == today,
+                        enabled = canEnterReorderMode(uiState.selectedDate, today),
                         onClick = {
                             haptics.performHapticFeedback(HapticFeedbackType.ToggleOn)
                             reorderMode = !reorderMode
@@ -417,13 +417,25 @@ fun HabitsScreen(
                                     // release-triggered settling has actually finished, so this still can't
                                     // fire mid-drag.
                                     LaunchedEffect(dismissState.settledValue) {
-                                        when (dismissState.settledValue) {
-                                            SwipeToDismissBoxValue.StartToEnd -> {
+                                        val direction = when (dismissState.settledValue) {
+                                            SwipeToDismissBoxValue.StartToEnd -> HabitSwipeDirection.START_TO_END
+                                            SwipeToDismissBoxValue.EndToStart -> HabitSwipeDirection.END_TO_START
+                                            SwipeToDismissBoxValue.Settled -> null
+                                        }
+                                        when (habitSwipeAction(
+                                            HabitGesturePolicyInput(
+                                                selectedDate = uiState.selectedDate,
+                                                today = today,
+                                                reorderMode = reorderMode,
+                                                swipeDirection = direction,
+                                            ),
+                                        )) {
+                                            HabitSwipeAction.EDIT -> {
                                                 editingHabit = item
                                                 dismissState.animateTo(SwipeToDismissBoxValue.Settled)
                                             }
-                                            SwipeToDismissBoxValue.EndToStart -> archiveImmediately(item)
-                                            SwipeToDismissBoxValue.Settled -> Unit
+                                            HabitSwipeAction.ARCHIVE -> archiveImmediately(item)
+                                            HabitSwipeAction.NONE -> Unit
                                         }
                                     }
                                     Box(
