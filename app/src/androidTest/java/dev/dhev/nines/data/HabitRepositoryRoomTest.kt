@@ -12,7 +12,11 @@ import dev.dhev.nines.data.local.entity.ScheduleVersionEntity
 import dev.dhev.nines.data.local.entity.TargetKind
 import dev.dhev.nines.scoring.decayMultiplier
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.yield
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -122,12 +126,22 @@ class HabitRepositoryRoomTest {
         )
         database.entryDao().upsert(completedEntry(habitId, selected))
 
-        val snapshot = repository.observeHabitSnapshot(
-            habitId = habitId,
-            selectedDate = flowOf(selected),
-            asOfDate = selected.plusDays(2),
-            historyStartDate = created,
-        ).first()
+        val selectedDate = MutableStateFlow(selected)
+        val snapshots = mutableListOf<HabitRepository.HabitObservationSnapshot?>()
+        val collection = launch {
+            repository.observeHabitSnapshot(
+                habitId = habitId,
+                selectedDate = selectedDate,
+                asOfDate = selected.plusDays(2),
+                historyStartDate = created,
+            ).take(2).toList(snapshots)
+        }
+        yield()
+        selectedDate.value = selected.minusDays(1)
+        collection.join()
+
+        val snapshot = snapshots.first()
+        val historicalSnapshot = snapshots.last()
 
         assertNotNull(snapshot)
         assertEquals("Observe", snapshot?.habit?.name)
@@ -140,6 +154,7 @@ class HabitRepositoryRoomTest {
             }
         })
         assertEquals(selected, snapshot?.observation?.calendarDays?.last()?.date)
+        assertEquals(selected.minusDays(1), historicalSnapshot?.observation?.timeline?.selectedDate)
     }
 
     @Test

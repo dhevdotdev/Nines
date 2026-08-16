@@ -52,7 +52,7 @@ fun buildHabitObservation(input: HabitObservationInput): HabitObservation {
             HabitTimelineInput(
                 kind = input.kind,
                 createdDate = input.createdDate,
-            selectedDate = effectiveSelectedDate,
+                selectedDate = effectiveSelectedDate,
                 entries = boundedEntries,
                 schedules = input.schedules,
             ),

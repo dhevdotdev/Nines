@@ -67,35 +67,34 @@ class HabitsViewModel(private val repository: HabitRepository) : ViewModel() {
             if (snapshot == null) {
                 null
             } else {
-            val habit = snapshot.habit
-            val observation = snapshot.observation
-            val timeline = observation.timeline
-            if (!timeline.isVisible) {
-                null
-            } else {
-                val selectedSchedule = timeline.selectedSchedule
-                val selectedEntry = timeline.selectedEntry
-                HabitListItem(
-                    id = habit.id,
-                    name = habit.name,
-                    color = habit.color,
-                    iconKey = habit.iconKey,
-                    backgroundStyleKey = habit.backgroundStyleKey,
-                    type = habit.type,
-                    completed = selectedEntry?.state == TimelineEntryState.COMPLETED,
-                    currentScore = timeline.score,
-                    currentStreak = timeline.currentStreak,
-                    currentValue = selectedEntry?.numericValue,
-                    targetValue = selectedSchedule?.targetValue,
-                    targetKind = selectedSchedule?.targetKind?.let {
-                        if (it == FrequencyTargetKind.AT_MOST) TargetKind.AT_MOST else TargetKind.AT_LEAST
-                    },
-                    unit = habit.unit,
-                    targetNumerator = selectedSchedule?.target?.numerator ?: 1,
-                    targetDenominator = selectedSchedule?.target?.denominator ?: 1,
-                    frequencyProgress = timeline.frequencyProgress,
-                )
-            }
+                val habit = snapshot.habit
+                val timeline = snapshot.observation.timeline
+                if (!timeline.isVisible) {
+                    null
+                } else {
+                    val selectedSchedule = timeline.selectedSchedule
+                    val selectedEntry = timeline.selectedEntry
+                    HabitListItem(
+                        id = habit.id,
+                        name = habit.name,
+                        color = habit.color,
+                        iconKey = habit.iconKey,
+                        backgroundStyleKey = habit.backgroundStyleKey,
+                        type = habit.type,
+                        completed = selectedEntry?.state == TimelineEntryState.COMPLETED,
+                        currentScore = timeline.score,
+                        currentStreak = timeline.currentStreak,
+                        currentValue = selectedEntry?.numericValue,
+                        targetValue = selectedSchedule?.targetValue,
+                        targetKind = selectedSchedule?.targetKind?.let {
+                            if (it == FrequencyTargetKind.AT_MOST) TargetKind.AT_MOST else TargetKind.AT_LEAST
+                        },
+                        unit = habit.unit,
+                        targetNumerator = selectedSchedule?.target?.numerator ?: 1,
+                        targetDenominator = selectedSchedule?.target?.denominator ?: 1,
+                        frequencyProgress = timeline.frequencyProgress,
+                    )
+                }
             }
         }
 

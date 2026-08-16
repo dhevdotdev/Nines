@@ -23,7 +23,6 @@ import dev.dhev.nines.scoring.buildHabitObservation
 import dev.dhev.nines.scoring.computeScheduleAwareScoreSeries
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
 import java.time.Instant
 import java.time.LocalDate
 import java.time.OffsetDateTime
@@ -81,23 +80,7 @@ class HabitRepository(
             )
         }
 
-    /**
-     * Observes the complete date-bounded read model for one habit. Keeping the habit metadata,
-     * entries, schedules, selected date, and as-of boundary together prevents screens from
-     * rebuilding subtly different timelines and histories from the same raw tables.
-     */
-    fun observeHabitObservation(
-        habitId: Long,
-        selectedDate: Flow<LocalDate>,
-        asOfDate: LocalDate,
-        historyStartDate: LocalDate,
-    ): Flow<HabitObservation?> = observeHabitSnapshot(
-        habitId = habitId,
-        selectedDate = selectedDate,
-        asOfDate = asOfDate,
-        historyStartDate = historyStartDate,
-    ).map { it?.observation }
-
+    /** Observes the complete date-bounded read model and the metadata needed by screen adapters. */
     fun observeHabitSnapshot(
         habitId: Long,
         selectedDate: Flow<LocalDate>,

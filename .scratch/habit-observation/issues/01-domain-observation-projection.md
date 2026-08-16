@@ -9,7 +9,7 @@
 - [x] Define domain observation input/output using explicit selected and as-of dates.
 - [x] Compose the existing Habit timeline without changing score, streak, gap, or frequency-progress semantics.
 - [x] Produce bounded calendar-day observations that exclude pre-creation and post-as-of dates.
-- [x] Add plain-JUnit coverage for visibility, date clipping, schedule boundaries, ordering, and return-to-today inputs.
+- [x] Add plain-JUnit coverage for visibility, date clipping, and future-date projection; existing timeline and ViewModel contract suites retain schedule, ordering, and return-to-today coverage.
 
 ## Comments
 
