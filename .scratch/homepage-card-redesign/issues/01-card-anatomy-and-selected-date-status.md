@@ -4,7 +4,9 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** superseded — see `.scratch/homepage-entry-actions/issues/01-homepage-entry-action-grammar.md`
+**Status:** superseded
+
+**Superseded by:** `.scratch/homepage-entry-actions/issues/01-homepage-entry-action-grammar.md`
 
 - [x] The Score ring and habit icon remain the card's visual anchor.
 - [x] The card has a stable, compact horizontal layout with a meaningful selected-date status area.

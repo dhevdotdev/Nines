@@ -8,14 +8,14 @@ Issues and specs for this repo live as markdown files in `.scratch/`.
 - The spec is `.scratch/<feature-slug>/spec.md`
 - Implementation issues are one file per ticket at `.scratch/<feature-slug>/issues/<NN>-<slug>.md`, numbered from `01` — never a single combined tickets file
 - Triage state is recorded as a `Status:` line near the top of each issue file (see `triage-labels.md` for the role strings)
-- Completed work uses `Status: done`; superseded historical work uses `Status: superseded — see <replacement path>`. These lifecycle states are distinct from triage labels.
+- Completed work uses `Status: done`; superseded historical work uses `Status: superseded`, with a separate `Superseded by:` note naming the replacement. These lifecycle states are distinct from triage labels.
 - Comments and conversation history append to the bottom of the file under a `## Comments` heading
 
 ## When a raw idea graduates into a spec + tickets
 
 If a raw idea at `issues/01-<slug>.md` grows into a full `/to-spec` → `/to-tickets` build, move it to `.scratch/<feature-slug>/idea.md` (mark `Status: superseded`) and number the real tickets `01`, `02`, ... fresh in `issues/`.
 
-When an approved spec or ticket is replaced by a later approved design, preserve it for history and mark it `Status: superseded — see <replacement path>` rather than leaving it apparently actionable.
+When an approved spec or ticket is replaced by a later approved design, preserve it for history, mark it `Status: superseded`, and add a separate `Superseded by:` note rather than leaving it apparently actionable.
 
 ## When a skill says "publish to the issue tracker"
 

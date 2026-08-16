@@ -1,4 +1,6 @@
-Status: superseded — see `.scratch/homepage-entry-actions/spec.md`
+Status: superseded
+
+Superseded by: `.scratch/homepage-entry-actions/spec.md`
 
 # Homepage habit card redesign
 

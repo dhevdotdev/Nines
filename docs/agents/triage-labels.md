@@ -12,6 +12,6 @@ The skills speak in terms of five canonical triage roles. This file maps those r
 
 Since issues are local markdown files (not real GitHub labels), these are recorded as the `Status:` line near the top of each issue file — see `issue-tracker.md`.
 
-Lifecycle states are separate from triage roles: use `done` for implemented work and `superseded — see <replacement path>` for historical work replaced by a later spec or ticket. Do not leave completed or superseded work labelled `ready-for-agent`.
+Lifecycle states are separate from triage roles: use `done` for implemented work and `superseded` for historical work replaced by a later spec or ticket, with a separate `Superseded by:` note. Do not leave completed or superseded work labelled `ready-for-agent`.
 
 Edit the right-hand column to match whatever vocabulary you actually use.
