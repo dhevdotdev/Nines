@@ -8,6 +8,7 @@
 
 - [x] Boolean cards expose one completion action with Done/Not done semantics.
 - [x] Measurable cards expose one selected-date value-editor action.
+- [x] Boolean and measurable actions share the same visual button shell and differ by icon/meaning only.
 - [x] Measurable cards no longer expose separate homepage increment/decrement controls.
 - [x] Action labels distinguish completion and Entry value editing.
 - [x] Historical selected dates use the same action behavior.

@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.Button
@@ -150,7 +151,6 @@ fun HabitRow(
 
                 HabitActionGroup(
                     item = item,
-                    accent = colors.accent,
                     enabled = actionsEnabled,
                     onToggle = onToggle,
                     onValueEdit = { showValueDialog = true },
@@ -258,40 +258,30 @@ private fun SelectedDateStatus(
 @Composable
 private fun HabitActionGroup(
     item: HabitListItem,
-    accent: Color,
     enabled: Boolean,
     onToggle: () -> Unit,
     onValueEdit: () -> Unit,
 ) {
-    if (item.type == HabitType.NUMERICAL) {
-        FilledTonalIconButton(
-            onClick = onValueEdit,
-            enabled = enabled,
-            modifier = Modifier.size(48.dp),
-            shape = MaterialTheme.shapes.medium,
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.Edit,
-                contentDescription = "Edit ${item.name} value",
-            )
-        }
-    } else {
-        Box(
-            modifier = Modifier.size(48.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            CheckOffButton(
-                completed = item.completed,
-                onToggle = onToggle,
-                accentColor = accent,
-                contentDescription = if (item.completed) {
-                    "Mark ${item.name} incomplete"
-                } else {
-                    "Mark ${item.name} complete"
-                },
-                enabled = enabled,
-            )
-        }
+    FilledTonalIconButton(
+        onClick = if (item.type == HabitType.NUMERICAL) onValueEdit else onToggle,
+        enabled = enabled,
+        modifier = Modifier.size(48.dp),
+        shape = MaterialTheme.shapes.medium,
+    ) {
+        Icon(
+            imageVector = if (item.type == HabitType.NUMERICAL) {
+                Icons.Outlined.Edit
+            } else {
+                Icons.Filled.Check
+            },
+            contentDescription = if (item.type == HabitType.NUMERICAL) {
+                "Edit ${item.name} value"
+            } else if (item.completed) {
+                "Mark ${item.name} incomplete"
+            } else {
+                "Mark ${item.name} complete"
+            },
+        )
     }
 }
 
