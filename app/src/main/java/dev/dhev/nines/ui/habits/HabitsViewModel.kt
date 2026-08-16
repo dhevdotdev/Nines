@@ -6,8 +6,6 @@ import dev.dhev.nines.data.HabitRepository
 import dev.dhev.nines.data.local.entity.HabitEntity
 import dev.dhev.nines.data.local.entity.HabitType
 import dev.dhev.nines.data.local.entity.TargetKind
-import dev.dhev.nines.scoring.FrequencyTargetKind
-import dev.dhev.nines.scoring.TimelineEntryState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -64,38 +62,7 @@ class HabitsViewModel(private val repository: HabitRepository) : ViewModel() {
             asOfDate = today,
             historyStartDate = today,
         ).map { snapshot ->
-            if (snapshot == null) {
-                null
-            } else {
-                val habit = snapshot.habit
-                val timeline = snapshot.observation.timeline
-                if (!timeline.isVisible) {
-                    null
-                } else {
-                    val selectedSchedule = timeline.selectedSchedule
-                    val selectedEntry = timeline.selectedEntry
-                    HabitListItem(
-                        id = habit.id,
-                        name = habit.name,
-                        color = habit.color,
-                        iconKey = habit.iconKey,
-                        backgroundStyleKey = habit.backgroundStyleKey,
-                        type = habit.type,
-                        completed = selectedEntry?.state == TimelineEntryState.COMPLETED,
-                        currentScore = timeline.score,
-                        currentStreak = timeline.currentStreak,
-                        currentValue = selectedEntry?.numericValue,
-                        targetValue = selectedSchedule?.targetValue,
-                        targetKind = selectedSchedule?.targetKind?.let {
-                            if (it == FrequencyTargetKind.AT_MOST) TargetKind.AT_MOST else TargetKind.AT_LEAST
-                        },
-                        unit = habit.unit,
-                        targetNumerator = selectedSchedule?.target?.numerator ?: 1,
-                        targetDenominator = selectedSchedule?.target?.denominator ?: 1,
-                        frequencyProgress = timeline.frequencyProgress,
-                    )
-                }
-            }
+            snapshot?.let(::habitListItemFromSnapshot)
         }
 
     fun onAction(action: HabitsAction) {
