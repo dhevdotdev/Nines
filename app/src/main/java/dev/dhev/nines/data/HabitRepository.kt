@@ -33,7 +33,7 @@ class HabitRepository(
     private val scheduleVersionDao: ScheduleVersionDao,
     private val entryDao: EntryDao,
 ) {
-    data class HabitObservationSnapshot(
+    data class HabitTimelineSnapshot(
         val habit: HabitEntity,
         val timeline: HabitTimeline,
         val entriesThroughAsOfDate: List<TimelineEntry>,
@@ -86,7 +86,7 @@ class HabitRepository(
         habitId: Long,
         selectedDate: Flow<LocalDate>,
         asOfDate: LocalDate,
-    ): Flow<HabitObservationSnapshot?> = combine(
+    ): Flow<HabitTimelineSnapshot?> = combine(
         observeHabit(habitId),
         observeHabitTimelineData(habitId),
         selectedDate,
@@ -99,7 +99,7 @@ class HabitRepository(
                     !entry.date.isBefore(createdDate) && !entry.date.isAfter(asOfDate)
                 }
                 .sortedBy { it.date }
-            HabitObservationSnapshot(
+            HabitTimelineSnapshot(
                 habit = it,
                 timeline = buildHabitTimeline(
                     HabitTimelineInput(

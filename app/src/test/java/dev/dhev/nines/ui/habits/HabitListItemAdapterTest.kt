@@ -61,7 +61,7 @@ class HabitListItemAdapterTest {
         assertEquals(1, item.targetDenominator)
     }
 
-    private fun snapshot(timeline: HabitTimeline) = HabitRepository.HabitObservationSnapshot(
+    private fun snapshot(timeline: HabitTimeline) = HabitRepository.HabitTimelineSnapshot(
         habit = habit,
         timeline = timeline,
         entriesThroughAsOfDate = emptyList(),

@@ -12,7 +12,7 @@ import dev.dhev.nines.scoring.TimelineEntryState
  * Visibility and all date/scoring semantics belong to the observation's timeline;
  * this adapter only chooses the fields the homepage presents.
  */
-fun habitListItemFromSnapshot(snapshot: HabitRepository.HabitObservationSnapshot): HabitListItem? {
+fun habitListItemFromSnapshot(snapshot: HabitRepository.HabitTimelineSnapshot): HabitListItem? {
     val habit = snapshot.habit
     val timeline = snapshot.timeline
     if (!timeline.isVisible) return null

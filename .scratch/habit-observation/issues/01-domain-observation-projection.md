@@ -11,6 +11,10 @@
 - [x] Produce bounded calendar-day observations that exclude pre-creation and post-as-of dates.
 - [x] Add plain-JUnit coverage for visibility, date clipping, and future-date projection; existing timeline and ViewModel contract suites retain schedule, ordering, and return-to-today coverage.
 
+> Historical note: this ticket records the original observation projection. Its
+> shallow wrapper was removed by ticket 04; the shared production seam is now the
+> `HabitTimelineSnapshot`, while detail history remains detail-only.
+
 ## Comments
 
 - Added the domain-only `HabitObservation` module. It preserves the existing timeline implementation and adds explicitly bounded Entry and calendar-day projections. `HabitObservationTest` passes.
