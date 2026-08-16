@@ -7,6 +7,7 @@ import java.time.LocalDate
 
 data class HabitDetailUiState(
     val habitId: Long = -1,
+    val selectedDate: LocalDate = LocalDate.now(),
     val name: String = "",
     val iconKey: String = "",
     val backgroundStyleKey: String? = null,
@@ -17,7 +18,7 @@ data class HabitDetailUiState(
     val currentStreak: Int = 0,
     val bestStreak: Int = 0,
     val totalCompletions: Int = 0,
-    val completedToday: Boolean = false,
+    val completed: Boolean = false,
     val currentValue: Double? = null,
     val targetValue: Double? = null,
     val targetKind: TargetKind? = null,
@@ -39,6 +40,7 @@ data class HabitDetailUiState(
 )
 
 sealed interface HabitDetailAction {
+    data class SelectDate(val date: LocalDate) : HabitDetailAction
     // Carry an explicit date rather than always assuming "today" — these now double as the
     // retroactive edit actions fired from the expanded month view, not just the mark-complete
     // button for the current day.

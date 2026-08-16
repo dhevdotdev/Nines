@@ -51,6 +51,8 @@ class HabitRepository(
                             EntryState.IN_PROGRESS -> TimelineEntryState.IN_PROGRESS
                         },
                         numericValue = entry.numericValue,
+                        createdAt = entry.createdAt,
+                        tzOffsetMinutes = entry.tzOffsetMinutes,
                     )
                 },
                 schedules = schedules.map { schedule ->

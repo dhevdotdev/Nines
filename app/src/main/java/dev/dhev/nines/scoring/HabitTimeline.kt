@@ -1,6 +1,7 @@
 package dev.dhev.nines.scoring
 
 import java.time.LocalDate
+import java.time.Instant
 
 /** The two kinds of Habit entries understood by the shared timeline projection. */
 enum class TimelineHabitKind {
@@ -18,6 +19,8 @@ data class TimelineEntry(
     val date: LocalDate,
     val state: TimelineEntryState,
     val numericValue: Double? = null,
+    val createdAt: Instant? = null,
+    val tzOffsetMinutes: Int = 0,
 )
 
 /** A Schedule version expressed without persistence or Compose types. */

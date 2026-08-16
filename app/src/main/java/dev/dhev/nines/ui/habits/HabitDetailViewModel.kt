@@ -5,9 +5,14 @@ import androidx.lifecycle.viewModelScope
 import dev.dhev.nines.data.HabitRepository
 import dev.dhev.nines.data.local.entity.EntryState
 import dev.dhev.nines.data.local.entity.HabitType
+import dev.dhev.nines.data.local.entity.TargetKind
 import dev.dhev.nines.scoring.computeGapRuns
 import dev.dhev.nines.scoring.computeStreakRuns
-import dev.dhev.nines.scoring.currentStreakLength
+import dev.dhev.nines.scoring.FrequencyTargetKind
+import dev.dhev.nines.scoring.HabitTimelineInput
+import dev.dhev.nines.scoring.TimelineEntryState
+import dev.dhev.nines.scoring.TimelineHabitKind
+import dev.dhev.nines.scoring.buildHabitTimeline
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
@@ -30,6 +35,8 @@ class HabitDetailViewModel(
     private val repository: HabitRepository,
 ) : ViewModel() {
 
+    private val selectedDate = kotlinx.coroutines.flow.MutableStateFlow(LocalDate.now())
+
     val uiState: StateFlow<HabitDetailUiState> = repository.observeHabit(habitId)
         .flatMapLatest { habit ->
             if (habit == null) {
@@ -38,34 +45,41 @@ class HabitDetailViewModel(
                 val today = LocalDate.now()
                 val createdDate = habit.createdAt.atZone(ZoneId.systemDefault()).toLocalDate()
                 combine(
-                    repository.observeEntries(habitId),
-                    flowOf(repository.scheduleEffectiveOn(habitId, today)),
-                ) { entries, schedule ->
+                    repository.observeHabitTimelineData(habitId),
+                    selectedDate,
+                ) { timelineData, selectedDate ->
+                    val entries = timelineData.entries
                     val entriesByDate = entries.associateBy { it.date }
-                    val score = repository.scoreSeries(habitId, createdDate, today).lastOrNull()?.score ?: 0.0
-                    val completedDates = entries.filter { it.state == EntryState.COMPLETED }.map { it.date }.toSet()
+                    val timeline = buildHabitTimeline(
+                        HabitTimelineInput(
+                            kind = if (habit.type == HabitType.NUMERICAL) TimelineHabitKind.NUMERICAL else TimelineHabitKind.BOOLEAN,
+                            createdDate = createdDate,
+                            selectedDate = selectedDate,
+                            entries = timelineData.entries,
+                            schedules = timelineData.schedules,
+                        ),
+                    )
+                    val schedule = timeline.selectedSchedule
+                    val completedDates = entries.filter { it.state == TimelineEntryState.COMPLETED }.map { it.date }.toSet()
 
                     // Full runs (not just the longest length) so the detail screen can list past
                     // streaks ranked by length, not just report a single number - current/best
                     // are both just views onto the same underlying runs.
                     val streakRuns = computeStreakRuns(completedDates, createdDate, today)
-                    val currentStreak = currentStreakLength(streakRuns, today)
+                    val currentStreak = timeline.currentStreak
                     val bestStreak = streakRuns.maxOfOrNull { it.length } ?: 0
                     val topStreaks = streakRuns.sortedByDescending { it.length }.take(5)
 
-                    val totalCompletions = entries.count { it.state == EntryState.COMPLETED }
-                    val todayEntry = entriesByDate[today]
+                    val totalCompletions = entries.count { it.state == TimelineEntryState.COMPLETED }
+                    val selectedEntry = timeline.selectedEntry
 
                     // Daily habits (1/1) don't need this - the streak already says everything
                     // there is to say. It only adds information for a habit with real slack
                     // ("3x per week"): how much of that slack is left in the window closing today.
-                    val cycleTarget = schedule?.targetNumerator
-                    val cycleWindowDays = schedule?.targetDenominator
-                    val cycleCompletions = if (cycleWindowDays != null && cycleWindowDays > 1) {
-                        val windowStart = maxOf(createdDate, today.minusDays(cycleWindowDays - 1L))
-                        generateSequence(windowStart) { it.plusDays(1) }
-                            .takeWhile { !it.isAfter(today) }
-                            .count { entriesByDate[it]?.state == EntryState.COMPLETED }
+                    val cycleTarget = schedule?.target?.numerator
+                    val cycleWindowDays = schedule?.target?.denominator
+                    val cycleCompletions = if (habit.type == HabitType.BOOLEAN && cycleWindowDays != null && cycleWindowDays > 1) {
+                        timeline.frequencyProgress?.achieved?.toInt()
                     } else {
                         null
                     }
@@ -80,7 +94,7 @@ class HabitDetailViewModel(
                         while (!wd.isAfter(today)) {
                             val idx = wd.dayOfWeek.value - 1
                             totals[idx]++
-                            if (entriesByDate[wd]?.state == EntryState.COMPLETED) completions[idx]++
+                            if (entriesByDate[wd]?.state == TimelineEntryState.COMPLETED) completions[idx]++
                             wd = wd.plusDays(1)
                         }
                         (0 until 7).map { i -> if (totals[i] > 0) completions[i].toDouble() / totals[i] else 0.0 }
@@ -97,7 +111,7 @@ class HabitDetailViewModel(
                             var count = 0
                             var wd = windowStart
                             while (!wd.isAfter(windowEnd)) {
-                                if (entriesByDate[wd]?.state == EntryState.COMPLETED) count++
+                                if (entriesByDate[wd]?.state == TimelineEntryState.COMPLETED) count++
                                 wd = wd.plusDays(1)
                             }
                             return count / 30.0
@@ -110,13 +124,14 @@ class HabitDetailViewModel(
                     // Uses timestamps already captured on every entry (tzOffsetMinutes +
                     // createdAt) but never surfaced anywhere - a "when do I actually do this"
                     // pattern that only shows up once you have several logged times to compare.
-                    val completedEntries = entries.filter { it.state == EntryState.COMPLETED }
+                    val completedEntries = entries.filter { it.state == TimelineEntryState.COMPLETED }
                     val typicalTimeOfDay = if (completedEntries.size >= 5) {
                         completedEntries
                             .map {
                                 val hour = it.createdAt
-                                    .atOffset(ZoneOffset.ofTotalSeconds(it.tzOffsetMinutes * 60))
-                                    .hour
+                                    ?.atOffset(ZoneOffset.ofTotalSeconds(it.tzOffsetMinutes * 60))
+                                    ?.hour
+                                    ?: return@map "night"
                                 when (hour) {
                                     in 5..11 -> "morning"
                                     in 12..16 -> "afternoon"
@@ -174,7 +189,13 @@ class HabitDetailViewModel(
                             val entry = entriesByDate[date]
                             DayCell(
                                 date = date,
-                                state = entry?.state,
+                                state = entry?.state?.let {
+                                    when (it) {
+                                        TimelineEntryState.COMPLETED -> EntryState.COMPLETED
+                                        TimelineEntryState.SKIPPED -> EntryState.SKIPPED
+                                        TimelineEntryState.IN_PROGRESS -> EntryState.IN_PROGRESS
+                                    }
+                                },
                                 isToday = date == today,
                                 numericValue = entry?.numericValue,
                             )
@@ -183,22 +204,25 @@ class HabitDetailViewModel(
 
                     HabitDetailUiState(
                         habitId = habitId,
+                        selectedDate = selectedDate,
                         name = habit.name,
                         iconKey = habit.iconKey,
                         backgroundStyleKey = habit.backgroundStyleKey,
                         color = habit.color,
                         type = habit.type,
                         unit = habit.unit,
-                        currentScore = score,
+                        currentScore = timeline.score,
                         currentStreak = currentStreak,
                         bestStreak = bestStreak,
                         totalCompletions = totalCompletions,
-                        completedToday = todayEntry?.state == EntryState.COMPLETED,
-                        currentValue = todayEntry?.numericValue,
+                        completed = selectedEntry?.state == TimelineEntryState.COMPLETED,
+                        currentValue = selectedEntry?.numericValue,
                         targetValue = schedule?.targetValue,
-                        targetKind = schedule?.targetKind,
-                        targetNumerator = schedule?.targetNumerator ?: 1,
-                        targetDenominator = schedule?.targetDenominator ?: 1,
+                        targetKind = schedule?.targetKind?.let {
+                            if (it == FrequencyTargetKind.AT_MOST) TargetKind.AT_MOST else TargetKind.AT_LEAST
+                        },
+                        targetNumerator = schedule?.target?.numerator ?: 1,
+                        targetDenominator = schedule?.target?.denominator ?: 1,
                         cycleCompletions = cycleCompletions,
                         cycleTarget = cycleTarget,
                         cycleWindowDays = cycleWindowDays,
@@ -230,6 +254,7 @@ class HabitDetailViewModel(
 
     fun onAction(action: HabitDetailAction) {
         when (action) {
+            is HabitDetailAction.SelectDate -> selectedDate.value = action.date
             is HabitDetailAction.Toggle -> viewModelScope.launch {
                 repository.toggleCompletion(habitId, action.date)
             }

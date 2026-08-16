@@ -210,9 +210,9 @@ fun HabitDetailScreen(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                             ) {
                                 NumericProgressButton(
-                                    metTarget = uiState.completedToday,
-                                    onIncrement = { onAction(HabitDetailAction.Increment(LocalDate.now(), defaultIncrement(uiState.targetValue))) },
-                                    onDecrement = { onAction(HabitDetailAction.Increment(LocalDate.now(), -defaultIncrement(uiState.targetValue))) },
+                                    metTarget = uiState.completed,
+                                    onIncrement = { onAction(HabitDetailAction.Increment(uiState.selectedDate, defaultIncrement(uiState.targetValue))) },
+                                    onDecrement = { onAction(HabitDetailAction.Increment(uiState.selectedDate, -defaultIncrement(uiState.targetValue))) },
                                     accentColor = colors.accent,
                                 )
                                 Spacer(Modifier.height(Spacing.extraSmall))
@@ -227,8 +227,8 @@ fun HabitDetailScreen(
                             }
                         } else {
                             CheckOffButton(
-                                completed = uiState.completedToday,
-                                onToggle = { onAction(HabitDetailAction.Toggle(LocalDate.now())) },
+                                completed = uiState.completed,
+                                onToggle = { onAction(HabitDetailAction.Toggle(uiState.selectedDate)) },
                                 accentColor = colors.accent,
                                 modifier = Modifier
                                     .align(Alignment.TopEnd)
@@ -364,7 +364,7 @@ fun HabitDetailScreen(
                 iconKey = uiState.iconKey,
                 backgroundStyleKey = uiState.backgroundStyleKey,
                 type = uiState.type,
-                completed = uiState.completedToday,
+                completed = uiState.completed,
                 currentScore = uiState.currentScore,
                 currentStreak = uiState.currentStreak,
                 currentValue = uiState.currentValue,
@@ -413,6 +413,7 @@ fun HabitDetailScreen(
             unit = uiState.unit,
             accent = colors.accent,
             onDayClick = { day ->
+                onAction(HabitDetailAction.SelectDate(day.date))
                 if (uiState.type == HabitType.NUMERICAL) {
                     haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
                     editingDay = day
