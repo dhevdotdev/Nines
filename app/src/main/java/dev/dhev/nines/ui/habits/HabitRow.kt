@@ -70,7 +70,6 @@ fun HabitRow(
     onToggle: () -> Unit,
     onSetValue: (Double) -> Unit,
     selectedDate: LocalDate,
-    onEdit: () -> Unit,
     onClick: () -> Unit,
     actionsEnabled: Boolean = true,
     modifier: Modifier = Modifier,
@@ -155,7 +154,6 @@ fun HabitRow(
                     enabled = actionsEnabled,
                     onToggle = onToggle,
                     onValueEdit = { showValueDialog = true },
-                    onHabitEdit = onEdit,
                 )
             }
         }
@@ -264,49 +262,35 @@ private fun HabitActionGroup(
     enabled: Boolean,
     onToggle: () -> Unit,
     onValueEdit: () -> Unit,
-    onHabitEdit: () -> Unit,
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.extraSmall)) {
-        if (item.type == HabitType.NUMERICAL) {
-            FilledTonalIconButton(
-                onClick = onValueEdit,
+    if (item.type == HabitType.NUMERICAL) {
+        FilledTonalIconButton(
+            onClick = onValueEdit,
+            enabled = enabled,
+            modifier = Modifier.size(48.dp),
+            shape = MaterialTheme.shapes.medium,
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Edit,
+                contentDescription = "Edit ${item.name} value",
+            )
+        }
+    } else {
+        Box(
+            modifier = Modifier.size(48.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            CheckOffButton(
+                completed = item.completed,
+                onToggle = onToggle,
+                accentColor = accent,
+                contentDescription = if (item.completed) {
+                    "Mark ${item.name} incomplete"
+                } else {
+                    "Mark ${item.name} complete"
+                },
                 enabled = enabled,
-                modifier = Modifier.size(48.dp),
-                shape = MaterialTheme.shapes.medium,
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Edit,
-                    contentDescription = "Edit ${item.name} value",
-                )
-            }
-        } else {
-            Box(
-                modifier = Modifier.size(48.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                CheckOffButton(
-                    completed = item.completed,
-                    onToggle = onToggle,
-                    accentColor = accent,
-                    contentDescription = if (item.completed) {
-                        "Mark ${item.name} incomplete"
-                    } else {
-                        "Mark ${item.name} complete"
-                    },
-                    enabled = enabled,
-                )
-            }
-            OutlinedIconButton(
-                onClick = onHabitEdit,
-                enabled = enabled,
-                modifier = Modifier.size(48.dp),
-                shape = MaterialTheme.shapes.medium,
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Edit,
-                    contentDescription = "Edit ${item.name}",
-                )
-            }
+            )
         }
     }
 }

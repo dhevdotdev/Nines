@@ -354,7 +354,6 @@ fun HabitsScreen(
                                             onToggle = {},
                                             onSetValue = {},
                                             selectedDate = uiState.selectedDate,
-                                            onEdit = {},
                                             onClick = {},
                                             actionsEnabled = false,
                                             dragHandle = {
@@ -448,7 +447,6 @@ fun HabitsScreen(
                                             onToggle = { onAction(HabitsAction.ToggleHabit(item.id)) },
                                             onSetValue = { value -> onAction(HabitsAction.SetNumericValue(item.id, value)) },
                                             selectedDate = uiState.selectedDate,
-                                            onEdit = { editingHabit = item },
                                             onClick = { onHabitClick(item.id) },
                                             modifier = Modifier.offset { IntOffset(offsetPx.roundToInt(), 0) },
                                         )

@@ -10,16 +10,16 @@ The homepage currently presents more controls than the daily logging task needs.
 
 Make the homepage's action surface unambiguous:
 
-- Boolean habits show a completion control with a check state and a separate Habit/Schedule edit action.
+- Boolean habits show one completion control with a check state.
 - Measurable habits show one selected-date Entry value action. It opens a polished value editor; there is no separate homepage increment/decrement action.
 - The value editor shows the habit identity, the explicit Selected date, the current value, unit, and read-only Target context. It edits only that date's numeric Entry.
-- The existing Habit/Schedule editor remains separate and is reached through the boolean edit action or the existing swipe-right gesture.
+- The existing Habit/Schedule editor remains separate and is reached through the existing swipe-right gesture or detail screen.
 - Card geometry remains compact and stable; opening or saving the editor must not resize or reorder the list.
 
 ## Interaction rules
 
 1. Boolean completion writes the Entry for the selected date and updates the card immediately.
-2. Boolean edit opens Habit/Schedule configuration, not an Entry editor.
+2. Boolean completion is the only homepage action for the card.
 3. Measurable value action opens Entry editing for the selected date.
 4. Saving a measurable value dismisses the editor and updates the card immediately.
 5. Target is read-only context in the value editor and respects `AT_LEAST` / `AT_MOST`.
