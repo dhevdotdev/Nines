@@ -200,7 +200,7 @@ private fun SelectedDateStatus(
             else -> "Not logged"
         }
     }
-    val targetText = item.targetValue?.let {
+    val targetText = item.targetValue?.takeIf { item.currentValue == null }?.let {
         val operator = if (item.targetKind == TargetKind.AT_MOST) "≤" else "≥"
         "Target $operator ${formatValue(it)}${item.unit?.let { value -> " $value" } ?: ""}"
     }

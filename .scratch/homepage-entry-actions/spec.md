@@ -13,7 +13,7 @@ Make the homepage's action surface unambiguous:
 - Boolean habits show one completion control with a check state.
 - Measurable habits show one selected-date Entry value action. It opens a polished value editor; there is no separate homepage increment/decrement action.
 - Both homepage actions use the same 48dp tonal button shell; only the semantic icon changes (check for boolean, edit for measurable).
-- The card middle presents Entry status first, then Target and Streak as compact metadata; Target is never appended to a status string where it can be clipped.
+- The card middle presents Entry status first, then only non-repeated Target and Streak metadata; a numeric value/Target ratio already communicates Target and must not be followed by a duplicate Target line.
 - When Target and Streak are both absent, the middle content collapses to its natural height and remains vertically centered with the card action.
 - The value editor shows the habit identity, the explicit Selected date, the current value, unit, and read-only Target context. It edits only that date's numeric Entry.
 - The existing Habit/Schedule editor remains separate and is reached through the existing swipe-right gesture or detail screen.
