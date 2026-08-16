@@ -4,7 +4,7 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [x] `HabitsUiState` includes a `selectedDate` field defaulting to today
 - [x] A new pure function determines whether a habit is visible on a given date based on its creation date, colocated with and tested the same way as the existing scoring package's pure functions

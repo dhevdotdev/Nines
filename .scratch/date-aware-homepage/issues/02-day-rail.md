@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 — date-scoped state and pure visibility logic.
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [x] A horizontally-scrollable day rail appears at the top of the homepage, showing a fixed window of recent days ending at today
 - [x] Tapping a day in the rail selects it and the list updates to that date's state for every visible habit

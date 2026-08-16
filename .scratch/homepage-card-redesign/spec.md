@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: superseded — see `.scratch/homepage-entry-actions/spec.md`
 
 # Homepage habit card redesign
 

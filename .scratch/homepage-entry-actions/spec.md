@@ -35,4 +35,4 @@ Use a compact expressive modal bottom sheet for measurable Entry editing: a clea
 
 ## Verification seam
 
-Verify the observable homepage and editor on-device: boolean completion/edit actions, measurable value editing, Target/target-kind copy, selected historical date, cancellation, save/update behavior, compact card geometry, accessibility labels, and existing swipe/reorder behavior. No new Compose UI test infrastructure is required.
+Verify the observable homepage and editor on-device: the boolean completion action, swipe/detail configuration access, measurable value editing, Target/target-kind copy, selected historical date, cancellation, save/update behavior, compact card geometry, accessibility labels, and existing swipe/reorder behavior. No new Compose UI test infrastructure is required.

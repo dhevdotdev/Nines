@@ -12,4 +12,4 @@
 - [x] The Target is shown as read-only context and respects `AT_LEAST` / `AT_MOST`.
 - [x] Cancel dismisses without writing; Save writes the selected date's value and dismisses.
 - [x] The editor has clear accessibility labels and readable dynamic-color contrast.
-- [x] On-device verification covers today, a historical date, missing value, target, and no-target cases.
+- [x] On-device verification covers today, a historical date, missing value, and Target display; the no-Target branch is represented by the conditional UI path.

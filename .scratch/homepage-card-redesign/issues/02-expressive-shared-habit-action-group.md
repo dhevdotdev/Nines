@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 — Card anatomy and selected-date status.
 
-**Status:** done
+**Status:** superseded — see `.scratch/homepage-entry-actions/issues/01-homepage-entry-action-grammar.md`
 
 - [x] Boolean cards expose a primary completion action and secondary habit-configuration edit action.
 - [x] Numeric cards expose a primary increment action and secondary exact-value action labelled "Set value".
