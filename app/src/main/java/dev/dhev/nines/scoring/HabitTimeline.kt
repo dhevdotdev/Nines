@@ -53,11 +53,12 @@ data class HabitTimeline(
     val selectedEntry: TimelineEntry?,
     val selectedSchedule: TimelineSchedule?,
     val score: Double,
-    val currentStreak: Int,
-    val currentGap: Int,
     val runAnalysis: HabitRunAnalysis,
     val frequencyProgress: FrequencyProgress?,
-)
+) {
+    val currentStreak: Int get() = runAnalysis.currentStreak
+    val currentGap: Int get() = runAnalysis.currentGap
+}
 
 /**
  * Projects a Habit's Entries and versioned Schedules through one selected-date contract.
@@ -75,9 +76,7 @@ fun buildHabitTimeline(input: HabitTimelineInput): HabitTimeline {
             selectedEntry = null,
             selectedSchedule = null,
             score = 0.0,
-            currentStreak = 0,
-            currentGap = 0,
-            runAnalysis = HabitRunAnalysis(emptyList(), emptyList(), 0, 0),
+            runAnalysis = emptyHabitRunAnalysis(input.createdDate, input.selectedDate),
             frequencyProgress = null,
         )
     }
@@ -132,8 +131,6 @@ fun buildHabitTimeline(input: HabitTimelineInput): HabitTimeline {
         selectedEntry = entriesByDate[input.selectedDate],
         selectedSchedule = selectedSchedule,
         score = score,
-        currentStreak = runAnalysis.currentStreak,
-        currentGap = runAnalysis.currentGap,
         runAnalysis = runAnalysis,
         frequencyProgress = frequencyProgress,
     )

@@ -52,7 +52,6 @@ class HabitDetailViewModel(
                     createdDate = habit.createdAt.atZone(ZoneId.systemDefault()).toLocalDate(),
                     asOfDate = timeline.selectedDate,
                             entries = observation.entriesThroughAsOfDate,
-                            currentStreak = timeline.currentStreak,
                             runAnalysis = timeline.runAnalysis,
                 ),
             )

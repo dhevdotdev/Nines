@@ -4,6 +4,8 @@ import java.time.LocalDate
 
 /** The complete derived Streak/Gap view for one bounded Habit date range. */
 data class HabitRunAnalysis(
+    val startDate: LocalDate,
+    val endDate: LocalDate,
     val streakRuns: List<StreakRun>,
     val gapRuns: List<StreakRun>,
     val currentStreak: Int,
@@ -24,12 +26,23 @@ fun analyzeHabitRuns(
     val streakRuns = computeStreakRuns(completedDates, startDate, endDate)
     val gapRuns = computeGapRuns(completedDates, startDate, endDate)
     return HabitRunAnalysis(
+        startDate = startDate,
+        endDate = endDate,
         streakRuns = streakRuns,
         gapRuns = gapRuns,
         currentStreak = currentStreakLength(streakRuns, endDate),
         currentGap = currentGapLength(gapRuns, endDate),
     )
 }
+
+fun emptyHabitRunAnalysis(startDate: LocalDate, endDate: LocalDate): HabitRunAnalysis = HabitRunAnalysis(
+    startDate = startDate,
+    endDate = endDate,
+    streakRuns = emptyList(),
+    gapRuns = emptyList(),
+    currentStreak = 0,
+    currentGap = 0,
+)
 
 private fun currentGapLength(runs: List<StreakRun>, endDate: LocalDate): Int {
     val last = runs.lastOrNull() ?: return 0

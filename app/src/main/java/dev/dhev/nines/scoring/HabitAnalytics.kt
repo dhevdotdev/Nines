@@ -8,8 +8,14 @@ data class HabitAnalyticsInput(
     val createdDate: LocalDate,
     val asOfDate: LocalDate,
     val entries: List<TimelineEntry>,
-    val currentStreak: Int,
-    val runAnalysis: HabitRunAnalysis? = null,
+    val runAnalysis: HabitRunAnalysis = analyzeHabitRuns(
+        completedDates = entries
+            .filter { it.state == TimelineEntryState.COMPLETED }
+            .map { it.date }
+            .toSet(),
+        startDate = createdDate,
+        endDate = asOfDate,
+    ),
 )
 
 enum class RecordProgress {
@@ -42,7 +48,10 @@ fun computeHabitAnalytics(input: HabitAnalyticsInput): HabitAnalytics {
         .filter { it.state == TimelineEntryState.COMPLETED }
         .map { it.date }
         .toSet()
-    val runAnalysis = input.runAnalysis ?: analyzeHabitRuns(completedDates, input.createdDate, input.asOfDate)
+    require(input.runAnalysis.startDate == input.createdDate && input.runAnalysis.endDate == input.asOfDate) {
+        "runAnalysis must cover the same date range as analytics"
+    }
+    val runAnalysis = input.runAnalysis
     val streakRuns = runAnalysis.streakRuns
     val bestStreak = streakRuns.maxOfOrNull { it.length } ?: 0
     val totalCompletions = completedDates.size

@@ -18,7 +18,6 @@ class HabitAnalyticsTest {
                 kind = TimelineHabitKind.BOOLEAN,
                 createdDate = created,
                 asOfDate = asOf,
-                currentStreak = 3,
                 entries = listOf(
                     entry(0),
                     entry(1), entry(2), entry(3),
@@ -42,7 +41,6 @@ class HabitAnalyticsTest {
                 kind = TimelineHabitKind.NUMERICAL,
                 createdDate = created,
                 asOfDate = asOf,
-                currentStreak = 0,
                 entries = (1..5).map { day ->
                     entry(day, value = day.toDouble(), createdAt = Instant.parse("2026-01-0${day}T08:00:00Z"))
                 } + entry(0, value = 200.0, createdAt = Instant.parse("2025-12-31T08:00:00Z"))
@@ -65,7 +63,6 @@ class HabitAnalyticsTest {
                 createdDate = created,
                 asOfDate = created.plusDays(13),
                 entries = listOf(entry(1)),
-                currentStreak = 0,
             ),
         )
         val thirteenDay = computeHabitAnalytics(
@@ -74,7 +71,6 @@ class HabitAnalyticsTest {
                 createdDate = created,
                 asOfDate = created.plusDays(12),
                 entries = listOf(entry(1)),
-                currentStreak = 0,
             ),
         )
         val gap = computeHabitAnalytics(
@@ -83,7 +79,6 @@ class HabitAnalyticsTest {
                 createdDate = created,
                 asOfDate = created.plusDays(5),
                 entries = listOf(entry(1), entry(2), entry(6)),
-                currentStreak = 1,
             ),
         )
         val twoDayGap = computeHabitAnalytics(
@@ -92,7 +87,6 @@ class HabitAnalyticsTest {
                 createdDate = created,
                 asOfDate = created.plusDays(3),
                 entries = listOf(entry(1), entry(4)),
-                currentStreak = 1,
             ),
         )
         val fourTimedEntries = computeHabitAnalytics(
@@ -101,7 +95,6 @@ class HabitAnalyticsTest {
                 createdDate = created,
                 asOfDate = created.plusDays(3),
                 entries = (1..4).map { day -> entry(day, createdAt = Instant.parse("2026-01-0${day}T08:00:00Z")) },
-                currentStreak = 1,
             ),
         )
         val fiveTimedEntries = computeHabitAnalytics(
@@ -110,7 +103,6 @@ class HabitAnalyticsTest {
                 createdDate = created,
                 asOfDate = created.plusDays(4),
                 entries = (1..5).map { day -> entry(day, createdAt = Instant.parse("2026-01-0${day}T08:00:00Z")) },
-                currentStreak = 1,
             ),
         )
         val momentum59Days = computeHabitAnalytics(
@@ -119,7 +111,6 @@ class HabitAnalyticsTest {
                 createdDate = created,
                 asOfDate = created.plusDays(58),
                 entries = emptyList(),
-                currentStreak = 0,
             ),
         )
         val momentum60Days = computeHabitAnalytics(
@@ -128,7 +119,6 @@ class HabitAnalyticsTest {
                 createdDate = created,
                 asOfDate = created.plusDays(59),
                 entries = emptyList(),
-                currentStreak = 0,
             ),
         )
 
@@ -146,10 +136,14 @@ class HabitAnalyticsTest {
     @Test
     fun `analytics honors upstream run analysis from the timeline`() {
         val entries = listOf(entry(1), entry(2), entry(5))
-        val upstream = analyzeHabitRuns(
-            completedDates = entries.map { it.date }.toSet(),
-            startDate = created,
-            endDate = asOf,
+        val timeline = buildHabitTimeline(
+            HabitTimelineInput(
+                kind = TimelineHabitKind.BOOLEAN,
+                createdDate = created,
+                selectedDate = asOf,
+                entries = entries,
+                schedules = listOf(TimelineSchedule(created, ScheduleTarget.DAILY)),
+            ),
         )
 
         val result = computeHabitAnalytics(
@@ -158,14 +152,16 @@ class HabitAnalyticsTest {
                 createdDate = created,
                 asOfDate = asOf,
                 entries = entries,
-                currentStreak = 99,
-                runAnalysis = upstream,
+                runAnalysis = timeline.runAnalysis,
             ),
         )
 
-        assertEquals(upstream.currentStreak, result.currentStreak)
-        assertEquals(upstream.streakRuns.maxOf { it.length }, result.bestStreak)
-        assertEquals(upstream.gapRuns.filter { it.length >= 3 }.maxBy { it.length }, result.longestGap)
+        assertEquals(timeline.currentStreak, result.currentStreak)
+        assertEquals(timeline.runAnalysis.streakRuns.maxOf { it.length }, result.bestStreak)
+        assertEquals(
+            timeline.runAnalysis.gapRuns.filter { it.length >= 3 }.maxBy { it.length },
+            result.longestGap,
+        )
     }
 
     private fun entry(

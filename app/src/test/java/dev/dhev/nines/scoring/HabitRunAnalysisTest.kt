@@ -33,4 +33,27 @@ class HabitRunAnalysisTest {
         assertEquals(2, analysis.currentStreak)
         assertEquals(1, analysis.currentGap)
     }
+
+    @Test
+    fun `analysis ignores completed dates outside its bounded range`() {
+        val analysis = analyzeHabitRuns(
+            completedDates = setOf(start.minusDays(1), start.plusDays(1), end.plusDays(1)),
+            startDate = start,
+            endDate = end,
+        )
+
+        assertEquals(listOf(1), analysis.streakRuns.map { it.length })
+        assertEquals(start.plusDays(1), analysis.streakRuns.single().start)
+        assertEquals(start.plusDays(1), analysis.streakRuns.single().end)
+    }
+
+    @Test
+    fun `analysis handles a one-day empty range`() {
+        val analysis = analyzeHabitRuns(emptySet(), start, start)
+
+        assertEquals(emptyList<StreakRun>(), analysis.streakRuns)
+        assertEquals(listOf(1), analysis.gapRuns.map { it.length })
+        assertEquals(0, analysis.currentStreak)
+        assertEquals(1, analysis.currentGap)
+    }
 }

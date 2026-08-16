@@ -1,6 +1,6 @@
 # Shared Habit run analysis
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Problem Statement
 
@@ -38,9 +38,10 @@ callable by falling back to the same projector when no upstream analysis is supp
 - Existing `computeStreakRuns`, `computeGapRuns`, and current-length semantics remain the source
   behavior; the new projection composes them rather than changing their meaning.
 - `HabitTimeline` carries the computed `HabitRunAnalysis` alongside its existing scalar fields.
-- `HabitAnalyticsInput` may receive upstream `HabitRunAnalysis`; when omitted, analytics computes
-  the same projector from its bounded Entries. Production detail wiring supplies the timeline's
-  analysis, eliminating duplicate work and giving the two adapters one shared result.
+- `HabitAnalyticsInput` requires a `HabitRunAnalysis`; its default derives that analysis from the
+  same bounded Entries for standalone callers. Production detail wiring supplies the timeline's
+  analysis, eliminating duplicate work and giving the two adapters one shared result. The input
+  validates that the supplied analysis covers the same date range.
 - No score caching, persistence changes, UI redesign, generic read-model framework, or clock work
   is included. ADR-0002 remains unchanged: Score, Streak, and Gap are always derived.
 
@@ -53,6 +54,8 @@ callable by falling back to the same projector when no upstream analysis is supp
   behavior.
 - Existing ViewModel contracts and connected device smoke remain regression verification; no new
   UI mechanism is needed for this pure scoring refactor.
+- The run-analysis tests cover bounded input clipping, empty completion ranges, current-date and
+  day-before semantics, and timeline-to-analytics reuse.
 
 ## Out of Scope
 
@@ -67,3 +70,10 @@ callable by falling back to the same projector when no upstream analysis is supp
 The deletion test says the run-analysis module earns its seam: deleting it would push identical
 streak/gap semantics back into multiple production adapters. The interface is the test surface,
 and the existing pure scoring tests are the highest useful seam.
+
+## Completion evidence
+
+- `./gradlew test` passed.
+- `./gradlew :app:connectedDebugAndroidTest` passed all 10 tests on the USB-powered awake device.
+- Final two-axis review found and corrected the optional/mismatched run-analysis interface and
+  duplicated timeline scalar state. No ADR violation remains.
