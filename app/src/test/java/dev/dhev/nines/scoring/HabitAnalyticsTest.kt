@@ -86,11 +86,61 @@ class HabitAnalyticsTest {
                 currentStreak = 1,
             ),
         )
+        val twoDayGap = computeHabitAnalytics(
+            HabitAnalyticsInput(
+                kind = TimelineHabitKind.BOOLEAN,
+                createdDate = created,
+                asOfDate = created.plusDays(3),
+                entries = listOf(entry(1), entry(4)),
+                currentStreak = 1,
+            ),
+        )
+        val fourTimedEntries = computeHabitAnalytics(
+            HabitAnalyticsInput(
+                kind = TimelineHabitKind.BOOLEAN,
+                createdDate = created,
+                asOfDate = created.plusDays(3),
+                entries = (1..4).map { day -> entry(day, createdAt = Instant.parse("2026-01-0${day}T08:00:00Z")) },
+                currentStreak = 1,
+            ),
+        )
+        val fiveTimedEntries = computeHabitAnalytics(
+            HabitAnalyticsInput(
+                kind = TimelineHabitKind.BOOLEAN,
+                createdDate = created,
+                asOfDate = created.plusDays(4),
+                entries = (1..5).map { day -> entry(day, createdAt = Instant.parse("2026-01-0${day}T08:00:00Z")) },
+                currentStreak = 1,
+            ),
+        )
+        val momentum59Days = computeHabitAnalytics(
+            HabitAnalyticsInput(
+                kind = TimelineHabitKind.BOOLEAN,
+                createdDate = created,
+                asOfDate = created.plusDays(58),
+                entries = emptyList(),
+                currentStreak = 0,
+            ),
+        )
+        val momentum60Days = computeHabitAnalytics(
+            HabitAnalyticsInput(
+                kind = TimelineHabitKind.BOOLEAN,
+                createdDate = created,
+                asOfDate = created.plusDays(59),
+                entries = emptyList(),
+                currentStreak = 0,
+            ),
+        )
 
         assertEquals(7, fourteenDay.weekdayRates.size)
         assertTrue(thirteenDay.weekdayRates.isEmpty())
         assertEquals(3, gap.longestGap?.length)
         assertEquals(RecordProgress.CHASING_RECORD, gap.recordProgress)
+        assertNull(twoDayGap.longestGap)
+        assertNull(fourTimedEntries.typicalTimeOfDay)
+        assertEquals("morning", fiveTimedEntries.typicalTimeOfDay)
+        assertNull(momentum59Days.momentumDeltaPoints)
+        assertEquals(0.0, momentum60Days.momentumDeltaPoints ?: -1.0, 0.0)
     }
 
     private fun entry(
