@@ -19,6 +19,7 @@ data class ObservationDay(
 )
 
 data class HabitObservation(
+    val kind: TimelineHabitKind,
     val timeline: HabitTimeline,
     val entriesThroughAsOfDate: List<TimelineEntry>,
     val calendarDays: List<ObservationDay>,
@@ -48,6 +49,7 @@ fun buildHabitObservation(input: HabitObservationInput): HabitObservation {
     }
 
     return HabitObservation(
+        kind = input.kind,
         timeline = buildHabitTimeline(
             HabitTimelineInput(
                 kind = input.kind,

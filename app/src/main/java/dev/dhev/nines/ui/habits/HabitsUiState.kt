@@ -37,7 +37,8 @@ data class HabitListItem(
 data class HabitsUiState(
     val habits: List<HabitListItem> = emptyList(),
     val isLoading: Boolean = true,
-    val selectedDate: LocalDate = LocalDate.now(),
+    val today: LocalDate = LocalDate.now(),
+    val selectedDate: LocalDate = today,
 )
 
 sealed interface HabitsAction {

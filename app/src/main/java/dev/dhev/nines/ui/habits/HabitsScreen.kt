@@ -139,7 +139,7 @@ fun HabitsScreen(
     // once per theme change, not once per sheet open.
     val paletteColors = rememberHabitColorsForPalette(HabitPalette.seeds)
     val haptics = LocalHapticFeedback.current
-    val today = remember { LocalDate.now() }
+    val today = uiState.today
     // Toggled from the top bar rather than a permanent per-row handle, and mutually exclusive
     // with the swipe gestures below - stacking a long-press-drag detector directly on the same
     // element as swipe-to-dismiss is exactly the kind of fragile gesture overlap that broke this

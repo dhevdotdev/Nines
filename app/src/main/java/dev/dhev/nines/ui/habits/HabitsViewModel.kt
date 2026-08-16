@@ -45,7 +45,7 @@ class HabitsViewModel(private val repository: HabitRepository) : ViewModel() {
                 }
             }
         }
-        .map { (items, date) -> HabitsUiState(habits = items, isLoading = false, selectedDate = date) }
+        .map { (items, date) -> HabitsUiState(habits = items, isLoading = false, today = today, selectedDate = date) }
         // Every habit's score/streak recompute combines here, all on whatever dispatcher
         // collects this flow - without this, that's viewModelScope's Main.immediate, i.e. the
         // main thread, for N habits at once on every entries change.

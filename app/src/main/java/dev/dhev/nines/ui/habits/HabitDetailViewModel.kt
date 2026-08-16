@@ -9,7 +9,6 @@ import dev.dhev.nines.data.local.entity.TargetKind
 import dev.dhev.nines.scoring.HabitAnalyticsInput
 import dev.dhev.nines.scoring.FrequencyTargetKind
 import dev.dhev.nines.scoring.TimelineEntryState
-import dev.dhev.nines.scoring.TimelineHabitKind
 import dev.dhev.nines.scoring.RecordProgress
 import dev.dhev.nines.scoring.computeHabitAnalytics
 import kotlinx.coroutines.Dispatchers
@@ -46,11 +45,10 @@ class HabitDetailViewModel(
             val habit = snapshot.habit
             val observation = snapshot.observation
             val timeline = observation.timeline
-            val habitKind = if (habit.type == HabitType.NUMERICAL) TimelineHabitKind.NUMERICAL else TimelineHabitKind.BOOLEAN
             val schedule = timeline.selectedSchedule
             val analytics = computeHabitAnalytics(
                 HabitAnalyticsInput(
-                    kind = habitKind,
+                    kind = observation.kind,
                     createdDate = habit.createdAt.atZone(ZoneId.systemDefault()).toLocalDate(),
                     asOfDate = timeline.selectedDate,
                     entries = observation.entriesThroughAsOfDate,

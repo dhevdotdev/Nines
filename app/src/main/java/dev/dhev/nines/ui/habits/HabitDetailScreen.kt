@@ -1168,12 +1168,12 @@ private fun HistoryCalendar(
             horizontalArrangement = Arrangement.spacedBy(Spacing.small),
         ) {
             items(months, key = { it.toString() }) { month ->
-                        MonthCalendar(
-                            month = month,
-                            byDate = byDate,
-                            accent = accent,
-                            today = today,
-                            onClick = { onMonthClick(month) },
+                MonthCalendar(
+                    month = month,
+                    byDate = byDate,
+                    accent = accent,
+                    today = today,
+                    onClick = { onMonthClick(month) },
                 )
             }
         }

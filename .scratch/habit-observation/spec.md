@@ -48,7 +48,7 @@ Create one domain-only Habit observation module. Given a Habit creation date, En
 
 - Domain and coroutine verification: `./gradlew test` passed.
 - Room and Compose/device verification: `./gradlew :app:connectedDebugAndroidTest` passed all 9 tests on `CPH2691 - 16`; the device was USB-plugged, awake, and stay-on enabled.
-- Review follow-up is recorded in commit `3945f7e`: future-date projection, duplicated metadata observation, and Room stream coverage were corrected. The remaining “today” source is intentionally captured once per ViewModel/UI session; a live injected clock is a separate future seam, not part of this projection refactor.
+- Review follow-up is recorded in commit `3945f7e`: future-date projection, duplicated metadata observation, and Room stream coverage were corrected. Homepage and detail presentation now consume their ViewModel-provided today boundary; refreshing that boundary across midnight via an injected live clock remains a separate future seam.
 
 ## Out of Scope
 

@@ -13,6 +13,6 @@
 
 ## Comments
 
-- Implemented in the current architecture pass. `HabitRepository.observeHabitObservation` combines Room habit metadata, entries, schedules, and the selected-date flow, then delegates to the domain projection.
+- Implemented in the current architecture pass. `HabitRepository.observeHabitSnapshot` combines Room habit metadata, entries, schedules, and the selected-date flow, then delegates to the domain projection.
 - Homepage and detail ViewModels now consume the same repository snapshot. Detail history is bounded by the effective selected date, capped by the explicit as-of date, so historical views cannot show future entries.
 - Verification: `./gradlew test` and `./gradlew :app:connectedDebugAndroidTest` passed; `HabitRepositoryRoomTest.observationStreamMapsRoomRowsAndSelectedDateBoundary` covers Room-to-snapshot mapping.
