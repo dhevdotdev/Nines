@@ -13,6 +13,8 @@ class GesturePolicyTest {
     fun `reorder is available only for today`() {
         assertTrue(canEnterReorderMode(today, today))
         assertFalse(canEnterReorderMode(today.minusDays(1), today))
+        assertTrue(isReorderModeActive(true, today, today))
+        assertFalse(isReorderModeActive(true, today.minusDays(1), today))
     }
 
     @Test

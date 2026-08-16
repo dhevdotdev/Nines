@@ -146,6 +146,7 @@ fun HabitsScreen(
     // the first two times it was attempted. As separate modes, they're never both listening on
     // the same touch at once.
     var reorderMode by remember { mutableStateOf(false) }
+    val effectiveReorderMode = isReorderModeActive(reorderMode, uiState.selectedDate, today)
     LaunchedEffect(uiState.selectedDate) {
         if (uiState.selectedDate != today) {
             reorderMode = false
@@ -218,9 +219,9 @@ fun HabitsScreen(
                         },
                     ) {
                         Icon(
-                            imageVector = if (reorderMode) Icons.Filled.Check else Icons.Rounded.DragHandle,
+                            imageVector = if (effectiveReorderMode) Icons.Filled.Check else Icons.Rounded.DragHandle,
                             contentDescription = when {
-                                reorderMode -> "Done reordering"
+                                effectiveReorderMode -> "Done reordering"
                                 uiState.selectedDate != today -> "Reorder habits unavailable for past dates"
                                 else -> "Reorder habits"
                             },
@@ -341,7 +342,7 @@ fun HabitsScreen(
                                     targetValue = if (isDragging) 6.dp else 0.dp,
                                     label = "reorderElevation",
                                 )
-                                if (reorderMode) {
+                                if (effectiveReorderMode) {
                                     // Swipe is off entirely in this mode - the handle is the only active
                                     // gesture, so there's nothing for a long-press-drag to conflict with.
                                     Box(
@@ -426,7 +427,7 @@ fun HabitsScreen(
                                             HabitGesturePolicyInput(
                                                 selectedDate = uiState.selectedDate,
                                                 today = today,
-                                                reorderMode = reorderMode,
+                                                reorderMode = effectiveReorderMode,
                                                 swipeDirection = direction,
                                             ),
                                         )) {
