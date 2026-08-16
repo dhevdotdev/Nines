@@ -50,6 +50,12 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.disabled
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -248,6 +254,12 @@ private fun DayChip(
             alpha = entrance.value
         }
         .clip(MaterialTheme.shapes.large)
+        .semantics {
+            contentDescription = date.format(DateTimeFormatter.ofPattern("EEEE, MMMM d"))
+            role = Role.Button
+            stateDescription = if (isSelected) "Selected" else "Not selected"
+            if (isFuture) disabled()
+        }
     if (onClick != null) {
         chipModifier = chipModifier.clickable(
             interactionSource = remember { MutableInteractionSource() },
