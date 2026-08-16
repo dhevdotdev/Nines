@@ -98,6 +98,30 @@ class HabitViewModelContractTest {
     }
 
     @Test
+    fun `homepage clear and undo numeric entry use the action date`() = runTest(mainDispatcherRule.dispatcher) {
+        val today = LocalDate.now()
+        val fixture = Fixture(today, HabitType.NUMERICAL)
+        val viewModel = HabitsViewModel(fixture.repository)
+        val historicalDate = today.minusDays(1)
+
+        viewModel.onAction(HabitsAction.SetNumericValue(fixture.habit.id, 3.5))
+        advanceUntilIdle()
+        viewModel.onAction(HabitsAction.SelectDate(historicalDate))
+        advanceUntilIdle()
+        viewModel.onAction(HabitsAction.SetNumericValue(fixture.habit.id, 2.0))
+        advanceUntilIdle()
+
+        viewModel.onAction(HabitsAction.ClearNumericEntry(fixture.habit.id, historicalDate, 2.0))
+        advanceUntilIdle()
+        assertFalse(fixture.entries.value.any { it.date == historicalDate })
+        assertEquals(historicalDate, viewModel.uiState.first { it.selectedDate == historicalDate }.selectedDate)
+
+        viewModel.onAction(HabitsAction.UndoClearNumericEntry(fixture.habit.id, historicalDate, 2.0))
+        advanceUntilIdle()
+        assertEquals(2.0, fixture.entries.value.first { it.date == historicalDate }.numericValue ?: 0.0, 0.0)
+    }
+
+    @Test
     fun `detail selected date changes and missing habit resolves without loading`() = runTest(mainDispatcherRule.dispatcher) {
         val today = LocalDate.now()
         val fixture = Fixture(today)

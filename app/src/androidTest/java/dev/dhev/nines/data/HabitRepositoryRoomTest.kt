@@ -110,6 +110,28 @@ class HabitRepositoryRoomTest {
     }
 
     @Test
+    fun clearNumericEntryDeletesEntryAndSetRestoresIt() = runBlocking {
+        val habitId = repository.createHabit(
+            name = "Water",
+            type = HabitType.NUMERICAL,
+            color = 0xFF000000.toInt(),
+            iconKey = "water",
+            targetValue = 2.0,
+            targetKind = TargetKind.AT_LEAST,
+            scheduleEffectiveFrom = LocalDate.of(2026, 8, 1),
+        )
+        val date = LocalDate.of(2026, 8, 16)
+        repository.setNumericEntry(habitId, date, 2.5)
+
+        repository.clearNumericEntry(habitId, date)
+        assertEquals(null, database.entryDao().entryOn(habitId, date))
+
+        repository.setNumericEntry(habitId, date, 2.5)
+        assertEquals(2.5, database.entryDao().entryOn(habitId, date)?.numericValue ?: 0.0, 0.0)
+        assertEquals(EntryState.COMPLETED, database.entryDao().entryOn(habitId, date)?.state)
+    }
+
+    @Test
     fun observationStreamMapsRoomRowsAndSelectedDateBoundary() = runBlocking {
         val created = LocalDate.of(2026, 8, 1)
         val selected = LocalDate.of(2026, 8, 5)

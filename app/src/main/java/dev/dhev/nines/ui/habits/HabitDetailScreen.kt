@@ -55,6 +55,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -66,6 +70,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -95,6 +100,7 @@ import java.time.format.FormatStyle
 import java.time.format.TextStyle
 import java.util.Locale
 import kotlin.math.roundToInt
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -109,9 +115,26 @@ fun HabitDetailScreen(
     var showEditSheet by remember { mutableStateOf(false) }
     var expandedMonth by remember { mutableStateOf<YearMonth?>(null) }
     var editingDay by remember { mutableStateOf<DayCell?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarScope = rememberCoroutineScope()
+
+    fun clearNumericEntry(value: Double, date: LocalDate) {
+        onAction(HabitDetailAction.ClearNumericEntry(date, value))
+        snackbarScope.launch {
+            if (snackbarHostState.showSnackbar(
+                    message = "Entry cleared",
+                    actionLabel = "Undo",
+                    duration = SnackbarDuration.Long,
+                ) == SnackbarResult.ActionPerformed
+            ) {
+                onAction(HabitDetailAction.UndoClearNumericEntry(date, value))
+            }
+        }
+    }
 
     Scaffold(
         modifier = modifier,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -209,10 +232,18 @@ fun HabitDetailScreen(
                                     .padding(Spacing.default),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                             ) {
-                                NumericProgressButton(
-                                    metTarget = uiState.completed,
-                                    onIncrement = { onAction(HabitDetailAction.Increment(uiState.selectedDate, defaultIncrement(uiState.targetValue))) },
-                                    onDecrement = { onAction(HabitDetailAction.Increment(uiState.selectedDate, -defaultIncrement(uiState.targetValue))) },
+                                CheckOffButton(
+                                    completed = uiState.currentValue != null,
+                                    icon = Icons.Outlined.Edit,
+                                    contentDescription = "Edit ${uiState.name} value for ${uiState.selectedDate}",
+                                    onToggle = {
+                                        editingDay = DayCell(
+                                            date = uiState.selectedDate,
+                                            state = if (uiState.completed) EntryState.COMPLETED else EntryState.IN_PROGRESS,
+                                            isToday = uiState.selectedDate == uiState.today,
+                                            numericValue = uiState.currentValue,
+                                        )
+                                    },
                                     accentColor = colors.accent,
                                 )
                                 Spacer(Modifier.height(Spacing.extraSmall))
@@ -432,14 +463,24 @@ fun HabitDetailScreen(
     }
 
     editingDay?.let { day ->
-        NumericEditDialog(
-            day = day,
+        NumericEntryEditor(
+            habitName = uiState.name,
+            iconKey = uiState.iconKey,
+            colors = colors,
+            initialValue = day.numericValue,
+            targetValue = uiState.targetValue,
+            targetKind = uiState.targetKind,
             unit = uiState.unit,
-            today = uiState.today,
-            accent = colors.accent,
-            onSave = { value ->
+            selectedDate = day.date,
+            onConfirm = { value ->
                 onAction(HabitDetailAction.SetValue(day.date, value))
                 editingDay = null
+            },
+            onClear = day.numericValue?.let { value ->
+                {
+                    clearNumericEntry(value, day.date)
+                    editingDay = null
+                }
             },
             onDismiss = { editingDay = null },
         )

@@ -149,6 +149,12 @@ class HabitDetailViewModel(
             is HabitDetailAction.SetValue -> viewModelScope.launch {
                 repository.setNumericEntry(habitId, action.date, action.value)
             }
+            is HabitDetailAction.ClearNumericEntry -> viewModelScope.launch {
+                repository.clearNumericEntry(habitId, action.date)
+            }
+            is HabitDetailAction.UndoClearNumericEntry -> viewModelScope.launch {
+                repository.setNumericEntry(habitId, action.date, action.value)
+            }
             is HabitDetailAction.Update -> viewModelScope.launch {
                 repository.updateHabit(
                     habitId = habitId,

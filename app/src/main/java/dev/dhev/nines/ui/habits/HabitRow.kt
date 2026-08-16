@@ -68,6 +68,7 @@ fun HabitRow(
     item: HabitListItem,
     onToggle: () -> Unit,
     onSetValue: (Double) -> Unit,
+    onClearValue: (Double) -> Unit = {},
     selectedDate: LocalDate,
     onClick: () -> Unit,
     actionsEnabled: Boolean = true,
@@ -171,6 +172,12 @@ fun HabitRow(
             onConfirm = { value ->
                 onSetValue(value)
                 showValueDialog = false
+            },
+            onClear = item.currentValue?.let { currentValue ->
+                {
+                    onClearValue(currentValue)
+                    showValueDialog = false
+                }
             },
             onDismiss = { showValueDialog = false },
         )

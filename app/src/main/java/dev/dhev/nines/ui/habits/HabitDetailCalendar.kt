@@ -106,6 +106,7 @@ fun ExpandedMonthDialog(
     onDayClick: (DayCell) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val locale = remember { Locale.getDefault() }
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = MaterialTheme.shapes.extraLargeIncreased,
@@ -113,7 +114,7 @@ fun ExpandedMonthDialog(
         ) {
             Column(modifier = Modifier.padding(Spacing.large).fillMaxWidth()) {
                 Text(
-                    text = month.month.getDisplayName(TextStyle.FULL, Locale.getDefault()) + " ${month.year}",
+                    text = month.month.getDisplayName(TextStyle.FULL, locale) + " ${month.year}",
                     style = MaterialTheme.typography.titleMediumEmphasized,
                 )
                 Spacer(Modifier.height(Spacing.default))
@@ -216,62 +217,6 @@ fun ExpandedMonthDialog(
 }
 private val ExpandedDayCellSize = 36.dp
 
-/** Nested on top of [ExpandedMonthDialog] when a day is tapped for a numeric habit — the only
- * habit type where "tap to edit" needs more than a toggle. */
-@Composable
-fun NumericEditDialog(
-    day: DayCell,
-    unit: String?,
-    today: LocalDate,
-    accent: Color,
-    onSave: (Double) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    var text by remember(day.date) { mutableStateOf(day.numericValue?.let { formatValue(it) } ?: "") }
-    val haptics = LocalHapticFeedback.current
-
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            shape = MaterialTheme.shapes.extraLargeIncreased,
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        ) {
-            Column(modifier = Modifier.padding(Spacing.large).fillMaxWidth()) {
-                Text(
-                    text = day.date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL)),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                Spacer(Modifier.height(Spacing.small))
-                Text(
-                    text = dayStatusLabel(day, unit, today),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = accent,
-                )
-                Spacer(Modifier.height(Spacing.large))
-                OutlinedTextField(
-                    value = text,
-                    onValueChange = { text = it },
-                    label = { Text(unit ?: "Value") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Spacer(Modifier.height(Spacing.large))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    TextButton(onClick = onDismiss) { Text("Cancel") }
-                    Spacer(Modifier.width(Spacing.small))
-                    Button(
-                        onClick = {
-                            text.toDoubleOrNull()?.let {
-                                haptics.performHapticFeedback(HapticFeedbackType.Confirm)
-                                onSave(it)
-                            }
-                        },
-                    ) { Text("Save") }
-                }
-            }
-        }
-    }
-}
-
 private fun dayStatusLabel(day: DayCell, unit: String?, today: LocalDate): String = when (day.state) {
     EntryState.COMPLETED -> if (day.numericValue != null) {
         "Completed · ${formatValue(day.numericValue)}${unit?.let { " $it" } ?: ""}"
@@ -282,7 +227,6 @@ private fun dayStatusLabel(day: DayCell, unit: String?, today: LocalDate): Strin
     EntryState.SKIPPED -> "Skipped"
     null -> if (day.date.isAfter(today)) "Upcoming" else "Not logged"
 }
-
 /**
  * "3× per week", "Goal: at least 20 pages", "Every 2 days" — the schedule this habit was
  * actually set up with, which the detail screen previously didn't surface anywhere at all despite
@@ -307,7 +251,6 @@ fun scheduleLabel(uiState: HabitDetailUiState): String {
         else -> "Every $den days"
     }
 }
-
 /**
  * How much of the current window's slack is left, e.g. "2/3 this week" — only shown for
  * habits with real slack in their schedule (daily habits have none: the streak already says
@@ -516,6 +459,7 @@ fun MonthCalendar(
     today: LocalDate,
     onClick: () -> Unit,
 ) {
+    val locale = remember { Locale.getDefault() }
     Column(
         modifier = Modifier
             .width(MonthCardWidth)
@@ -528,7 +472,7 @@ fun MonthCalendar(
             .padding(4.dp),
     ) {
         Text(
-            text = month.month.getDisplayName(TextStyle.SHORT, Locale.getDefault()),
+            text = month.month.getDisplayName(TextStyle.SHORT, locale),
             style = MaterialTheme.typography.labelSmallEmphasized,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

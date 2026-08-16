@@ -195,6 +195,7 @@ private fun DayChip(
     onClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
+    val locale = remember { Locale.getDefault() }
     // A day chip is a small component - per M3's own motion guidance, small components use the
     // fast tier of a spec, not the default speed (that's reserved for larger elements).
     val spatialSpec = MaterialTheme.motionScheme.fastSpatialSpec<Float>()
@@ -278,7 +279,7 @@ private fun DayChip(
         modifier = chipModifier.padding(vertical = Spacing.extraSmall),
     ) {
         Text(
-            text = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault()).take(1),
+            text = date.dayOfWeek.getDisplayName(TextStyle.SHORT, locale).take(1),
             style = MaterialTheme.typography.labelSmall,
             color = weekdayLetterColor,
         )

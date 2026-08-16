@@ -76,6 +76,12 @@ class HabitsViewModel(private val repository: HabitRepository) : ViewModel() {
             is HabitsAction.SetNumericValue -> viewModelScope.launch {
                 repository.setNumericEntry(action.habitId, selectedDate.value, action.value)
             }
+            is HabitsAction.ClearNumericEntry -> viewModelScope.launch {
+                repository.clearNumericEntry(action.habitId, action.date)
+            }
+            is HabitsAction.UndoClearNumericEntry -> viewModelScope.launch {
+                repository.setNumericEntry(action.habitId, action.date, action.value)
+            }
             is HabitsAction.CreateHabit -> viewModelScope.launch {
                 repository.createHabit(
                     name = action.name,

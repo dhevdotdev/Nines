@@ -221,6 +221,11 @@ class HabitRepository(
         )
     }
 
+    /** Removes the numeric Entry for [date], restoring the domain's absent-entry state. */
+    suspend fun clearNumericEntry(habitId: Long, date: LocalDate) {
+        entryDao.entryOn(habitId, date)?.let { entryDao.delete(it) }
+    }
+
     /** Soft-delete: hides the habit from [observeActiveHabits] without touching its history. */
     suspend fun archiveHabit(habitId: Long) {
         val habit = habitDao.getById(habitId) ?: return

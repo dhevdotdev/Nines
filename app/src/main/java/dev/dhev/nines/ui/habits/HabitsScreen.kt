@@ -76,6 +76,10 @@ import androidx.compose.material3.MediumFloatingActionButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -88,6 +92,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.BiasAlignment
@@ -122,6 +127,7 @@ import dev.dhev.nines.ui.theme.rememberHabitColors
 import dev.dhev.nines.ui.theme.rememberHabitColorsForPalette
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -139,6 +145,8 @@ fun HabitsScreen(
     // once per theme change, not once per sheet open.
     val paletteColors = rememberHabitColorsForPalette(HabitPalette.seeds)
     val haptics = LocalHapticFeedback.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarScope = rememberCoroutineScope()
     val today = uiState.today
     // Toggled from the top bar rather than a permanent per-row handle, and mutually exclusive
     // with the swipe gestures below - stacking a long-press-drag detector directly on the same
@@ -180,8 +188,24 @@ fun HabitsScreen(
         onAction(HabitsAction.DeleteHabit(item.id))
     }
 
+    fun clearNumericEntry(item: HabitListItem, value: Double) {
+        val date = uiState.selectedDate
+        onAction(HabitsAction.ClearNumericEntry(item.id, date, value))
+        snackbarScope.launch {
+            if (snackbarHostState.showSnackbar(
+                    message = "Entry cleared",
+                    actionLabel = "Undo",
+                    duration = SnackbarDuration.Long,
+                ) == SnackbarResult.ActionPerformed
+            ) {
+                onAction(HabitsAction.UndoClearNumericEntry(item.id, date, value))
+            }
+        }
+    }
+
     Scaffold(
         modifier = modifier,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         // Plain, fixed-height, no scrollBehavior attached — fully sticky/pinned rather than the
         // collapsing-on-scroll LargeTopAppBar, which reserved a lot of empty vertical space at
         // rest and only gave it back once you scrolled. Consistent space from the start instead.
@@ -459,6 +483,7 @@ fun HabitsScreen(
                                             item = item,
                                             onToggle = { onAction(HabitsAction.ToggleHabit(item.id)) },
                                             onSetValue = { value -> onAction(HabitsAction.SetNumericValue(item.id, value)) },
+                                            onClearValue = { value -> clearNumericEntry(item, value) },
                                             selectedDate = uiState.selectedDate,
                                             onClick = { onHabitClick(item.id) },
                                             modifier = Modifier.offset { IntOffset(offsetPx.roundToInt(), 0) },

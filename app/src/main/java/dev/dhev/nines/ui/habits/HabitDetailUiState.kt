@@ -49,6 +49,8 @@ sealed interface HabitDetailAction {
     data class Toggle(val date: LocalDate) : HabitDetailAction
     data class Increment(val date: LocalDate, val delta: Double) : HabitDetailAction
     data class SetValue(val date: LocalDate, val value: Double) : HabitDetailAction
+    data class ClearNumericEntry(val date: LocalDate, val value: Double) : HabitDetailAction
+    data class UndoClearNumericEntry(val date: LocalDate, val value: Double) : HabitDetailAction
     data class Update(
         val name: String,
         val color: Int,

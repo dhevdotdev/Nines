@@ -4,10 +4,10 @@
 
 **Blocked by:** 01 — Extract and reuse the shared numeric Entry editor
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Add an explicit Clear entry action only for existing numeric Entries.
-- [ ] Delete the selected date's Entry row rather than writing zero or skipped state.
-- [ ] Restore the deleted Entry through undo.
-- [ ] Refresh the current Selected date without returning to today.
-- [ ] Cover clear/undo behavior at repository/ViewModel and Compose semantics seams.
+- [x] Add an explicit Clear entry action only for existing numeric Entries.
+- [x] Delete the selected date's Entry row rather than writing zero or skipped state.
+- [x] Restore the deleted Entry through undo.
+- [x] Refresh the current Selected date without returning to today.
+- [x] Cover clear/undo behavior at repository/ViewModel and Compose semantics seams.

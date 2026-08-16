@@ -1,6 +1,6 @@
 # Shared numeric Entry editor
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Problem Statement
 

@@ -5,11 +5,14 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.longClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import dev.dhev.nines.data.local.entity.TargetKind
 import dev.dhev.nines.ui.theme.NinesTheme
+import dev.dhev.nines.ui.theme.rememberHabitColors
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -84,5 +87,31 @@ class HabitControlsSemanticsTest {
             .performTouchInput { longClick() }
         assertEquals(1, increments)
         assertEquals(1, decrements)
+    }
+
+    @Test
+    fun numericEditorExposesClearOnlyForExistingEntry() {
+        var cleared = false
+
+        composeRule.setContent {
+            NinesTheme(dynamicColor = false) {
+                NumericEntryEditor(
+                    habitName = "Water",
+                    iconKey = "water",
+                    colors = rememberHabitColors(Color.Blue, isDark = false),
+                    initialValue = 2.5,
+                    targetValue = 2.0,
+                    targetKind = TargetKind.AT_LEAST,
+                    unit = "glasses",
+                    selectedDate = LocalDate.of(2026, 8, 19),
+                    onConfirm = {},
+                    onClear = { cleared = true },
+                    onDismiss = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Clear entry").assertIsEnabled().performClick()
+        assertTrue(cleared)
     }
 }

@@ -74,6 +74,7 @@ fun NumericEntryEditor(
     unit: String?,
     selectedDate: LocalDate,
     onConfirm: (Double) -> Unit,
+    onClear: (() -> Unit)? = null,
     onDismiss: () -> Unit,
 ) {
     var value by remember { mutableDoubleStateOf(initialValue ?: 0.0) }
@@ -175,14 +176,21 @@ fun NumericEntryEditor(
             Spacer(Modifier.height(Spacing.default))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
+                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                TextButton(onClick = onDismiss) { Text("Cancel") }
-                Spacer(Modifier.width(Spacing.small))
-                Button(
-                    onClick = { text.toDoubleOrNull()?.let(onConfirm) },
-                    enabled = text.isNotEmpty() && text.toDoubleOrNull() != null,
-                ) { Text("Save") }
+                if (onClear != null && initialValue != null) {
+                    TextButton(onClick = onClear) { Text("Clear entry") }
+                } else {
+                    Spacer(Modifier.width(1.dp))
+                }
+                Row {
+                    TextButton(onClick = onDismiss) { Text("Cancel") }
+                    Spacer(Modifier.width(Spacing.small))
+                    Button(
+                        onClick = { text.toDoubleOrNull()?.let(onConfirm) },
+                        enabled = text.isNotEmpty() && text.toDoubleOrNull() != null,
+                    ) { Text("Save") }
+                }
             }
         }
     }
