@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -46,6 +47,7 @@ fun CheckOffButton(
     contentDescription: String = if (completed) "Mark incomplete" else "Mark complete",
     enabled: Boolean = true,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
+    icon: ImageVector? = null,
     modifier: Modifier = Modifier,
 ) {
     val haptics = LocalHapticFeedback.current
@@ -92,9 +94,13 @@ fun CheckOffButton(
                 interactionSource = interactionSource,
                 indication = ripple(bounded = false),
             ) {
-                haptics.performHapticFeedback(
-                    if (completed) HapticFeedbackType.ToggleOff else HapticFeedbackType.ToggleOn,
-                )
+                haptics.performHapticFeedback(if (icon != null) {
+                    HapticFeedbackType.GestureThresholdActivate
+                } else if (completed) {
+                    HapticFeedbackType.ToggleOff
+                } else {
+                    HapticFeedbackType.ToggleOn
+                })
                 onToggle()
                 scope.launch {
                     scale.animateTo(1.2f, animationSpec = spatialSpec)
@@ -103,10 +109,19 @@ fun CheckOffButton(
             },
         contentAlignment = Alignment.Center,
     ) {
-        DrawnCheckmark(
-            color = contrastingIconColor(accentColor),
-            progress = checkProgress,
-            modifier = Modifier.size(22.dp),
-        )
+        if (icon != null) {
+            androidx.compose.material3.Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (completed) contrastingIconColor(accentColor) else accentColor,
+                modifier = Modifier.size(22.dp),
+            )
+        } else {
+            DrawnCheckmark(
+                color = contrastingIconColor(accentColor),
+                progress = checkProgress,
+                modifier = Modifier.size(22.dp),
+            )
+        }
     }
 }
