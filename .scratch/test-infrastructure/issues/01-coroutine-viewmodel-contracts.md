@@ -2,11 +2,15 @@
 
 **Blocked by:** None
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Add `kotlinx-coroutines-test` and deterministic test scheduling.
-- [ ] Test selected-date StateFlow changes and return-to-today behavior for homepage/detail adapters.
-- [ ] Test Entry actions route to the selected date.
-- [ ] Test missing-habit and Entry-update flow behavior for detail state.
-- [ ] Keep tests at observable interface boundaries rather than private implementation details.
-- [ ] `./gradlew test` passes.
+- [x] Add `kotlinx-coroutines-test` and deterministic test scheduling.
+- [x] Test selected-date StateFlow changes and return-to-today behavior for homepage/detail adapters.
+- [x] Test Entry actions route to the selected date.
+- [x] Test missing-habit and Entry-update flow behavior for detail state.
+- [x] Keep tests at observable interface boundaries rather than private implementation details.
+- [x] `./gradlew test` passes.
+
+## Comments
+
+- Added the coroutine test dependency and observable homepage/detail contract tests using deterministic DAO doubles. Tests cover selected-date changes, return to today, missing habits, and selected-date action routing.
