@@ -26,6 +26,8 @@ data class TimelineSchedule(
     val target: ScheduleTarget,
     val targetValue: Double? = null,
     val targetKind: FrequencyTargetKind? = null,
+    /** Persistence version order breaks ties when multiple versions take effect on one date. */
+    val versionOrder: Long = 0L,
 )
 
 data class HabitTimelineData(
@@ -137,7 +139,7 @@ fun scheduleEffectiveOn(
     date: LocalDate,
 ): TimelineSchedule? = schedules
     .filter { !it.effectiveFromDate.isAfter(date) }
-    .maxByOrNull { it.effectiveFromDate }
+    .maxWithOrNull(compareBy<TimelineSchedule> { it.effectiveFromDate }.thenBy { it.versionOrder })
 
 private fun currentGapLength(runs: List<StreakRun>, selectedDate: LocalDate): Int {
     val last = runs.lastOrNull() ?: return 0

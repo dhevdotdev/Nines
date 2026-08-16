@@ -16,7 +16,7 @@ import dev.dhev.nines.scoring.ScorePoint
 import dev.dhev.nines.scoring.TimelineEntry
 import dev.dhev.nines.scoring.TimelineEntryState
 import dev.dhev.nines.scoring.TimelineSchedule
-import dev.dhev.nines.scoring.computeScoreSeries
+import dev.dhev.nines.scoring.computeScheduleAwareScoreSeries
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import java.time.Instant
@@ -62,6 +62,7 @@ class HabitRepository(
                             TargetKind.AT_MOST -> FrequencyTargetKind.AT_MOST
                             else -> FrequencyTargetKind.AT_LEAST
                         },
+                        versionOrder = schedule.id,
                     )
                 },
             )
@@ -256,19 +257,28 @@ class HabitRepository(
         )
     }
 
-    /**
-     * The score series for [habitId] between [startDate] and [endDate], under the schedule
-     * that was in force on [endDate]. Pulls enough history before [startDate] to fill the
-     * scoring window (see [dev.dhev.nines.scoring.computeScoreSeries]).
-     */
+    /** The score series for [habitId], applying each schedule version only from its effective date.
+     * Pulls enough history before [startDate] to fill the largest schedule window in the range. */
     suspend fun scoreSeries(habitId: Long, startDate: LocalDate, endDate: LocalDate): List<ScorePoint> {
-        val schedule = scheduleVersionDao.versionEffectiveOn(habitId, endDate) ?: return emptyList()
-        val lookback = startDate.minusDays(schedule.targetDenominator * 2L)
+        val schedules = scheduleVersionDao.getVersions(habitId)
+            .filter { !it.effectiveFromDate.isAfter(endDate) }
+        if (schedules.isEmpty()) return emptyList()
+        val lookbackDays = schedules.maxOf { it.targetDenominator * 2L }
+        val lookback = startDate.minusDays(lookbackDays)
         val entries = entryDao.entriesBetween(habitId, lookback, endDate)
         val completed = entries.filter { it.state == EntryState.COMPLETED }.map { it.date }.toSet()
         val skipped = entries.filter { it.state == EntryState.SKIPPED }.map { it.date }.toSet()
-        val target = ScheduleTarget(schedule.targetNumerator, schedule.targetDenominator)
-        return computeScoreSeries(target, completed, skipped, startDate, endDate)
+        return computeScheduleAwareScoreSeries(
+            scheduleForDate = { date ->
+                schedules.lastOrNull { !it.effectiveFromDate.isAfter(date) }?.let {
+                    ScheduleTarget(it.targetNumerator, it.targetDenominator)
+                }
+            },
+            completedDates = completed,
+            skippedDates = skipped,
+            startDate = startDate,
+            endDate = endDate,
+        )
     }
 
     private fun currentTzOffsetMinutes(): Int = OffsetDateTime.now().offset.totalSeconds / 60

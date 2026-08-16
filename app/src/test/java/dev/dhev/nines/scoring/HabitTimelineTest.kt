@@ -6,6 +6,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
 import kotlin.math.abs
+import kotlin.math.pow
 
 class HabitTimelineTest {
 
@@ -79,6 +80,24 @@ class HabitTimelineTest {
             ),
         )
         assertEquals(ScheduleTarget(numerator = 3, denominator = 7), laterTimeline.selectedSchedule?.target)
+    }
+
+    @Test
+    fun `timeline selects the newest version when schedules share an effective date`() {
+        val timeline = buildHabitTimeline(
+            HabitTimelineInput(
+                kind = TimelineHabitKind.BOOLEAN,
+                createdDate = selectedDate,
+                selectedDate = selectedDate,
+                entries = emptyList(),
+                schedules = listOf(
+                    TimelineSchedule(selectedDate, ScheduleTarget.DAILY, versionOrder = 10),
+                    TimelineSchedule(selectedDate, ScheduleTarget(numerator = 3, denominator = 7), versionOrder = 11),
+                ),
+            ),
+        )
+
+        assertEquals(ScheduleTarget(numerator = 3, denominator = 7), timeline.selectedSchedule?.target)
     }
 
     @Test
@@ -281,6 +300,13 @@ class HabitTimelineTest {
             scheduleAwareSeries[oldScheduleSeries.lastIndex].score,
             0.000001,
         )
+        val oldMultiplier = decayMultiplier(ScheduleTarget.DAILY.frequency)
+        assertEquals(
+            "old multiplier=$oldMultiplier actual=${scheduleAwareSeries[oldScheduleSeries.lastIndex].score}",
+            oldMultiplier - oldMultiplier.pow(3),
+            scheduleAwareSeries[oldScheduleSeries.lastIndex].score,
+            0.000001,
+        )
         val endDateOnlyScore = computeScoreSeries(
             target = ScheduleTarget(numerator = 3, denominator = 7),
             completedDates = completedDates,
@@ -291,5 +317,10 @@ class HabitTimelineTest {
 
         assertTrue(abs(timeline.score - endDateOnlyScore) > 0.0001)
         assertEquals(timeline.score, scheduleAwareSeries.last().score, 0.000001)
+        val newMultiplier = decayMultiplier((ScheduleTarget(numerator = 3, denominator = 7)).frequency)
+        val oldScore = oldMultiplier - oldMultiplier.pow(3)
+        val scoreAtChange = oldScore * newMultiplier + (1.0 / 3.0) * (1.0 - newMultiplier)
+        val expectedAfterChange = scoreAtChange * newMultiplier + 0.5 * (1.0 - newMultiplier)
+        assertEquals(expectedAfterChange, timeline.score, 0.000001)
     }
 }
