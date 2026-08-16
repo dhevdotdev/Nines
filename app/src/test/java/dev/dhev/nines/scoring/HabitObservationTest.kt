@@ -35,7 +35,7 @@ class HabitObservationTest {
 
         assertEquals(listOf(created, selected, asOf), observation.entriesThroughAsOfDate.map { it.date })
         assertEquals(created, observation.calendarDays.first().date)
-        assertEquals(selected, observation.calendarDays.last().date)
+        assertEquals(asOf, observation.calendarDays.last().date)
         assertEquals(selected, observation.timeline.selectedDate)
         assertTrue(observation.timeline.selectedEntry != null)
     }

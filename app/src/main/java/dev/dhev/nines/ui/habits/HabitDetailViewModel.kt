@@ -8,10 +8,8 @@ import dev.dhev.nines.data.local.entity.HabitType
 import dev.dhev.nines.data.local.entity.TargetKind
 import dev.dhev.nines.scoring.HabitAnalyticsInput
 import dev.dhev.nines.scoring.FrequencyTargetKind
-import dev.dhev.nines.scoring.HabitTimelineInput
 import dev.dhev.nines.scoring.TimelineEntryState
 import dev.dhev.nines.scoring.TimelineHabitKind
-import dev.dhev.nines.scoring.buildHabitTimeline
 import dev.dhev.nines.scoring.RecordProgress
 import dev.dhev.nines.scoring.computeHabitAnalytics
 import kotlinx.coroutines.Dispatchers
@@ -19,8 +17,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -35,37 +32,31 @@ class HabitDetailViewModel(
     private val repository: HabitRepository,
 ) : ViewModel() {
 
-    private val selectedDate = kotlinx.coroutines.flow.MutableStateFlow(LocalDate.now())
+    private val today = LocalDate.now()
+    private val selectedDate = kotlinx.coroutines.flow.MutableStateFlow(today)
 
-    val uiState: StateFlow<HabitDetailUiState> = repository.observeHabit(habitId)
-        .flatMapLatest { habit ->
-            if (habit == null) {
-                flowOf(HabitDetailUiState(habitId = habitId, isLoading = false))
+    val uiState: StateFlow<HabitDetailUiState> = combine(
+        repository.observeHabit(habitId),
+        repository.observeHabitObservation(
+            habitId = habitId,
+            selectedDate = selectedDate,
+            asOfDate = today,
+            historyStartDate = today.minusMonths(HISTORY_MONTHS_BACK).withDayOfMonth(1),
+        ),
+    ) { habit, observation -> habit to observation }
+        .map { (habit, observation) ->
+            if (habit == null || observation == null) {
+                HabitDetailUiState(habitId = habitId, today = today, isLoading = false)
             } else {
-                val today = LocalDate.now()
-                val createdDate = habit.createdAt.atZone(ZoneId.systemDefault()).toLocalDate()
-                combine(
-                    repository.observeHabitTimelineData(habitId),
-                    selectedDate,
-                ) { timelineData, selectedDate ->
-                    val entries = timelineData.entries
-                    val entriesByDate = entries.associateBy { it.date }
-                    val timeline = buildHabitTimeline(
-                        HabitTimelineInput(
-                            kind = if (habit.type == HabitType.NUMERICAL) TimelineHabitKind.NUMERICAL else TimelineHabitKind.BOOLEAN,
-                            createdDate = createdDate,
-                            selectedDate = selectedDate,
-                            entries = timelineData.entries,
-                            schedules = timelineData.schedules,
-                        ),
-                    )
+                    val timeline = observation.timeline
+                    val habitKind = if (habit.type == HabitType.NUMERICAL) TimelineHabitKind.NUMERICAL else TimelineHabitKind.BOOLEAN
                     val schedule = timeline.selectedSchedule
                     val analytics = computeHabitAnalytics(
                         HabitAnalyticsInput(
-                            kind = if (habit.type == HabitType.NUMERICAL) TimelineHabitKind.NUMERICAL else TimelineHabitKind.BOOLEAN,
-                            createdDate = createdDate,
-                            asOfDate = selectedDate,
-                            entries = entries,
+                            kind = habitKind,
+                            createdDate = habit.createdAt.atZone(ZoneId.systemDefault()).toLocalDate(),
+                            asOfDate = timeline.selectedDate,
+                            entries = observation.entriesThroughAsOfDate,
                             currentStreak = timeline.currentStreak,
                         ),
                     )
@@ -90,32 +81,25 @@ class HabitDetailViewModel(
                         else -> "${analytics.bestStreak - analytics.currentStreak} days to beat your record of ${analytics.bestStreak}"
                     }
 
-                    val historyStart = maxOf(
-                        createdDate,
-                        today.minusMonths(HISTORY_MONTHS_BACK).withDayOfMonth(1),
-                    )
-                    val history = generateSequence(historyStart) { it.plusDays(1) }
-                        .takeWhile { !it.isAfter(today) }
-                        .map { date ->
-                            val entry = entriesByDate[date]
-                            DayCell(
-                                date = date,
-                                state = entry?.state?.let {
+                    val history = observation.calendarDays.map { observedDay ->
+                        DayCell(
+                                date = observedDay.date,
+                                state = observedDay.state?.let {
                                     when (it) {
                                         TimelineEntryState.COMPLETED -> EntryState.COMPLETED
                                         TimelineEntryState.SKIPPED -> EntryState.SKIPPED
                                         TimelineEntryState.IN_PROGRESS -> EntryState.IN_PROGRESS
                                     }
                                 },
-                                isToday = date == today,
-                                numericValue = entry?.numericValue,
-                            )
-                        }
-                        .toList()
+                                isToday = observedDay.date == today,
+                                numericValue = observedDay.numericValue,
+                        )
+                    }
 
                     HabitDetailUiState(
                         habitId = habitId,
-                        selectedDate = selectedDate,
+                        today = today,
+                        selectedDate = timeline.selectedDate,
                         name = habit.name,
                         iconKey = habit.iconKey,
                         backgroundStyleKey = habit.backgroundStyleKey,
@@ -149,7 +133,6 @@ class HabitDetailViewModel(
                         isLoading = false,
                     )
                 }
-            }
         }
         // Score decay, six-plus O(history-length) passes for streaks/gaps/weekday/momentum, and
         // building up to ~270 DayCells all ran on this flow's collection context with no
@@ -160,7 +143,7 @@ class HabitDetailViewModel(
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = HabitDetailUiState(habitId = habitId),
+            initialValue = HabitDetailUiState(habitId = habitId, today = today),
         )
 
     fun onAction(action: HabitDetailAction) {

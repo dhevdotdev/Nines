@@ -7,7 +7,9 @@ import java.time.LocalDate
 
 data class HabitDetailUiState(
     val habitId: Long = -1,
-    val selectedDate: LocalDate = LocalDate.now(),
+    /** The real calendar boundary used for history and today markers, captured by the VM. */
+    val today: LocalDate = LocalDate.now(),
+    val selectedDate: LocalDate = today,
     val name: String = "",
     val iconKey: String = "",
     val backgroundStyleKey: String? = null,

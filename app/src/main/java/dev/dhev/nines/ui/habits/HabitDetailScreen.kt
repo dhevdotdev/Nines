@@ -315,6 +315,7 @@ fun HabitDetailScreen(
             HistoryCalendar(
                 days = uiState.history,
                 accent = colors.accent,
+                today = uiState.today,
                 onMonthClick = { month ->
                     haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
                     expandedMonth = month
@@ -325,7 +326,7 @@ fun HabitDetailScreen(
             // already fully represented by the "current streak" stat above, so a one-row list
             // here would just repeat it instead of adding anything.
             val showStreaks = uiState.topStreaks.size > 1 ||
-                uiState.topStreaks.firstOrNull()?.end != LocalDate.now()
+                uiState.topStreaks.firstOrNull()?.end != uiState.today
             if (uiState.topStreaks.isNotEmpty() && showStreaks) {
                 Spacer(Modifier.height(Spacing.extraLarge))
                 Text(
@@ -341,6 +342,7 @@ fun HabitDetailScreen(
                             streak = streak,
                             fraction = (streak.length.toFloat() / longestStreak).coerceIn(0.12f, 1f),
                             accent = colors.accent,
+                            today = uiState.today,
                         )
                     }
                 }
@@ -411,6 +413,7 @@ fun HabitDetailScreen(
             byDate = remember(uiState.history) { uiState.history.associateBy { it.date } },
             habitType = uiState.type,
             unit = uiState.unit,
+            today = uiState.today,
             accent = colors.accent,
             onDayClick = { day ->
                 onAction(HabitDetailAction.SelectDate(day.date))
@@ -432,6 +435,7 @@ fun HabitDetailScreen(
         NumericEditDialog(
             day = day,
             unit = uiState.unit,
+            today = uiState.today,
             accent = colors.accent,
             onSave = { value ->
                 onAction(HabitDetailAction.SetValue(day.date, value))
@@ -453,11 +457,11 @@ private fun ExpandedMonthDialog(
     byDate: Map<LocalDate, DayCell>,
     habitType: HabitType,
     unit: String?,
+    today: LocalDate,
     accent: Color,
     onDayClick: (DayCell) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val today = LocalDate.now()
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = MaterialTheme.shapes.extraLargeIncreased,
@@ -575,6 +579,7 @@ private val ExpandedDayCellSize = 36.dp
 private fun NumericEditDialog(
     day: DayCell,
     unit: String?,
+    today: LocalDate,
     accent: Color,
     onSave: (Double) -> Unit,
     onDismiss: () -> Unit,
@@ -594,7 +599,7 @@ private fun NumericEditDialog(
                 )
                 Spacer(Modifier.height(Spacing.small))
                 Text(
-                    text = dayStatusLabel(day, unit),
+                    text = dayStatusLabel(day, unit, today),
                     style = MaterialTheme.typography.bodyMedium,
                     color = accent,
                 )
@@ -624,7 +629,7 @@ private fun NumericEditDialog(
     }
 }
 
-private fun dayStatusLabel(day: DayCell, unit: String?): String = when (day.state) {
+private fun dayStatusLabel(day: DayCell, unit: String?, today: LocalDate): String = when (day.state) {
     EntryState.COMPLETED -> if (day.numericValue != null) {
         "Completed · ${formatValue(day.numericValue)}${unit?.let { " $it" } ?: ""}"
     } else {
@@ -632,7 +637,7 @@ private fun dayStatusLabel(day: DayCell, unit: String?): String = when (day.stat
     }
     EntryState.IN_PROGRESS -> "In progress · ${formatValue(day.numericValue ?: 0.0)}${unit?.let { " $it" } ?: ""}"
     EntryState.SKIPPED -> "Skipped"
-    null -> if (day.date.isAfter(LocalDate.now())) "Upcoming" else "Not logged"
+    null -> if (day.date.isAfter(today)) "Upcoming" else "Not logged"
 }
 
 /**
@@ -679,7 +684,7 @@ private fun cycleProgressLabel(uiState: HabitDetailUiState): String? {
  * history reads as a set of concrete achievements instead of a proportional-length visualization.
  */
 @Composable
-private fun StreakRow(rank: Int, streak: StreakRun, fraction: Float, accent: Color) {
+private fun StreakRow(rank: Int, streak: StreakRun, fraction: Float, accent: Color, today: LocalDate) {
     val rowHeight = 44.dp
     // Grows in once on appearance rather than snapping straight to its final length - the fill
     // IS the data here, so the reveal is what sells "this row's length means something" instead
@@ -727,7 +732,7 @@ private fun StreakRow(rank: Int, streak: StreakRun, fraction: Float, accent: Col
                 }
                 Spacer(Modifier.width(Spacing.default))
                 Text(
-                    text = streakRangeLabel(streak),
+                    text = streakRangeLabel(streak, today),
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.weight(1f),
                 )
@@ -741,9 +746,9 @@ private fun StreakRow(rank: Int, streak: StreakRun, fraction: Float, accent: Col
     }
 }
 
-private fun streakRangeLabel(streak: StreakRun): String {
+private fun streakRangeLabel(streak: StreakRun, today: LocalDate): String {
     val formatter = DateTimeFormatter.ofPattern("MMM d")
-    val startText = if (streak.start.year != LocalDate.now().year) {
+    val startText = if (streak.start.year != today.year) {
         DateTimeFormatter.ofPattern("MMM d, yyyy").format(streak.start)
     } else {
         formatter.format(streak.start)
@@ -798,7 +803,7 @@ private fun InsightsSection(uiState: HabitDetailUiState, accent: Color) {
             }
         }
         uiState.longestGap?.let { gap ->
-            add { LongestGapRow(gap = gap, accent = accent) }
+            add { LongestGapRow(gap = gap, accent = accent, today = uiState.today) }
         }
     }
     if (rows.isEmpty()) return
@@ -859,7 +864,7 @@ private fun NumericTotalsRow(total: Double, average: Double, unit: String?, acce
 }
 
 @Composable
-private fun LongestGapRow(gap: StreakRun, accent: Color) {
+private fun LongestGapRow(gap: StreakRun, accent: Color, today: LocalDate) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(
             imageVector = Icons.Filled.EventBusy,
@@ -869,7 +874,7 @@ private fun LongestGapRow(gap: StreakRun, accent: Color) {
         )
         Spacer(Modifier.width(Spacing.small))
         Text(
-            text = "Longest gap: ${gap.length} days (${streakRangeLabel(gap)})",
+            text = "Longest gap: ${gap.length} days (${streakRangeLabel(gap, today)})",
             style = MaterialTheme.typography.bodyMedium,
         )
     }
@@ -1107,7 +1112,12 @@ private fun StatColumn(
  * screen meant three months of them could overflow off the bottom of the screen entirely).
  */
 @Composable
-private fun HistoryCalendar(days: List<DayCell>, accent: Color, onMonthClick: (YearMonth) -> Unit) {
+private fun HistoryCalendar(
+    days: List<DayCell>,
+    accent: Color,
+    today: LocalDate,
+    onMonthClick: (YearMonth) -> Unit,
+) {
     if (days.isEmpty()) return
     val byDate = remember(days) { days.associateBy { it.date } }
     val months = remember(days) { days.map { YearMonth.from(it.date) }.distinct().sortedDescending() }
@@ -1158,11 +1168,12 @@ private fun HistoryCalendar(days: List<DayCell>, accent: Color, onMonthClick: (Y
             horizontalArrangement = Arrangement.spacedBy(Spacing.small),
         ) {
             items(months, key = { it.toString() }) { month ->
-                MonthCalendar(
-                    month = month,
-                    byDate = byDate,
-                    accent = accent,
-                    onClick = { onMonthClick(month) },
+                        MonthCalendar(
+                            month = month,
+                            byDate = byDate,
+                            accent = accent,
+                            today = today,
+                            onClick = { onMonthClick(month) },
                 )
             }
         }
@@ -1177,6 +1188,7 @@ private fun MonthCalendar(
     month: YearMonth,
     byDate: Map<LocalDate, DayCell>,
     accent: Color,
+    today: LocalDate,
     onClick: () -> Unit,
 ) {
     Column(
@@ -1229,7 +1241,7 @@ private fun MonthCalendar(
                                 .clip(RoundedCornerShape(2.dp))
                                 .background(fill.copy(alpha = cellAlpha))
                                 .then(
-                                    if (date == LocalDate.now()) {
+                                    if (date == today) {
                                         val ringColor = if (cell?.state == EntryState.COMPLETED) {
                                             contrastingIconColor(accent)
                                         } else {

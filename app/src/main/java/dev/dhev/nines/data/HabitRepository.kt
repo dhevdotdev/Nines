@@ -10,18 +10,23 @@ import dev.dhev.nines.data.local.entity.HabitType
 import dev.dhev.nines.data.local.entity.ScheduleVersionEntity
 import dev.dhev.nines.data.local.entity.TargetKind
 import dev.dhev.nines.scoring.FrequencyTargetKind
+import dev.dhev.nines.scoring.HabitObservation
+import dev.dhev.nines.scoring.HabitObservationInput
 import dev.dhev.nines.scoring.HabitTimelineData
 import dev.dhev.nines.scoring.ScheduleTarget
 import dev.dhev.nines.scoring.ScorePoint
 import dev.dhev.nines.scoring.TimelineEntry
 import dev.dhev.nines.scoring.TimelineEntryState
+import dev.dhev.nines.scoring.TimelineHabitKind
 import dev.dhev.nines.scoring.TimelineSchedule
+import dev.dhev.nines.scoring.buildHabitObservation
 import dev.dhev.nines.scoring.computeScheduleAwareScoreSeries
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import java.time.Instant
 import java.time.LocalDate
 import java.time.OffsetDateTime
+import java.time.ZoneId
 
 class HabitRepository(
     private val habitDao: HabitDao,
@@ -69,6 +74,40 @@ class HabitRepository(
                 },
             )
         }
+
+    /**
+     * Observes the complete date-bounded read model for one habit. Keeping the habit metadata,
+     * entries, schedules, selected date, and as-of boundary together prevents screens from
+     * rebuilding subtly different timelines and histories from the same raw tables.
+     */
+    fun observeHabitObservation(
+        habitId: Long,
+        selectedDate: Flow<LocalDate>,
+        asOfDate: LocalDate,
+        historyStartDate: LocalDate,
+    ): Flow<HabitObservation?> = combine(
+        observeHabit(habitId),
+        observeHabitTimelineData(habitId),
+        selectedDate,
+    ) { habit, timelineData, date ->
+        habit?.let {
+            buildHabitObservation(
+                HabitObservationInput(
+                    kind = if (it.type == HabitType.NUMERICAL) {
+                        TimelineHabitKind.NUMERICAL
+                    } else {
+                        TimelineHabitKind.BOOLEAN
+                    },
+                    createdDate = it.createdAt.atZone(ZoneId.systemDefault()).toLocalDate(),
+                    selectedDate = date,
+                    asOfDate = asOfDate,
+                    historyStartDate = historyStartDate,
+                    entries = timelineData.entries,
+                    schedules = timelineData.schedules,
+                ),
+            )
+        }
+    }
 
     suspend fun scheduleEffectiveOn(habitId: Long, date: LocalDate): ScheduleVersionEntity? =
         scheduleVersionDao.versionEffectiveOn(habitId, date)

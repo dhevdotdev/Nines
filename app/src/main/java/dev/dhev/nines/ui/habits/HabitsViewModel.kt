@@ -7,10 +7,7 @@ import dev.dhev.nines.data.local.entity.HabitEntity
 import dev.dhev.nines.data.local.entity.HabitType
 import dev.dhev.nines.data.local.entity.TargetKind
 import dev.dhev.nines.scoring.FrequencyTargetKind
-import dev.dhev.nines.scoring.HabitTimelineInput
 import dev.dhev.nines.scoring.TimelineEntryState
-import dev.dhev.nines.scoring.TimelineHabitKind
-import dev.dhev.nines.scoring.buildHabitTimeline
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -32,7 +29,8 @@ import kotlin.random.Random
 @OptIn(ExperimentalCoroutinesApi::class)
 class HabitsViewModel(private val repository: HabitRepository) : ViewModel() {
 
-    private val selectedDate = MutableStateFlow(LocalDate.now())
+    private val today = LocalDate.now()
+    private val selectedDate = MutableStateFlow(today)
 
     val uiState: StateFlow<HabitsUiState> = combine(
         repository.observeActiveHabits(),
@@ -60,19 +58,16 @@ class HabitsViewModel(private val repository: HabitRepository) : ViewModel() {
 
     /** [date] is the selected date being browsed/edited - not necessarily today. */
     private fun habitItemFlow(habit: HabitEntity, date: LocalDate): Flow<HabitListItem?> =
-        repository.observeHabitTimelineData(habit.id)
-            .map { timelineData ->
-            val entries = timelineData.entries
-            val schedules = timelineData.schedules
-            val timeline = buildHabitTimeline(
-                HabitTimelineInput(
-                    kind = if (habit.type == HabitType.NUMERICAL) TimelineHabitKind.NUMERICAL else TimelineHabitKind.BOOLEAN,
-                    createdDate = habit.createdAt.atZone(ZoneId.systemDefault()).toLocalDate(),
-                    selectedDate = date,
-                    entries = entries,
-                    schedules = schedules,
-                ),
-            )
+        repository.observeHabitObservation(
+            habitId = habit.id,
+            selectedDate = flowOf(date),
+            asOfDate = today,
+            historyStartDate = today,
+        ).map { observation ->
+            if (observation == null) {
+                null
+            } else {
+            val timeline = observation.timeline
             if (!timeline.isVisible) {
                 null
             } else {
@@ -98,6 +93,7 @@ class HabitsViewModel(private val repository: HabitRepository) : ViewModel() {
                     targetDenominator = selectedSchedule?.target?.denominator ?: 1,
                     frequencyProgress = timeline.frequencyProgress,
                 )
+            }
             }
         }
 

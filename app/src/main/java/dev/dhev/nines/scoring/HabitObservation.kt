@@ -33,7 +33,10 @@ fun buildHabitObservation(input: HabitObservationInput): HabitObservation {
         .sortedBy { it.date }
     val entriesByDate = boundedEntries.associateBy { it.date }
     val calendarStart = maxOf(input.createdDate, input.historyStartDate)
-    val calendarEnd = minOf(input.asOfDate, input.selectedDate.coerceAtMost(input.asOfDate))
+    // The selected date changes the timeline's score/streak projection, but it must not
+    // truncate the historical calendar. Callers use the explicit as-of date to decide how
+    // much history is safe to show.
+    val calendarEnd = input.asOfDate
     val calendarDays = if (calendarEnd.isBefore(calendarStart)) {
         emptyList()
     } else {
@@ -60,5 +63,3 @@ fun buildHabitObservation(input: HabitObservationInput): HabitObservation {
         calendarDays = calendarDays,
     )
 }
-
-private fun LocalDate.coerceAtMost(other: LocalDate): LocalDate = if (isAfter(other)) other else this
