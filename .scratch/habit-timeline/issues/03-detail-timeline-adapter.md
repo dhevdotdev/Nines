@@ -10,9 +10,9 @@
 - [x] Existing detail UiState fields and action routing remain compatible.
 - [x] Detail history and selected-date Entry editing retain their current behavior.
 - [x] Detail-specific analytics remain outside the shared timeline seam.
-- [ ] ViewModel contract tests cover missing Habit, Entry updates, date changes, and action routing through the adapter.
+- [x] ViewModel contract tests cover missing Habit, Entry updates, date changes, and action routing through the adapter.
 - [ ] On-device verification confirms homepage and detail agree for today and a historical date.
 
 ## Comments
 
-- The detail adapter now owns an explicit selected date and feeds selected-date state, Score, Streak, target, value, and logging actions through the shared timeline. Numeric cycle labels are intentionally omitted because the timeline's value-based frequency progress is already represented by the numeric target UI. ViewModel contract tests and homepage/detail agreement verification remain open and must be closed by the test-infrastructure/device verification work before this ticket is done. `./gradlew test` passes and the detail/history flow was smoke-tested on-device.
+- The detail adapter now owns an explicit selected date and feeds selected-date state, Score, Streak, target, value, and logging actions through the shared timeline. Numeric cycle labels are intentionally omitted because the timeline's value-based frequency progress is already represented by the numeric target UI. ViewModel contract coverage is supplied by test-infrastructure ticket 01, including missing habits, binary and numeric selected-date actions, Entry updates, date changes, and return-to-today behavior. Homepage/detail agreement verification remains open. `./gradlew test` passes and the detail/history flow was smoke-tested on-device.
