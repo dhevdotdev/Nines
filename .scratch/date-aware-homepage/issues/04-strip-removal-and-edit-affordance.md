@@ -4,9 +4,9 @@
 
 **Blocked by:** 02 — day rail (touches the same row layout that ticket reworks for per-date state).
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] The per-row 5-dot history strip is removed from the homepage list
-- [ ] The habit detail screen's own history/calendar view is unchanged
-- [ ] The numeric-edit affordance on each row has a materially larger and more discoverable tap target (or a dedicated control) than the previous small value-text tap zone
-- [ ] Verified on-device via screenshots comparing before/after row layout, confirming the new edit affordance is easy to find and use
+- [x] The per-row 5-dot history strip is removed from the homepage list
+- [x] The habit detail screen's own history/calendar view is unchanged
+- [x] The numeric-edit affordance on each row has a materially larger and more discoverable tap target (or a dedicated control) than the previous small value-text tap zone
+- [x] Verified on-device via screenshots comparing before/after row layout, confirming the new edit affordance is easy to find and use

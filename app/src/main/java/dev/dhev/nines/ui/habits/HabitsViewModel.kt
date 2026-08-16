@@ -28,8 +28,6 @@ import java.time.LocalDate
 import java.time.ZoneId
 import kotlin.random.Random
 
-private const val RECENT_DAYS_WINDOW = 5
-
 @OptIn(ExperimentalCoroutinesApi::class)
 class HabitsViewModel(private val repository: HabitRepository) : ViewModel() {
 
@@ -60,22 +58,15 @@ class HabitsViewModel(private val repository: HabitRepository) : ViewModel() {
             initialValue = HabitsUiState(),
         )
 
-    /** [date] is the selected date being browsed/edited - not necessarily today. [recentDays]
-     * is the exception: that strip always shows the last few real calendar days regardless of
-     * [date], since it's a fixed "recently" glance, not a view of [date] itself. */
+    /** [date] is the selected date being browsed/edited - not necessarily today. */
     private fun habitItemFlow(habit: HabitEntity, date: LocalDate): Flow<HabitListItem> =
         repository.observeEntries(habit.id).map { entries ->
-            val today = LocalDate.now()
             val entriesByDate = entries.associateBy { it.date }
             val selectedEntry = entriesByDate[date]
             val completed = selectedEntry?.state == EntryState.COMPLETED
             val startDate = habit.createdAt.atZone(ZoneId.systemDefault()).toLocalDate()
             val score = repository.scoreSeries(habit.id, startDate, date).lastOrNull()?.score ?: 0.0
             val schedule = repository.scheduleEffectiveOn(habit.id, date)
-            val recentDays = (RECENT_DAYS_WINDOW - 1 downTo 0).map { offset ->
-                val recentDayDate = today.minusDays(offset.toLong())
-                DayCell(date = recentDayDate, state = entriesByDate[recentDayDate]?.state, isToday = recentDayDate == today)
-            }
             val completedDates = entries.filter { it.state == EntryState.COMPLETED }.map { it.date }.toSet()
             val streak = currentStreakLength(computeStreakRuns(completedDates, startDate, date), date)
             HabitListItem(
@@ -88,7 +79,6 @@ class HabitsViewModel(private val repository: HabitRepository) : ViewModel() {
                 completed = completed,
                 currentScore = score,
                 currentStreak = streak,
-                recentDays = recentDays,
                 currentValue = selectedEntry?.numericValue,
                 targetValue = schedule?.targetValue,
                 targetKind = schedule?.targetKind,

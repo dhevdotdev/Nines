@@ -1,10 +1,7 @@
 package dev.dhev.nines.ui.habits
 
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,16 +15,17 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.ripple
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -48,7 +46,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.foundation.text.KeyboardOptions
-import dev.dhev.nines.data.local.entity.EntryState
 import dev.dhev.nines.data.local.entity.HabitType
 import dev.dhev.nines.ui.theme.HabitColors
 import dev.dhev.nines.ui.theme.Spacing
@@ -140,10 +137,6 @@ fun HabitRow(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Spacer(Modifier.height(Spacing.small))
-                // Dots are a graphic element, not text — keeping them on their own line means
-                // nothing has to fight a text glyph for baseline alignment. Streak/value below
-                // are pure text on their own line for the same reason.
-                HistoryStrip(days = item.recentDays, accent = colors.accent)
                 val valueText = if (item.type == HabitType.NUMERICAL && item.targetValue != null) {
                     "${formatValue(item.currentValue ?: 0.0)}/${formatValue(item.targetValue)}${item.unit?.let { " $it" } ?: ""}"
                 } else {
@@ -172,10 +165,6 @@ fun HabitRow(
                                 color = colors.accent,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = ripple(),
-                                ) { showValueDialog = true },
                             )
                         }
                     }
@@ -183,6 +172,15 @@ fun HabitRow(
             }
 
             if (item.type == HabitType.NUMERICAL) {
+                FilledTonalIconButton(
+                    onClick = { showValueDialog = true },
+                    modifier = Modifier.size(48.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Edit,
+                        contentDescription = "Edit ${item.name} value",
+                    )
+                }
                 NumericProgressButton(
                     metTarget = item.completed,
                     onIncrement = { onIncrement(defaultIncrement(item.targetValue)) },
@@ -320,47 +318,6 @@ private fun EditValueDialog(
                         Text("Save")
                     }
                 }
-            }
-        }
-    }
-}
-
-/** A row of small dots — one per recent day — giving an at-a-glance history, uhabits-style. */
-@Composable
-private fun HistoryStrip(days: List<DayCell>, accent: Color) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.extraSmall),
-    ) {
-        days.forEach { day ->
-            val (fill, alpha) = when (day.state) {
-                EntryState.COMPLETED -> accent to 1f
-                EntryState.IN_PROGRESS -> accent to 0.4f
-                EntryState.SKIPPED, null -> MaterialTheme.colorScheme.outlineVariant to 1f
-            }
-            val targetColor = fill.copy(alpha = alpha)
-            if (day.isToday) {
-                // Only today's dot ever changes after first composition (toggling flips its
-                // state live), so only it needs an animated state — the other four are static
-                // once rendered and don't need the overhead of their own animatable.
-                val animatedColor by animateColorAsState(
-                    targetValue = targetColor,
-                    animationSpec = MaterialTheme.motionScheme.fastEffectsSpec(),
-                    label = "historyDotColor",
-                )
-                Box(
-                    modifier = Modifier
-                        .size(10.dp)
-                        .clip(CircleShape)
-                        .background(animatedColor),
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .clip(CircleShape)
-                        .background(targetColor),
-                )
             }
         }
     }

@@ -18,15 +18,26 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.Text
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ripple
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,6 +56,8 @@ import androidx.compose.ui.unit.dp
 import androidx.graphics.shapes.Morph
 import dev.dhev.nines.ui.theme.Spacing
 import java.time.LocalDate
+import java.time.ZoneOffset
+import java.time.Instant
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
@@ -68,6 +81,7 @@ fun DayRail(
     onSelectDate: (LocalDate) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var showCalendar by remember { mutableStateOf(false) }
     val weekStart = remember(today) {
         today.minusDays(today.dayOfWeek.value.toLong() % 7) // dayOfWeek.value: Mon=1..Sun=7, so Sun=7%7=0 back
     }
@@ -81,6 +95,7 @@ fun DayRail(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = Spacing.large, vertical = Spacing.small),
+        verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.extraSmall),
     ) {
         days.forEachIndexed { index, date ->
@@ -102,6 +117,64 @@ fun DayRail(
                 modifier = Modifier.weight(1f),
             )
         }
+        IconButton(
+            onClick = { showCalendar = true },
+            modifier = Modifier.size(48.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Filled.CalendarMonth,
+                contentDescription = "Choose a date",
+            )
+        }
+    }
+
+    if (showCalendar) {
+        CalendarDialog(
+            today = today,
+            selectedDate = selectedDate,
+            onSelectDate = onSelectDate,
+            onDismiss = { showCalendar = false },
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CalendarDialog(
+    today: LocalDate,
+    selectedDate: LocalDate,
+    onSelectDate: (LocalDate) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val todayMillis = today.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+    val pickerState = rememberDatePickerState(
+        initialSelectedDateMillis = selectedDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
+        selectableDates = object : SelectableDates {
+            override fun isSelectableDate(utcTimeMillis: Long): Boolean = utcTimeMillis <= todayMillis
+
+            override fun isSelectableYear(year: Int): Boolean = year <= today.year
+        },
+    )
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    pickerState.selectedDateMillis?.let { millis ->
+                        onSelectDate(Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate())
+                    }
+                    onDismiss()
+                },
+                enabled = pickerState.selectedDateMillis != null,
+            ) {
+                Text("Select")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    ) {
+        DatePicker(state = pickerState, showModeToggle = false)
     }
 }
 

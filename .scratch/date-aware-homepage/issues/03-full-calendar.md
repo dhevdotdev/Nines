@@ -4,9 +4,9 @@
 
 **Blocked by:** 02 — day rail.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] An affordance on the day rail opens a full calendar view
-- [ ] The calendar only ever offers dates up to and including today — no future date is selectable
-- [ ] Picking a date from the calendar selects it exactly as tapping a day in the rail would, updating the list identically
-- [ ] Verified on-device via screenshots: opening the calendar, picking a date older than the rail's window, and confirming the list updates correctly for that date
+- [x] An affordance on the day rail opens a full calendar view
+- [x] The calendar only ever offers dates up to and including today — no future date is selectable
+- [x] Picking a date from the calendar selects it exactly as tapping a day in the rail would, updating the list identically
+- [x] Verified on-device via screenshots: opening the calendar, picking a date older than the rail's window, and confirming the list updates correctly for that date

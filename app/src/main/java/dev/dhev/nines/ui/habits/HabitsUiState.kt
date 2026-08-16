@@ -5,7 +5,7 @@ import dev.dhev.nines.data.local.entity.HabitType
 import dev.dhev.nines.data.local.entity.TargetKind
 import java.time.LocalDate
 
-/** One day in a habit's at-a-glance history strip. [state] is null when no entry was logged. */
+/** One day in a habit's detailed history. [state] is null when no entry was logged. */
 data class DayCell(
     val date: LocalDate,
     val state: EntryState?,
@@ -24,7 +24,6 @@ data class HabitListItem(
     val completed: Boolean,
     val currentScore: Double,
     val currentStreak: Int = 0,
-    val recentDays: List<DayCell> = emptyList(),
     val currentValue: Double? = null,
     val targetValue: Double? = null,
     val targetKind: TargetKind? = null,

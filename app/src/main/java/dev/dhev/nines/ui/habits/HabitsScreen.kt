@@ -139,12 +139,18 @@ fun HabitsScreen(
     // once per theme change, not once per sheet open.
     val paletteColors = rememberHabitColorsForPalette(HabitPalette.seeds)
     val haptics = LocalHapticFeedback.current
+    val today = remember { LocalDate.now() }
     // Toggled from the top bar rather than a permanent per-row handle, and mutually exclusive
     // with the swipe gestures below - stacking a long-press-drag detector directly on the same
     // element as swipe-to-dismiss is exactly the kind of fragile gesture overlap that broke this
     // the first two times it was attempted. As separate modes, they're never both listening on
     // the same touch at once.
     var reorderMode by remember { mutableStateOf(false) }
+    LaunchedEffect(uiState.selectedDate) {
+        if (uiState.selectedDate != today) {
+            reorderMode = false
+        }
+    }
 
     // Order lives here, not directly on uiState.habits, so a drag can reorder immediately without
     // waiting on a DB write + Flow round-trip, while every other field (score, completed)
@@ -205,6 +211,7 @@ fun HabitsScreen(
                     // disabled while this is on (see the items loop below), so the two gesture
                     // systems are never live on the same touch at once.
                     IconButton(
+                        enabled = uiState.selectedDate == today,
                         onClick = {
                             haptics.performHapticFeedback(HapticFeedbackType.ToggleOn)
                             reorderMode = !reorderMode
@@ -212,7 +219,11 @@ fun HabitsScreen(
                     ) {
                         Icon(
                             imageVector = if (reorderMode) Icons.Filled.Check else Icons.Rounded.DragHandle,
-                            contentDescription = if (reorderMode) "Done reordering" else "Reorder habits",
+                            contentDescription = when {
+                                reorderMode -> "Done reordering"
+                                uiState.selectedDate != today -> "Reorder habits unavailable for past dates"
+                                else -> "Reorder habits"
+                            },
                         )
                     }
                     IconButton(
@@ -248,7 +259,6 @@ fun HabitsScreen(
         val visibleHabits = remember(displayedHabits, archivedLocally) {
             displayedHabits.filter { it.id !in archivedLocally }
         }
-        val today = remember { LocalDate.now() }
         Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
             DayRail(
                 today = today,
