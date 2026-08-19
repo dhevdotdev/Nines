@@ -33,3 +33,8 @@ silently completed page-one/page-two motion before those pages were visible.
 Waiting for the fully settled page plus a fixed delay was also rejected: it
 left entry geometry visibly frozen after the swipe. Inactive pages stay reset,
 then animate as they become current; reduced motion renders the final state.
+An outgoing page retains its completed geometry while inactive. Resetting it
+on either `currentPage` or `settledPage` changes made page three's insight
+marker jump to its off-canvas entry position while the pager still retained an
+outgoing frame in the 3-to-4 swipe seam. A revisited page resets and relaunches
+only when it becomes current again.
