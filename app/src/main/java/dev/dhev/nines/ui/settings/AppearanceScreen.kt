@@ -87,7 +87,8 @@ fun AppearanceScreen(
                 )
                 Spacer(Modifier.height(Spacing.small))
             }
-            items(AppColorSource.entries, key = { it.storageValue }) { source ->
+            item { AppearanceGroupHeader("System") }
+            items(listOf(AppColorSource.WALLPAPER), key = { it.storageValue }) { source ->
                 val available = source != AppColorSource.WALLPAPER || wallpaperAvailable
                 ColorSourceOption(
                     source = source,
@@ -96,8 +97,36 @@ fun AppearanceScreen(
                     onSelect = { onAction(AppearanceAction.SelectColorSource(source)) },
                 )
             }
+            item { AppearanceGroupHeader("Nines palettes") }
+            items(AppColorSource.ninesPalettes, key = { it.storageValue }) { source ->
+                ColorSourceOption(
+                    source = source,
+                    selected = uiState.colorSource == source,
+                    enabled = true,
+                    onSelect = { onAction(AppearanceAction.SelectColorSource(source)) },
+                )
+            }
+            item { AppearanceGroupHeader("Classic themes") }
+            items(AppColorSource.classicThemes, key = { it.storageValue }) { source ->
+                ColorSourceOption(
+                    source = source,
+                    selected = uiState.colorSource == source,
+                    enabled = true,
+                    onSelect = { onAction(AppearanceAction.SelectColorSource(source)) },
+                )
+            }
         }
     }
+}
+
+@Composable
+private fun AppearanceGroupHeader(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(top = Spacing.small),
+    )
 }
 
 @Composable
@@ -176,25 +205,53 @@ private fun PalettePreview(scheme: androidx.compose.material3.ColorScheme) {
                     .align(Alignment.TopStart)
                     .size(24.dp)
                     .background(scheme.primary, CircleShape),
-            )
+            ) {
+                Box(
+                    Modifier
+                        .align(Alignment.Center)
+                        .size(8.dp)
+                        .background(scheme.onPrimary, CircleShape),
+                )
+            }
             Box(
                 Modifier
                     .align(Alignment.BottomStart)
                     .size(30.dp, 18.dp)
                     .background(scheme.secondary, RoundedCornerShape(9.dp)),
-            )
+            ) {
+                Box(
+                    Modifier
+                        .align(Alignment.Center)
+                        .size(7.dp)
+                        .background(scheme.onSecondary, CircleShape),
+                )
+            }
             Box(
                 Modifier
                     .align(Alignment.CenterEnd)
                     .size(28.dp)
                     .background(scheme.tertiaryContainer, RoundedCornerShape(14.dp)),
-            )
+            ) {
+                Box(
+                    Modifier
+                        .align(Alignment.Center)
+                        .size(8.dp)
+                        .background(scheme.onTertiaryContainer, CircleShape),
+                )
+            }
             Box(
                 Modifier
                     .align(Alignment.Center)
                     .size(22.dp)
                     .background(scheme.primaryContainer, RoundedCornerShape(8.dp)),
-            )
+            ) {
+                Box(
+                    Modifier
+                        .align(Alignment.Center)
+                        .size(7.dp)
+                        .background(scheme.onPrimaryContainer, CircleShape),
+                )
+            }
         }
     }
 }
@@ -205,6 +262,10 @@ private fun AppColorSource.label(): String = when (this) {
     AppColorSource.FOREST -> "Forest"
     AppColorSource.OCEAN -> "Ocean"
     AppColorSource.SUNSET -> "Sunset"
+    AppColorSource.CATPPUCCIN -> "Catppuccin"
+    AppColorSource.TOKYO_NIGHT -> "Tokyo Night"
+    AppColorSource.DRACULA -> "Dracula"
+    AppColorSource.NORD -> "Nord"
 }
 
 private fun AppColorSource.description(wallpaperAvailable: Boolean): String = when (this) {
@@ -213,4 +274,8 @@ private fun AppColorSource.description(wallpaperAvailable: Boolean): String = wh
     AppColorSource.FOREST -> "Grounded green"
     AppColorSource.OCEAN -> "Clear blue"
     AppColorSource.SUNSET -> "Warm orange"
+    AppColorSource.CATPPUCCIN -> "Mocha-inspired lavender"
+    AppColorSource.TOKYO_NIGHT -> "Night-blue inspired"
+    AppColorSource.DRACULA -> "Purple-inspired"
+    AppColorSource.NORD -> "Arctic blue-inspired"
 }

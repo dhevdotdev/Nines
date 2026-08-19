@@ -14,4 +14,23 @@ class AppColorSourceTest {
     fun curatedSourceRemainsSelectedWhenSystemDynamicColorIsUnavailable() {
         assertEquals(AppColorSource.OCEAN, AppColorSource.OCEAN.effectiveSource(dynamicColorAvailable = false))
     }
+
+    @Test
+    fun knownClassicThemeValuesDeserializeToTheirPalette() {
+        assertEquals(AppColorSource.CATPPUCCIN, AppColorSource.fromStorage("catppuccin"))
+        assertEquals(AppColorSource.TOKYO_NIGHT, AppColorSource.fromStorage("tokyo_night"))
+    }
+
+    @Test
+    fun classicThemesAreTheCuratedDeveloperThemeSet() {
+        assertEquals(
+            listOf(
+                AppColorSource.CATPPUCCIN,
+                AppColorSource.TOKYO_NIGHT,
+                AppColorSource.DRACULA,
+                AppColorSource.NORD,
+            ),
+            AppColorSource.classicThemes,
+        )
+    }
 }

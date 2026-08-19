@@ -7,7 +7,7 @@ cannot supply wallpaper dynamic color.
 
 **Blocked by:** 01 — App color source foundation.
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [ ] Settings exposes Appearance and back navigation preserves the existing
   Settings flow.
@@ -17,3 +17,8 @@ cannot supply wallpaper dynamic color.
   choices remain usable everywhere.
 - [ ] Compose semantics and connected-device verification cover selection,
   previews, persistence, and readable live application.
+
+## Comments
+
+Implemented with actual ColorScheme role-pair previews. Device verification
+confirmed immediate recoloring and persistence after a process restart.

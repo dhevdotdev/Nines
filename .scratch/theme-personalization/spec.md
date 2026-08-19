@@ -1,6 +1,6 @@
 # App color source and palette picker
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Problem Statement
 
@@ -55,6 +55,10 @@ root app theme applies immediately and persists for future launches.
 - Curated choices are fixed named source colors, each expanded into a complete
   light/dark HCT ColorScheme using the existing Material Kolor color utilities
   and the current expressive/2025 color configuration.
+- Alongside Nines, Forest, Ocean, and Sunset, offer four recognizable
+  classic-theme-derived choices: Catppuccin, Tokyo Night, Dracula, and Nord.
+  Each uses a documented canonical accent as a seed and is labelled
+  “inspired” in the UI; it is not a literal editor-theme port.
 - System light/dark mode remains the only theme-mode choice in this feature.
 - Resolve the selected source once at the root Nines theme. All screens,
   dialogs, onboarding, and system bars consume that one scheme.
@@ -89,6 +93,8 @@ root app theme applies immediately and persists for future launches.
 - Arbitrary user-picked seed colors, image/content extraction, or custom
   palette editing.
 - Changing per-Habit palette choices or persistence.
+- Importing another theme project's code, raw color-role table, assets, or
+  manual theme-mode variants.
 - Recoloring individual screens outside the shared root theme.
 
 ## Further Notes

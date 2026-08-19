@@ -23,3 +23,23 @@ Wallpaper and curated choices must both resolve to full HCT-derived Material
 ColorSchemes at the root theme. Palette previews must render the real schemes,
 not decorative hand-picked swatches. Habit identity colors remain independent
 seeds, harmonized to the active app primary as they are today.
+
+## Classic-theme sources
+
+The classic-theme choices use a canonical accent as the HCT seed, then let
+Nines generate accessible Material light and dark role sets. They are therefore
+**inspired by**, not literal ports of, the editor themes: a literal port would
+override Material role pairings and fight the system light/dark mode.
+
+- Catppuccin Mocha's canonical mauve is `#cba6f7`. [Catppuccin
+  palette](https://github.com/catppuccin/palette/blob/main/palette.json)
+- Tokyo Night exposes `#7aa2f7` as its ANSI/chart blue. [Tokyo Night
+  theme](https://github.com/enkia/tokyo-night-vscode-theme/blob/master/themes/tokyo-night-color-theme.json)
+- Dracula's canonical purple is `#bd93f9`. [Dracula
+  palette](https://github.com/dracula/dracula-theme)
+- Nord's frost blue is `#88c0d0`. [Nord
+  palette](https://github.com/nordtheme/nord/blob/develop/src/nord.css)
+
+All four upstream repositories publish MIT licenses. Nines consumes no source
+code, assets, or raw role values from them; it records attribution in this
+research note and derives Material schemes from the listed accent seeds.
