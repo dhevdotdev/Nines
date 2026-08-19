@@ -1,6 +1,6 @@
 # Nines onboarding and in-app metric guidance
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Problem Statement
 

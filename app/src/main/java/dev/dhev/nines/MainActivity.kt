@@ -5,6 +5,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -24,11 +28,16 @@ import dev.dhev.nines.ui.nav.ArchivedHabitsRoute
 import dev.dhev.nines.ui.nav.HabitDetailRoute
 import dev.dhev.nines.ui.nav.HabitsRoute
 import dev.dhev.nines.ui.nav.SettingsRoute
+import dev.dhev.nines.ui.nav.OnboardingRoute
+import dev.dhev.nines.data.OnboardingCompletionStore
+import dev.dhev.nines.ui.onboarding.OnboardingScreen
 import dev.dhev.nines.ui.settings.ArchivedHabitsScreen
 import dev.dhev.nines.ui.settings.ArchivedHabitsViewModel
 import dev.dhev.nines.ui.settings.SettingsScreen
 import dev.dhev.nines.ui.theme.NinesTheme
 import org.koin.compose.viewmodel.koinViewModel
+import org.koin.compose.koinInject
+import kotlinx.coroutines.launch
 import org.koin.core.parameter.parametersOf
 
 class MainActivity : ComponentActivity() {
@@ -37,7 +46,15 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             NinesTheme {
-                NinesNavRoot()
+                val onboardingStore = koinInject<OnboardingCompletionStore>()
+                val onboardingCompleted by onboardingStore.completed.collectAsStateWithLifecycle(initialValue = null)
+                if (onboardingCompleted == null) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                } else {
+                    NinesNavRoot(onboardingStore, onboardingCompleted == true)
+                }
             }
         }
     }
@@ -51,8 +68,14 @@ class MainActivity : ComponentActivity() {
  * deferred until later; the library's own default is the simplest thing that reliably works.
  */
 @Composable
-private fun NinesNavRoot() {
-    val backStack = remember { mutableStateListOf<Any>(HabitsRoute) }
+private fun NinesNavRoot(
+    onboardingStore: OnboardingCompletionStore,
+    onboardingCompleted: Boolean,
+) {
+    val scope = rememberCoroutineScope()
+    val backStack = remember {
+        mutableStateListOf<Any>(if (onboardingCompleted) HabitsRoute else OnboardingRoute(replay = false))
+    }
 
     NavDisplay(
         backStack = backStack,
@@ -79,6 +102,28 @@ private fun NinesNavRoot() {
                 SettingsScreen(
                     onBack = dropUnlessResumed { backStack.removeLastOrNull() },
                     onArchivedHabitsClick = { backStack.add(ArchivedHabitsRoute) },
+                    onHowNinesWorksClick = { backStack.add(OnboardingRoute(replay = true)) },
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+            entry<OnboardingRoute> { route ->
+                OnboardingScreen(
+                    onComplete = {
+                        if (route.replay) backStack.removeLastOrNull()
+                        else {
+                            scope.launch { onboardingStore.markCompleted() }
+                            backStack.clear()
+                            backStack.add(HabitsRoute)
+                        }
+                    },
+                    onExit = {
+                        if (route.replay) backStack.removeLastOrNull()
+                        else {
+                            scope.launch { onboardingStore.markCompleted() }
+                            backStack.clear()
+                            backStack.add(HabitsRoute)
+                        }
+                    },
                     modifier = Modifier.fillMaxSize(),
                 )
             }
