@@ -24,6 +24,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.Switch
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -41,6 +42,8 @@ fun SettingsScreen(
     onArchivedHabitsClick: () -> Unit,
     onAppearanceClick: () -> Unit,
     onHowNinesWorksClick: () -> Unit,
+    combineSimultaneous: Boolean = false,
+    onCombineSimultaneousChange: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
@@ -62,6 +65,12 @@ fun SettingsScreen(
                 label = "Appearance",
                 onClick = onAppearanceClick,
             )
+            SettingsSwitchRow(
+                label = "Combine simultaneous reminders",
+                supportingText = "Use one notification when reminders are due together",
+                checked = combineSimultaneous,
+                onCheckedChange = onCombineSimultaneousChange,
+            )
             SettingsMenuRow(
                 icon = Icons.Filled.School,
                 label = "How Nines works",
@@ -73,6 +82,25 @@ fun SettingsScreen(
                 onClick = onArchivedHabitsClick,
             )
         }
+    }
+}
+
+@Composable
+private fun SettingsSwitchRow(
+    label: String,
+    supportingText: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.large, vertical = Spacing.default),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(label, style = MaterialTheme.typography.bodyLarge)
+            Text(supportingText, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
 

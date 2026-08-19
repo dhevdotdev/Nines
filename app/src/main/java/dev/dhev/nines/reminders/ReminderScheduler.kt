@@ -7,6 +7,7 @@ import android.content.Intent
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
+import java.time.Instant
 
 /** Best-effort local-time scheduling; delivery is intentionally not an exact-alarm use case. */
 class ReminderScheduler(private val context: Context) {
@@ -15,10 +16,14 @@ class ReminderScheduler(private val context: Context) {
         val next = now.toLocalDate().atTime(localTime).let { candidate ->
             if (candidate.isAfter(now)) candidate else candidate.plusDays(1)
         }
-        val triggerAt = next.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        scheduleAt(habitId, next.atZone(ZoneId.systemDefault()).toInstant())
+    }
+
+    /** Schedules a one-off delivery at an already-resolved instant, used by Snooze. */
+    fun scheduleAt(habitId: Long, instant: Instant) {
         context.getSystemService(AlarmManager::class.java).setAndAllowWhileIdle(
             AlarmManager.RTC_WAKEUP,
-            triggerAt,
+            instant.toEpochMilli(),
             pendingIntent(habitId),
         )
     }

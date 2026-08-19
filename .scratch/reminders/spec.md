@@ -1,6 +1,6 @@
 # Opt-in, schedule-aware Habit Reminders
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Problem Statement
 

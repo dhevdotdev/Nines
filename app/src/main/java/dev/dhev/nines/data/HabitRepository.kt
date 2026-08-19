@@ -21,6 +21,8 @@ import dev.dhev.nines.scoring.TimelineHabitKind
 import dev.dhev.nines.scoring.TimelineSchedule
 import dev.dhev.nines.scoring.buildHabitTimeline
 import dev.dhev.nines.scoring.computeScheduleAwareScoreSeries
+import dev.dhev.nines.scoring.computeFrequencyProgress
+import dev.dhev.nines.scoring.FrequencyProgressInput
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import java.time.Instant
@@ -48,6 +50,43 @@ class HabitRepository(
     suspend fun habit(habitId: Long): HabitEntity? = habitDao.getById(habitId)
 
     suspend fun entryOn(habitId: Long, date: LocalDate): EntryEntity? = entryDao.entryOn(habitId, date)
+
+    /** True when the active schedule says this habit no longer needs a reminder for [date]. */
+    suspend fun isReminderResolved(habitId: Long, date: LocalDate): Boolean {
+        val habit = habitDao.getById(habitId) ?: return true
+        val schedule = scheduleVersionDao.versionEffectiveOn(habitId, date) ?: return false
+        val entry = entryDao.entryOn(habitId, date)
+        if (entry?.state == EntryState.SKIPPED) return true
+        if (habit.type == HabitType.NUMERICAL && schedule.targetKind == TargetKind.AT_MOST) {
+            return entry?.numericValue != null
+        }
+        val windowStart = date.minusDays(schedule.targetDenominator.toLong() - 1)
+        val entries = entryDao.entriesBetween(habitId, windowStart, date)
+        val progress = if (habit.type == HabitType.NUMERICAL) {
+            val targetValue = schedule.targetValue ?: return false
+            computeFrequencyProgress(
+                selectedDate = date,
+                target = ScheduleTarget(schedule.targetNumerator, schedule.targetDenominator),
+                input = FrequencyProgressInput.NumericEntries(
+                    valuesByDate = entries.mapNotNull { it.numericValue?.let { value -> it.date to value } }.toMap(),
+                    targetValue = targetValue,
+                    targetKind = when (schedule.targetKind) {
+                        TargetKind.AT_MOST -> FrequencyTargetKind.AT_MOST
+                        else -> FrequencyTargetKind.AT_LEAST
+                    },
+                ),
+            )
+        } else {
+            computeFrequencyProgress(
+                selectedDate = date,
+                target = ScheduleTarget(schedule.targetNumerator, schedule.targetDenominator),
+                input = FrequencyProgressInput.BooleanEntries(
+                    completedDates = entries.filter { it.state == EntryState.COMPLETED }.map { it.date }.toSet(),
+                ),
+            )
+        }
+        return progress.isMet
+    }
 
     fun observeEntries(habitId: Long): Flow<List<EntryEntity>> = entryDao.observeEntries(habitId)
 

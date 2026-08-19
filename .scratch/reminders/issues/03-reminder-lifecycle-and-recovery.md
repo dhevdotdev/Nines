@@ -6,15 +6,14 @@ archive/restore.
 
 **Blocked by:** 02 — Schedule-aware numeric and flexible Reminder resolution.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Denying notification permission preserves the chosen Reminder and presents a clear in-app path
+- [x] Denying notification permission preserves the chosen Reminder and presents a clear in-app path
       to restore delivery later.
-- [ ] Configured and unresolved Reminders recover after process recreation and reboot with their
+- [x] Configured and unresolved Reminders recover after process recreation and reboot with their
       original date intact; future scheduling follows current local time.
-- [ ] Archiving cancels active and scheduled delivery without losing configuration; restoring resumes
+- [x] Archiving cancels active and scheduled delivery without losing configuration; restoring resumes
       the configured Reminder.
-- [ ] Delivery remains best-effort, respects Do Not Disturb, and does not request exact-alarm or
+- [x] Delivery remains best-effort, respects Do Not Disturb, and does not request exact-alarm or
       unrestricted battery access.
-- [ ] Connected-device verification covers the recoverable lifecycle paths practical on the device.
-
+- [x] Connected-device verification covers the recoverable lifecycle paths practical on the device.

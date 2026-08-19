@@ -108,6 +108,7 @@ fun HabitDetailScreen(
     uiState: HabitDetailUiState,
     onBack: () -> Unit,
     onAction: (HabitDetailAction) -> Unit,
+    openValueEditor: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val colors = rememberHabitColors(Color(uiState.color))
@@ -117,6 +118,17 @@ fun HabitDetailScreen(
     var editingDay by remember { mutableStateOf<DayCell?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
     val snackbarScope = rememberCoroutineScope()
+
+    LaunchedEffect(openValueEditor, uiState.isLoading, uiState.type, uiState.selectedDate) {
+        if (openValueEditor && !uiState.isLoading && uiState.type == HabitType.NUMERICAL) {
+            editingDay = DayCell(
+                date = uiState.selectedDate,
+                state = if (uiState.completed) EntryState.COMPLETED else EntryState.IN_PROGRESS,
+                isToday = uiState.selectedDate == uiState.today,
+                numericValue = uiState.currentValue,
+            )
+        }
+    }
 
     fun clearNumericEntry(value: Double, date: LocalDate) {
         onAction(HabitDetailAction.ClearNumericEntry(date, value))

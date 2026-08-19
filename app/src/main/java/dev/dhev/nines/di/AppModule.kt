@@ -7,6 +7,8 @@ import dev.dhev.nines.data.appearancePreferencesStore
 import dev.dhev.nines.data.OnboardingCompletionStore
 import dev.dhev.nines.data.onboardingCompletionStore
 import dev.dhev.nines.data.ReminderRepository
+import dev.dhev.nines.data.ReminderPreferencesStore
+import dev.dhev.nines.data.reminderPreferencesStore
 import dev.dhev.nines.data.local.NinesDatabase
 import dev.dhev.nines.ui.habits.HabitDetailViewModel
 import dev.dhev.nines.ui.habits.HabitsViewModel
@@ -22,6 +24,7 @@ import org.koin.dsl.module
 val appModule = module {
     single<AppearancePreferencesStore> { androidContext().appearancePreferencesStore() }
     single<OnboardingCompletionStore> { androidContext().onboardingCompletionStore() }
+    single<ReminderPreferencesStore> { androidContext().reminderPreferencesStore() }
     single {
         Room.databaseBuilder(androidContext(), NinesDatabase::class.java, "nines.db")
             // Pre-release: no installed base to migrate yet. Replace with real Migrations before shipping.
@@ -35,7 +38,7 @@ val appModule = module {
     single { HabitRepository(get(), get(), get()) }
     single { ReminderRepository(get()) }
     single { ReminderScheduler(androidContext()) }
-    single { ReminderNotificationCoordinator(androidContext(), get(), get(), get()) }
+    single { ReminderNotificationCoordinator(androidContext(), get(), get(), get(), get()) }
 
     viewModelOf(::HabitsViewModel)
     viewModelOf(::HabitDetailViewModel)

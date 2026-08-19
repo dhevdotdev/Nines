@@ -4,7 +4,7 @@ sealed interface NinesRoute
 
 data object HabitsRoute : NinesRoute
 
-data class HabitDetailRoute(val habitId: Long) : NinesRoute
+data class HabitDetailRoute(val habitId: Long, val openValueEditor: Boolean = false) : NinesRoute
 
 data object SettingsRoute : NinesRoute
 

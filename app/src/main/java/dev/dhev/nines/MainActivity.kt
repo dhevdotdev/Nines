@@ -33,6 +33,7 @@ import dev.dhev.nines.ui.nav.OnboardingRoute
 import dev.dhev.nines.data.OnboardingCompletionStore
 import dev.dhev.nines.data.AppearancePreferencesStore
 import dev.dhev.nines.data.AppearancePreferences
+import dev.dhev.nines.data.ReminderPreferencesStore
 import dev.dhev.nines.ui.onboarding.OnboardingScreen
 import dev.dhev.nines.ui.settings.ArchivedHabitsScreen
 import dev.dhev.nines.ui.settings.ArchivedHabitsViewModel
@@ -46,12 +47,21 @@ import kotlinx.coroutines.launch
 import org.koin.core.parameter.parametersOf
 
 class MainActivity : ComponentActivity() {
+    companion object {
+        const val OPEN_HABIT_ID = "dev.dhev.nines.OPEN_HABIT_ID"
+        const val OPEN_VALUE_EDITOR = "dev.dhev.nines.OPEN_VALUE_EDITOR"
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        val openHabitId = intent.getLongExtra(OPEN_HABIT_ID, -1L).takeIf { it >= 0L }
+        val openValueEditor = intent.getBooleanExtra(OPEN_VALUE_EDITOR, false)
         setContent {
             val appearanceStore = koinInject<AppearancePreferencesStore>()
             val appearance by appearanceStore.appearance.collectAsStateWithLifecycle(initialValue = AppearancePreferences())
+            val reminderPreferencesStore = koinInject<ReminderPreferencesStore>()
+            val reminderPreferences by reminderPreferencesStore.preferencesFlow.collectAsStateWithLifecycle(initialValue = dev.dhev.nines.data.ReminderPreferences())
             NinesTheme(colorSource = appearance.colorSource, customSeedArgb = appearance.customSeedArgb) {
                 val onboardingStore = koinInject<OnboardingCompletionStore>()
                 val onboardingCompleted by onboardingStore.completed.collectAsStateWithLifecycle(initialValue = null)
@@ -60,7 +70,7 @@ class MainActivity : ComponentActivity() {
                         CircularProgressIndicator()
                     }
                 } else {
-                    NinesNavRoot(onboardingStore, onboardingCompleted == true)
+                    NinesNavRoot(onboardingStore, onboardingCompleted == true, reminderPreferences.combineSimultaneous, reminderPreferencesStore, openHabitId, openValueEditor)
                 }
             }
         }
@@ -78,10 +88,20 @@ class MainActivity : ComponentActivity() {
 private fun NinesNavRoot(
     onboardingStore: OnboardingCompletionStore,
     onboardingCompleted: Boolean,
+    combineSimultaneous: Boolean,
+    reminderPreferencesStore: ReminderPreferencesStore,
+    openHabitId: Long? = null,
+    openValueEditor: Boolean = false,
 ) {
     val scope = rememberCoroutineScope()
     val backStack = remember {
-        mutableStateListOf<Any>(if (onboardingCompleted) HabitsRoute else OnboardingRoute(replay = false))
+        mutableStateListOf<Any>(
+            when {
+                !onboardingCompleted -> OnboardingRoute(replay = false)
+                openHabitId != null -> HabitDetailRoute(openHabitId, openValueEditor)
+                else -> HabitsRoute
+            },
+        )
     }
 
     NavDisplay(
@@ -111,6 +131,8 @@ private fun NinesNavRoot(
                     onArchivedHabitsClick = { backStack.add(ArchivedHabitsRoute) },
                     onAppearanceClick = { backStack.add(AppearanceRoute) },
                     onHowNinesWorksClick = { backStack.add(OnboardingRoute(replay = true)) },
+                    combineSimultaneous = combineSimultaneous,
+                    onCombineSimultaneousChange = { enabled -> scope.launch { reminderPreferencesStore.setCombineSimultaneous(enabled) } },
                     modifier = Modifier.fillMaxSize(),
                 )
             }
@@ -164,6 +186,7 @@ private fun NinesNavRoot(
                     uiState = uiState,
                     onBack = dropUnlessResumed { backStack.removeLastOrNull() },
                     onAction = viewModel::onAction,
+                    openValueEditor = route.openValueEditor,
                     modifier = Modifier.fillMaxSize(),
                 )
             }

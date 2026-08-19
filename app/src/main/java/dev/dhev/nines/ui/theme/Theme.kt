@@ -75,7 +75,16 @@ fun rememberNinesColorScheme(
     val effectiveSource = colorSource.effectiveSource(dynamicColorAvailable)
     return when (effectiveSource) {
         AppColorSource.WALLPAPER ->
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            } else {
+                rememberDynamicColorScheme(
+                    seedColor = Color(AppColorSource.NINES.seedArgb!!.toInt()),
+                    isDark = darkTheme,
+                    style = PaletteStyle.Expressive,
+                    specVersion = ColorSpec.SpecVersion.SPEC_2025,
+                )
+            }
         else -> rememberDynamicColorScheme(
             seedColor = Color((effectiveSource.seedArgb ?: customSeedArgb).toInt()),
             isDark = darkTheme,
