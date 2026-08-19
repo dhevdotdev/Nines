@@ -12,3 +12,10 @@
 - [x] Skip and Get started land on the real homepage and prevent automatic onboarding on later launches.
 - [x] Onboarding uses local DataStore Preferences state, dynamic color, accessibility semantics, and reduced-motion behavior.
 - [x] JVM/Compose semantics coverage and a connected fresh-install smoke flow verify the user-visible behavior.
+
+## Visual direction follow-up
+
+The onboarding artwork uses the selected Handmade Signal direction from the
+`prototype/onboarding-art` comparison. The production motion keeps the frame
+stable and uses a finite spring settle on the internal circles, path, and dots;
+the reduced-motion setting renders the settled state directly.
