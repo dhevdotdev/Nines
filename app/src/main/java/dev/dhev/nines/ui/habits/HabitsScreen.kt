@@ -66,13 +66,11 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.toShape
-import androidx.compose.material3.MediumFloatingActionButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -266,19 +264,12 @@ fun HabitsScreen(
             )
         },
         floatingActionButton = {
-            // Medium is M3 Expressive's recommended default size, not the plain (small-tier) FAB.
-            MediumFloatingActionButton(
+            AddHabitAction(
                 onClick = {
                     haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
                     showAddSheet = true
                 },
-            ) {
-                Icon(
-                    Icons.Filled.Add,
-                    contentDescription = "Add habit",
-                    modifier = Modifier.size(FloatingActionButtonDefaults.MediumIconSize),
-                )
-            }
+            )
         },
     ) { innerPadding ->
         val visibleHabits = remember(displayedHabits, archivedLocally) {

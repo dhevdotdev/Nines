@@ -11,8 +11,8 @@ a distinct, expressive moment or match the visual hierarchy of the rest of the s
 ## Solution
 
 Keep the existing Add Habit action pinned at the bottom end of the homepage, but present it as a
-compact extended control: a plus icon and the literal label “Add habit” on a Nines Cookie9-sided
-surface. It derives its colors from the active Material color scheme, gives a quick local spatial
+compact extended control: a plus icon and the literal label “Add habit” using Material Expressive’s
+native small-extended form. It derives its colors from the active Material color scheme, gives a quick local spatial
 press response with haptic feedback, and opens the existing Habit editor without transitioning into
 it.
 
@@ -43,8 +43,9 @@ it.
 
 - The homepage creation action remains in the existing scaffold floating-action slot, preserving its
   pinned bottom-end placement and its existing editor-opening callback.
-- The visual surface is a medium extended Material floating action button, with a plus icon and
-  “Add habit” label. Its idle shape is `Cookie9Sided` from Material Expressive shapes.
+- The visual surface is a compact small extended Material floating action button, with a plus icon
+  and “Add habit” label. It uses Material Expressive’s native small-extended shape; a Cookie9
+  silhouette was rejected after device review because it reads as a cloud at this wide aspect ratio.
 - The action explicitly uses `tertiaryContainer` and `onTertiaryContainer` from the active Material
   color scheme. This keeps wallpaper dynamic color and curated palettes as the sole color source.
 - A locally scoped, fast spatial scale response is driven from the action’s pressed interaction;

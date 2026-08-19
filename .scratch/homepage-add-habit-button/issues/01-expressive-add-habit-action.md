@@ -7,10 +7,11 @@ native to Nines’ expressive homepage while continuing to open the exact same e
 
 **Status:** ready-for-agent
 
-- [ ] The homepage shows a bottom-end pinned medium extended action with a plus icon and “Add
+- [ ] The homepage shows a bottom-end pinned compact extended action with a plus icon and “Add
       habit” label while the Habit list scrolls.
-- [ ] The idle action uses the active scheme’s tertiary-container/on-tertiary-container pair and a
-      Cookie9-sided shape, remaining legible in light, dark, wallpaper-derived, and curated schemes.
+- [ ] The idle action uses the active scheme’s tertiary-container/on-tertiary-container pair and the
+      native Material Expressive small-extended shape, remaining legible in light, dark,
+      wallpaper-derived, and curated schemes.
 - [ ] A tap provides fast local spatial press feedback and haptic feedback, without a zoom, squeeze,
       or hero transition into the editor.
 - [ ] The action retains an accessible Add habit label and opens the existing Habit editor; creating
