@@ -3,6 +3,7 @@ package dev.dhev.nines.ui.habits
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -113,5 +114,17 @@ class HabitControlsSemanticsTest {
 
         composeRule.onNodeWithText("Clear entry").assertIsEnabled().performClick()
         assertTrue(cleared)
+    }
+
+    @Test
+    fun emptyInsightsStateExplainsHowToUnlockPatterns() {
+        composeRule.setContent {
+            NinesTheme(dynamicColor = false) {
+                EmptyInsightsState(accent = Color.Blue)
+            }
+        }
+
+        composeRule.onNodeWithText("Patterns are waiting").assertIsDisplayed()
+        composeRule.onNodeWithText("Keep logging and Nines will connect the dots.").assertIsDisplayed()
     }
 }

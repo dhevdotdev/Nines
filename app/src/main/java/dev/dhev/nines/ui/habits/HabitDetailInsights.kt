@@ -138,8 +138,6 @@ fun InsightsSection(uiState: HabitDetailUiState, accent: Color) {
             add { LongestGapRow(gap = gap, accent = accent, today = uiState.today) }
         }
     }
-    if (rows.isEmpty()) return
-
     Spacer(Modifier.height(Spacing.extraLarge))
     Text(
         text = "Insights",
@@ -155,9 +153,13 @@ fun InsightsSection(uiState: HabitDetailUiState, accent: Color) {
             modifier = Modifier.padding(Spacing.default),
             verticalArrangement = Arrangement.spacedBy(Spacing.default),
         ) {
-            rows.forEachIndexed { index, row ->
-                if (index > 0) HorizontalDivider(color = accent.copy(alpha = 0.12f))
-                row()
+            if (rows.isEmpty()) {
+                EmptyInsightsState(accent = accent)
+            } else {
+                rows.forEachIndexed { index, row ->
+                    if (index > 0) HorizontalDivider(color = accent.copy(alpha = 0.12f))
+                    row()
+                }
             }
         }
     }
