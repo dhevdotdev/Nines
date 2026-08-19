@@ -146,12 +146,23 @@ private fun CustomColorOption(seedArgb: Long, selected: Boolean, onSelect: (Long
         var hue by remember(seedArgb) { mutableFloatStateOf(initialHsv[0]) }
         var saturation by remember(seedArgb) { mutableFloatStateOf(initialHsv[1]) }
         val color = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, saturation, 82f)))
+        val previewScheme = rememberNinesColorScheme(
+            colorSource = AppColorSource.CUSTOM,
+            customSeedArgb = color.toSeedArgb(),
+        )
         AlertDialog(
             onDismissRequest = { editing = false },
             title = { Text("Create your palette") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.small)) {
-                    Box(Modifier.fillMaxWidth().height(72.dp).background(color, MaterialTheme.shapes.largeIncreased))
+                    Row(
+                        modifier = Modifier.fillMaxWidth().background(previewScheme.primaryContainer, MaterialTheme.shapes.largeIncreased).padding(Spacing.default),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.default),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        PalettePreview(scheme = previewScheme)
+                        Text("Your Material palette", color = previewScheme.onPrimaryContainer)
+                    }
                     Text("Hue")
                     Slider(value = hue, onValueChange = { hue = it }, valueRange = 0f..360f)
                     Text("Intensity")
