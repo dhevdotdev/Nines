@@ -38,3 +38,12 @@ _Avoid_: Persisting streak length as a field on the habit.
 **Archive**:
 Soft-removing a habit from the active list (`archivedAt` set on the entity) without touching its history. Restorable from Settings → Archived Habits.
 _Avoid_: Delete — nothing is ever hard-deleted through the app's own delete/swipe-to-archive UI, even though the UI affordance (icon, action name) sometimes still says "delete."
+
+An archived Habit has no active Reminder. Restoring it resumes its configured Reminder.
+
+**Reminder**:
+An optional, per-Habit prompt at a user-chosen local time to take the next needed Habit action. A boolean or `AT_LEAST` numeric Habit resolves its Reminder by meeting its Target; an `AT_MOST` numeric Habit resolves it by recording its value, after which Nines derives whether the Target was met. An unresolved Reminder remains associated with its original date until resolved, including after device restart. A Reminder is not an Entry and does not itself affect Score, Streak, or Gap.
+_Avoid_: Treating a notification dismissal as completion or a miss.
+
+**Snooze**:
+Temporarily deferring a Reminder without changing the Habit’s Entry. In contrast, “Not today” is an explicit `SKIPPED` Entry and is therefore a real tracking decision.
