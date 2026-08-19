@@ -6,7 +6,7 @@ palette from a chosen seed color.
 
 **Blocked by:** 01, 02 — existing source resolution and Appearance picker.
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [ ] Rename the classic-theme grouping to neutral, user-facing language and
   expand it to the documented twelve theme-derived sources.
@@ -21,3 +21,6 @@ palette from a chosen seed color.
 
 This is an approved extension of the original Appearance work. It deliberately
 keeps named themes as inspired seed sources, not code or visual ports.
+
+Implemented with twelve theme-derived HCT sources and a persisted Custom seed
+editor. Full JVM and connected-device regression tests passed.

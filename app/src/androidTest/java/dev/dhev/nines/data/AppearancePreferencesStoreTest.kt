@@ -27,4 +27,18 @@ class AppearancePreferencesStoreTest {
         store.select(AppColorSource.FOREST)
         assertEquals(AppColorSource.FOREST, store.colorSource.first())
     }
+
+    @Test
+    fun customColorPersistsItsSeedAndSelectsCustom() = runBlocking {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val dataStore = PreferenceDataStoreFactory.create {
+            context.preferencesDataStoreFile("appearance-test-${UUID.randomUUID()}")
+        }
+        val store = AppearancePreferencesStore(dataStore)
+
+        store.selectCustom(0xFF00A896L)
+
+        assertEquals(AppColorSource.CUSTOM, store.appearance.first().colorSource)
+        assertEquals(0xFF00A896L, store.appearance.first().customSeedArgb)
+    }
 }

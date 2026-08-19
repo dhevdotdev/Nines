@@ -25,11 +25,13 @@ import dev.dhev.nines.appearance.AppColorSource
 fun NinesTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     colorSource: AppColorSource = AppColorSource.WALLPAPER,
+    customSeedArgb: Long = 0xFFCBA6F7L,
     dynamicColor: Boolean = true,
     content: @Composable () -> Unit,
 ) {
     val colorScheme = rememberNinesColorScheme(
         colorSource = colorSource,
+        customSeedArgb = customSeedArgb,
         darkTheme = darkTheme,
         dynamicColor = dynamicColor,
     )
@@ -64,6 +66,7 @@ fun NinesTheme(
 @Composable
 fun rememberNinesColorScheme(
     colorSource: AppColorSource,
+    customSeedArgb: Long = 0xFFCBA6F7L,
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = true,
 ): ColorScheme {
@@ -74,7 +77,7 @@ fun rememberNinesColorScheme(
         AppColorSource.WALLPAPER ->
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         else -> rememberDynamicColorScheme(
-            seedColor = Color(requireNotNull(effectiveSource.seedArgb).toInt()),
+            seedColor = Color((effectiveSource.seedArgb ?: customSeedArgb).toInt()),
             isDark = darkTheme,
             style = PaletteStyle.Expressive,
             specVersion = ColorSpec.SpecVersion.SPEC_2025,

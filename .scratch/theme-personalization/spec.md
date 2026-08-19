@@ -1,6 +1,6 @@
 # App color source and palette picker
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Problem Statement
 

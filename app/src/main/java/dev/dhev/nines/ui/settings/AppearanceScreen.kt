@@ -24,15 +24,24 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
@@ -104,8 +113,8 @@ fun AppearanceScreen(
                     onSelect = { onAction(AppearanceAction.SelectColorSource(source)) },
                 )
             }
-            item { AppearanceGroupHeader("Classic themes") }
-            items(AppColorSource.classicThemes, key = { it.storageValue }) { source ->
+            item { AppearanceGroupHeader("Theme collection") }
+            items(AppColorSource.themeCollection, key = { it.storageValue }) { source ->
                 ColorSourceOption(
                     source = source,
                     selected = uiState.colorSource == source,
@@ -113,7 +122,45 @@ fun AppearanceScreen(
                     onSelect = { onAction(AppearanceAction.SelectColorSource(source)) },
                 )
             }
+            item { AppearanceGroupHeader("Make it yours") }
+            item {
+                CustomColorOption(
+                    seedArgb = uiState.customSeedArgb,
+                    selected = uiState.colorSource == AppColorSource.CUSTOM,
+                    onSelect = { onAction(AppearanceAction.SelectCustomColor(it)) },
+                )
+            }
         }
+    }
+}
+
+@Composable
+private fun CustomColorOption(seedArgb: Long, selected: Boolean, onSelect: (Long) -> Unit) {
+    var editing by remember { mutableStateOf(false) }
+    ColorSourceOption(AppColorSource.CUSTOM, selected, true, seedArgb) { editing = true }
+    if (editing) {
+        val initialHsv = remember(seedArgb) {
+            FloatArray(3).also { android.graphics.Color.colorToHSV(seedArgb.toInt(), it) }
+        }
+        var hue by remember(seedArgb) { mutableFloatStateOf(initialHsv[0]) }
+        var saturation by remember(seedArgb) { mutableFloatStateOf(initialHsv[1]) }
+        val color = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, saturation, 82f)))
+        AlertDialog(
+            onDismissRequest = { editing = false },
+            title = { Text("Create your palette") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.small)) {
+                    Box(Modifier.fillMaxWidth().height(72.dp).background(color, MaterialTheme.shapes.largeIncreased))
+                    Text("Hue")
+                    Slider(value = hue, onValueChange = { hue = it }, valueRange = 0f..360f)
+                    Text("Intensity")
+                    Slider(value = saturation, onValueChange = { saturation = it }, valueRange = 20f..100f)
+                    Text("Nines will derive every accessible Material color role from this one color.", style = MaterialTheme.typography.bodySmall)
+                }
+            },
+            confirmButton = { Button(onClick = { onSelect(color.value.toLong()); editing = false }) { Text("Use palette") } },
+            dismissButton = { Button(onClick = { editing = false }) { Text("Cancel") } },
+        )
     }
 }
 
@@ -132,9 +179,10 @@ private fun ColorSourceOption(
     source: AppColorSource,
     selected: Boolean,
     enabled: Boolean,
+    customSeedArgb: Long = 0xFFCBA6F7L,
     onSelect: () -> Unit,
 ) {
-    val scheme = rememberNinesColorScheme(colorSource = source)
+    val scheme = rememberNinesColorScheme(colorSource = source, customSeedArgb = customSeedArgb)
     val container = when {
         selected -> MaterialTheme.colorScheme.primaryContainer
         enabled -> MaterialTheme.colorScheme.surfaceContainer
@@ -260,6 +308,15 @@ private fun AppColorSource.label(): String = when (this) {
     AppColorSource.TOKYO_NIGHT -> "Tokyo Night"
     AppColorSource.DRACULA -> "Dracula"
     AppColorSource.NORD -> "Nord"
+    AppColorSource.ONE_DARK -> "One Dark"
+    AppColorSource.GRUVBOX -> "Gruvbox"
+    AppColorSource.SOLARIZED -> "Solarized"
+    AppColorSource.MONOKAI -> "Monokai"
+    AppColorSource.KANAGAWA -> "Kanagawa"
+    AppColorSource.ROSE_PINE -> "Rosé Pine"
+    AppColorSource.EVERFOREST -> "Everforest"
+    AppColorSource.NIGHTFOX -> "Nightfox"
+    AppColorSource.CUSTOM -> "Custom"
 }
 
 private fun AppColorSource.description(wallpaperAvailable: Boolean): String = when (this) {
@@ -272,4 +329,13 @@ private fun AppColorSource.description(wallpaperAvailable: Boolean): String = wh
     AppColorSource.TOKYO_NIGHT -> "Night-blue inspired"
     AppColorSource.DRACULA -> "Purple-inspired"
     AppColorSource.NORD -> "Arctic blue-inspired"
+    AppColorSource.ONE_DARK -> "Atom-inspired blue"
+    AppColorSource.GRUVBOX -> "Warm retro gold"
+    AppColorSource.SOLARIZED -> "Balanced blue"
+    AppColorSource.MONOKAI -> "Vivid pink"
+    AppColorSource.KANAGAWA -> "Indigo-inspired"
+    AppColorSource.ROSE_PINE -> "Soft iris-inspired"
+    AppColorSource.EVERFOREST -> "Muted green"
+    AppColorSource.NIGHTFOX -> "Deep blue-inspired"
+    AppColorSource.CUSTOM -> "Create a palette from your own color"
 }

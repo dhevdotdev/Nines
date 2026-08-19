@@ -32,7 +32,7 @@ import dev.dhev.nines.ui.nav.AppearanceRoute
 import dev.dhev.nines.ui.nav.OnboardingRoute
 import dev.dhev.nines.data.OnboardingCompletionStore
 import dev.dhev.nines.data.AppearancePreferencesStore
-import dev.dhev.nines.appearance.AppColorSource
+import dev.dhev.nines.data.AppearancePreferences
 import dev.dhev.nines.ui.onboarding.OnboardingScreen
 import dev.dhev.nines.ui.settings.ArchivedHabitsScreen
 import dev.dhev.nines.ui.settings.ArchivedHabitsViewModel
@@ -51,8 +51,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val appearanceStore = koinInject<AppearancePreferencesStore>()
-            val colorSource by appearanceStore.colorSource.collectAsStateWithLifecycle(initialValue = AppColorSource.WALLPAPER)
-            NinesTheme(colorSource = colorSource) {
+            val appearance by appearanceStore.appearance.collectAsStateWithLifecycle(initialValue = AppearancePreferences())
+            NinesTheme(colorSource = appearance.colorSource, customSeedArgb = appearance.customSeedArgb) {
                 val onboardingStore = koinInject<OnboardingCompletionStore>()
                 val onboardingCompleted by onboardingStore.completed.collectAsStateWithLifecycle(initialValue = null)
                 if (onboardingCompleted == null) {

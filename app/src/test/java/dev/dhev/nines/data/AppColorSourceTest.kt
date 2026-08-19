@@ -22,15 +22,23 @@ class AppColorSourceTest {
     }
 
     @Test
-    fun classicThemesAreTheCuratedDeveloperThemeSet() {
+    fun themeCollectionContainsTheCuratedDeveloperThemeSet() {
         assertEquals(
             listOf(
                 AppColorSource.CATPPUCCIN,
                 AppColorSource.TOKYO_NIGHT,
                 AppColorSource.DRACULA,
                 AppColorSource.NORD,
+                AppColorSource.ONE_DARK,
+                AppColorSource.GRUVBOX,
+                AppColorSource.SOLARIZED,
+                AppColorSource.MONOKAI,
+                AppColorSource.KANAGAWA,
+                AppColorSource.ROSE_PINE,
+                AppColorSource.EVERFOREST,
+                AppColorSource.NIGHTFOX,
             ),
-            AppColorSource.classicThemes,
+            AppColorSource.themeCollection,
         )
     }
 }

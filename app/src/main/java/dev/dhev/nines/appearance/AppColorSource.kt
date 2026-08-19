@@ -14,6 +14,11 @@ enum class AppColorSource(
     TOKYO_NIGHT("tokyo_night", 0xFF7AA2F7L),
     DRACULA("dracula", 0xFFBD93F9L),
     NORD("nord", 0xFF88C0D0L),
+    ONE_DARK("one_dark", 0xFF61AFEFL), GRUVBOX("gruvbox", 0xFFFABD2FL),
+    SOLARIZED("solarized", 0xFF268BD2L), MONOKAI("monokai", 0xFFF92672L),
+    KANAGAWA("kanagawa", 0xFF7E9CD8L), ROSE_PINE("rose_pine", 0xFFC4A7E7L),
+    EVERFOREST("everforest", 0xFFA7C080L), NIGHTFOX("nightfox", 0xFF719CD6L),
+    CUSTOM("custom"),
     ;
 
     fun effectiveSource(dynamicColorAvailable: Boolean): AppColorSource =
@@ -21,7 +26,7 @@ enum class AppColorSource(
 
     companion object {
         val ninesPalettes = listOf(NINES, FOREST, OCEAN, SUNSET)
-        val classicThemes = listOf(CATPPUCCIN, TOKYO_NIGHT, DRACULA, NORD)
+        val themeCollection = listOf(CATPPUCCIN, TOKYO_NIGHT, DRACULA, NORD, ONE_DARK, GRUVBOX, SOLARIZED, MONOKAI, KANAGAWA, ROSE_PINE, EVERFOREST, NIGHTFOX)
 
         fun fromStorage(value: String?): AppColorSource =
             entries.firstOrNull { it.storageValue == value } ?: WALLPAPER
