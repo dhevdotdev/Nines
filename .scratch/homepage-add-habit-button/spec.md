@@ -1,6 +1,6 @@
 # Expressive homepage Add Habit action
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Problem Statement
 
@@ -55,8 +55,8 @@ it.
   behavior to the already large screen composition. No data model, `HabitsUiState`, action, Room,
   navigation, or editor interface changes are needed.
 - This follows ADR-0009: geometry feedback uses an expressive spatial spec; color is unchanged by
-  the press interaction. Material 3’s FAB guidance was consulted for persistent placement, medium
-  size tier, and semantic color variants.
+  the press interaction. Material 3’s FAB guidance was consulted for persistent placement, size
+  tiers, and semantic color variants.
 
 ## Testing Decisions
 

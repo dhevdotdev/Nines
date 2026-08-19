@@ -5,16 +5,16 @@ native to Nines’ expressive homepage while continuing to open the exact same e
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] The homepage shows a bottom-end pinned compact extended action with a plus icon and “Add
+- [x] The homepage shows a bottom-end pinned compact extended action with a plus icon and “Add
       habit” label while the Habit list scrolls.
-- [ ] The idle action uses the active scheme’s tertiary-container/on-tertiary-container pair and the
+- [x] The idle action uses the active scheme’s tertiary-container/on-tertiary-container pair and the
       native Material Expressive small-extended shape, remaining legible in light, dark,
       wallpaper-derived, and curated schemes.
-- [ ] A tap provides fast local spatial press feedback and haptic feedback, without a zoom, squeeze,
+- [x] A tap provides fast local spatial press feedback and haptic feedback, without a zoom, squeeze,
       or hero transition into the editor.
-- [ ] The action retains an accessible Add habit label and opens the existing Habit editor; creating
+- [x] The action retains an accessible Add habit label and opens the existing Habit editor; creating
       a Habit behaves exactly as before.
-- [ ] The behavior, visual hierarchy, placement, color adaptation, and motion are verified on a
+- [x] The behavior, visual hierarchy, placement, color adaptation, and motion are verified on a
       connected device, and the app is left installed and launched afterwards.
