@@ -1,6 +1,6 @@
 # App color source and palette picker
 
-**Status:** done
+**Status:** ready-for-agent
 
 ## Problem Statement
 
@@ -59,6 +59,14 @@ root app theme applies immediately and persists for future launches.
   classic-theme-derived choices: Catppuccin, Tokyo Night, Dracula, and Nord.
   Each uses a documented canonical accent as a seed and is labelled
   “inspired” in the UI; it is not a literal editor-theme port.
+- Expand the theme collection to twelve named developer-theme-derived choices:
+  Catppuccin, Tokyo Night, Dracula, Nord, One Dark, Gruvbox, Solarized,
+  Monokai, Kanagawa, Rosé Pine, Everforest, and Nightfox. Keep the collection
+  visually browsable, but do not represent any as a literal port.
+- Add Custom as a persisted source. Its editor selects one arbitrary seed
+  color; Nines derives the complete scheme using the same HCT configuration as
+  every curated source. It does not expose disconnected primary/secondary/
+  tertiary overrides.
 - System light/dark mode remains the only theme-mode choice in this feature.
 - Resolve the selected source once at the root Nines theme. All screens,
   dialogs, onboarding, and system bars consume that one scheme.
@@ -95,6 +103,8 @@ root app theme applies immediately and persists for future launches.
 - Changing per-Habit palette choices or persistence.
 - Importing another theme project's code, raw color-role table, assets, or
   manual theme-mode variants.
+- A raw-hex table editor or a collection of arbitrary independent component
+  colors.
 - Recoloring individual screens outside the shared root theme.
 
 ## Further Notes
