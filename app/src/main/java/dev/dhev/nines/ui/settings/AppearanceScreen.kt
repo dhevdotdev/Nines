@@ -1,7 +1,6 @@
 package dev.dhev.nines.ui.settings
 
 import android.os.Build
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -34,7 +33,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
@@ -137,15 +135,11 @@ private fun ColorSourceOption(
     onSelect: () -> Unit,
 ) {
     val scheme = rememberNinesColorScheme(colorSource = source)
-    val container by animateColorAsState(
-        targetValue = when {
-            selected -> MaterialTheme.colorScheme.primaryContainer
-            enabled -> MaterialTheme.colorScheme.surfaceContainer
-            else -> MaterialTheme.colorScheme.surfaceContainerLowest
-        },
-        animationSpec = MaterialTheme.motionScheme.fastEffectsSpec(),
-        label = "palette option container",
-    )
+    val container = when {
+        selected -> MaterialTheme.colorScheme.primaryContainer
+        enabled -> MaterialTheme.colorScheme.surfaceContainer
+        else -> MaterialTheme.colorScheme.surfaceContainerLowest
+    }
     val label = source.label()
     Card(
         modifier = Modifier
