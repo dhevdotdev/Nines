@@ -27,8 +27,9 @@ routine path, target rings, insight trend, and a centered nine-node starting
 pattern. The artwork is intentionally unframed; an enclosing squircle made the
 composition feel like an app icon rather than page-level illustration.
 
-Signal playback is keyed to the pager's settled page, not composition. Compose
+Signal playback is keyed to the pager's current page, not composition. Compose
 precomposes neighboring pages, so launching from each page's first composition
 silently completed page-one/page-two motion before those pages were visible.
-Inactive pages stay at their reset state and animate after settling into view;
-reduced motion still renders the final state directly.
+Waiting for the fully settled page plus a fixed delay was also rejected: it
+left entry geometry visibly frozen after the swipe. Inactive pages stay reset,
+then animate as they become current; reduced motion renders the final state.

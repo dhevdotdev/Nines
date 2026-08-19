@@ -120,7 +120,7 @@ fun OnboardingScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
-                OnboardingIllustration(page, isActive = pagerState.settledPage == page)
+                OnboardingIllustration(page, isActive = pagerState.currentPage == page)
                 Spacer(Modifier.height(32.dp))
                 Text(content.title, style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center)
                 Spacer(Modifier.height(12.dp))
@@ -152,7 +152,6 @@ private fun OnboardingIllustration(page: Int, isActive: Boolean) {
             first.snapTo(0f)
             second.snapTo(0f)
             accent.snapTo(0f)
-            delay(120)
             playSignalMotion(motionScheme, first, second, accent)
         } else {
             first.snapTo(0f)
