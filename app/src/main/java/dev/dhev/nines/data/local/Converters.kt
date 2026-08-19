@@ -3,6 +3,7 @@ package dev.dhev.nines.data.local
 import androidx.room.TypeConverter
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 
 class Converters {
     @TypeConverter
@@ -16,4 +17,10 @@ class Converters {
 
     @TypeConverter
     fun fromInstant(instant: Instant?): Long? = instant?.toEpochMilli()
+
+    @TypeConverter
+    fun toLocalTime(secondOfDay: Int?): LocalTime? = secondOfDay?.let { LocalTime.ofSecondOfDay(it.toLong()) }
+
+    @TypeConverter
+    fun fromLocalTime(time: LocalTime?): Int? = time?.toSecondOfDay()
 }

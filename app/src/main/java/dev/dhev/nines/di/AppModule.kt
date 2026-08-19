@@ -6,6 +6,7 @@ import dev.dhev.nines.data.AppearancePreferencesStore
 import dev.dhev.nines.data.appearancePreferencesStore
 import dev.dhev.nines.data.OnboardingCompletionStore
 import dev.dhev.nines.data.onboardingCompletionStore
+import dev.dhev.nines.data.ReminderRepository
 import dev.dhev.nines.data.local.NinesDatabase
 import dev.dhev.nines.ui.habits.HabitDetailViewModel
 import dev.dhev.nines.ui.habits.HabitsViewModel
@@ -28,7 +29,9 @@ val appModule = module {
     single { get<NinesDatabase>().habitDao() }
     single { get<NinesDatabase>().scheduleVersionDao() }
     single { get<NinesDatabase>().entryDao() }
+    single { get<NinesDatabase>().reminderDao() }
     single { HabitRepository(get(), get(), get()) }
+    single { ReminderRepository(get()) }
 
     viewModelOf(::HabitsViewModel)
     viewModelOf(::HabitDetailViewModel)
