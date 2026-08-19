@@ -144,8 +144,7 @@ private fun CustomColorOption(seedArgb: Long, selected: Boolean, onSelect: (Long
             FloatArray(3).also { android.graphics.Color.colorToHSV(seedArgb.toInt(), it) }
         }
         var hue by remember(seedArgb) { mutableFloatStateOf(initialHsv[0]) }
-        var saturation by remember(seedArgb) { mutableFloatStateOf(initialHsv[1]) }
-        val color = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, saturation, 82f)))
+        val color = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 80f, 82f)))
         val previewScheme = rememberNinesColorScheme(
             colorSource = AppColorSource.CUSTOM,
             customSeedArgb = color.toSeedArgb(),
@@ -163,10 +162,8 @@ private fun CustomColorOption(seedArgb: Long, selected: Boolean, onSelect: (Long
                         PalettePreview(scheme = previewScheme)
                         Text("Your Material palette", color = previewScheme.onPrimaryContainer)
                     }
-                    Text("Hue")
+                    Text("Color")
                     Slider(value = hue, onValueChange = { hue = it }, valueRange = 0f..360f)
-                    Text("Intensity")
-                    Slider(value = saturation, onValueChange = { saturation = it }, valueRange = 20f..100f)
                     Text("Nines will derive every accessible Material color role from this one color.", style = MaterialTheme.typography.bodySmall)
                 }
             },
