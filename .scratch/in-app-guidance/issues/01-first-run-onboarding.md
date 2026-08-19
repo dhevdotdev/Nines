@@ -16,9 +16,13 @@
 ## Visual direction follow-up
 
 The onboarding artwork uses the selected Handmade Signal direction from the
-`prototype/onboarding-art` comparison. The production motion keeps the frame
-stable and uses a finite spring settle on the internal circles, path, and dots;
-the reduced-motion setting renders the settled state directly.
+`prototype/onboarding-art` comparison. The production motion uses the Signal
+choreography selected from `prototype/onboarding-motion` (`f43ca6c`): the
+geometry moves independently with the expressive motion scheme's spatial
+spring tokens while the page itself stays stable. The reduced-motion setting
+renders the settled state directly.
 
 The final implementation uses a distinct composition per onboarding page:
-routine path, target rings, insight trend, and the nine-node starting pattern.
+routine path, target rings, insight trend, and a centered nine-node starting
+pattern. The artwork is intentionally unframed; an enclosing squircle made the
+composition feel like an app icon rather than page-level illustration.

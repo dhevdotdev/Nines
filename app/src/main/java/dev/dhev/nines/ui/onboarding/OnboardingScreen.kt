@@ -2,9 +2,7 @@ package dev.dhev.nines.ui.onboarding
 
 import android.provider.Settings
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -28,6 +26,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MotionScheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -39,6 +38,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
@@ -46,6 +46,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.coroutineScope
 
 private data class OnboardingPage(val title: String, val body: String)
 
@@ -131,86 +133,126 @@ fun OnboardingScreen(
 @Composable
 private fun OnboardingIllustration(page: Int) {
     val primary = MaterialTheme.colorScheme.primary
-    val container = MaterialTheme.colorScheme.primaryContainer
     val secondary = MaterialTheme.colorScheme.secondary
     val tertiary = MaterialTheme.colorScheme.tertiary
     val context = LocalContext.current
     val animationsEnabled = remember {
         Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) != 0f
     }
-    val drift = remember(page) { Animatable(12f) }
+    val first = remember(page) { Animatable(0f) }
+    val second = remember(page) { Animatable(0f) }
+    val accent = remember(page) { Animatable(0f) }
+    val motionScheme = MaterialTheme.motionScheme
     LaunchedEffect(page, animationsEnabled) {
         if (animationsEnabled) {
-            drift.animateTo(0f, spring(Spring.DampingRatioNoBouncy, Spring.StiffnessMedium))
+            playSignalMotion(motionScheme, first, second, accent)
         } else {
-            drift.snapTo(0f)
+            first.snapTo(1f)
+            second.snapTo(1f)
+            accent.snapTo(1f)
         }
     }
 
-    Box(Modifier.size(260.dp).background(container.copy(alpha = .65f), RoundedCornerShape(72.dp)).border(5.dp, primary, RoundedCornerShape(72.dp))) {
+    Box(Modifier.size(280.dp)) {
         when (page) {
-            0 -> RoutineArt(primary, secondary, tertiary, drift.value)
-            1 -> TargetArt(primary, secondary, tertiary, drift.value)
-            2 -> InsightArt(primary, secondary, tertiary, drift.value)
-            else -> StartArt(primary, secondary, tertiary, drift.value)
+            0 -> RoutineArt(primary, secondary, tertiary, first.value, second.value, accent.value)
+            1 -> TargetArt(primary, secondary, tertiary, first.value, second.value, accent.value)
+            2 -> InsightArt(primary, secondary, tertiary, first.value, second.value, accent.value)
+            else -> StartArt(primary, secondary, tertiary, first.value, second.value, accent.value)
         }
     }
 }
 
+private suspend fun playSignalMotion(
+    scheme: MotionScheme,
+    first: Animatable<Float, *>,
+    second: Animatable<Float, *>,
+    accent: Animatable<Float, *>,
+) {
+    coroutineScope {
+        launch { first.animateTo(1f, scheme.fastSpatialSpec()) }
+        launch { second.animateTo(1f, scheme.defaultSpatialSpec()) }
+        launch { delay(190); accent.animateTo(1f, scheme.defaultSpatialSpec()) }
+    }
+}
+
 @Composable
-private fun RoutineArt(primary: Color, secondary: Color, tertiary: Color, motion: Float) {
+private fun RoutineArt(primary: Color, secondary: Color, tertiary: Color, first: Float, second: Float, accent: Float) {
     Box(Modifier.fillMaxSize()) {
-        Box(Modifier.offset(28.dp, (38f + motion).dp).size(78.dp).background(tertiary, CircleShape))
-        Box(Modifier.offset((150f - motion).dp, 44.dp).size(64.dp).background(secondary, RoundedCornerShape(32.dp)))
-        Box(Modifier.offset(44.dp, 112.dp).size(172.dp, 14.dp).rotate(-18f + motion / 3).background(primary, RoundedCornerShape(7.dp)))
+        Box(Modifier.offset((28f - (1f - first) * 50f).dp, (38f - (1f - first) * 72f).dp).graphicsLayer { rotationZ = (1f - first) * -55f }.size(78.dp).background(tertiary, CircleShape))
+        Box(Modifier.offset((170f + (1f - second) * 92f).dp, (44f - (1f - second) * 18f).dp).graphicsLayer { rotationZ = (1f - second) * 70f }.size(64.dp).background(secondary, RoundedCornerShape(32.dp)))
+        Box(Modifier.offset((54f - (1f - second) * 70f).dp, (120f + (1f - second) * 66f).dp).size(172.dp, 14.dp).rotate(-18f - (1f - second) * 42f).background(primary, RoundedCornerShape(7.dp)))
         Row(Modifier.align(Alignment.BottomCenter).padding(bottom = 34.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             repeat(9) { index ->
-                Box(Modifier.offset(y = if (index % 2 == 0) motion.dp else (-motion / 2).dp).size(12.dp).background(primary, CircleShape))
+                val direction = if (index % 2 == 0) -1f else 1f
+                val spread = (index - 4) * (1f - accent) * 8f
+                Box(Modifier.offset(x = spread.dp, y = ((1f - accent) * 72f * direction).dp).graphicsLayer { scaleX = accent.coerceAtLeast(.15f); scaleY = accent.coerceAtLeast(.15f); rotationZ = (1f - accent) * index * 9f }.size(12.dp).background(primary, CircleShape))
             }
         }
     }
 }
 
 @Composable
-private fun TargetArt(primary: Color, secondary: Color, tertiary: Color, motion: Float) {
+private fun TargetArt(primary: Color, secondary: Color, tertiary: Color, first: Float, second: Float, accent: Float) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Box(Modifier.size(166.dp).border(12.dp, secondary, CircleShape))
-        Box(Modifier.size(112.dp).border(8.dp, primary, CircleShape))
-        Box(Modifier.offset((motion / 2).dp, (-motion).dp).size(30.dp).background(tertiary, CircleShape))
-        Box(Modifier.offset(0.dp, 82.dp).size(126.dp, 12.dp).rotate(-12f).background(primary, RoundedCornerShape(6.dp)))
+        Box(Modifier.graphicsLayer { scaleX = first.coerceAtLeast(.05f); scaleY = first.coerceAtLeast(.05f); rotationZ = (1f - first) * -70f }.size(166.dp).border(12.dp, secondary, CircleShape))
+        Box(Modifier.graphicsLayer { scaleX = second.coerceAtLeast(.05f); scaleY = second.coerceAtLeast(.05f); rotationZ = (1f - second) * 90f }.size(112.dp).border(8.dp, primary, CircleShape))
+        Box(Modifier.offset((-(1f - accent) * 128f).dp, (-(1f - accent) * 138f).dp).graphicsLayer { scaleX = accent.coerceAtLeast(.2f); scaleY = accent.coerceAtLeast(.2f) }.size(30.dp).background(tertiary, CircleShape))
+        Box(Modifier.offset(0.dp, (82f + (1f - second) * 74f).dp).size(126.dp, 12.dp).rotate(-12f - (1f - second) * 44f).background(primary, RoundedCornerShape(6.dp)))
     }
 }
 
 @Composable
-private fun InsightArt(primary: Color, secondary: Color, tertiary: Color, motion: Float) {
+private fun InsightArt(primary: Color, secondary: Color, tertiary: Color, first: Float, second: Float, accent: Float) {
     Row(Modifier.fillMaxSize().padding(horizontal = 34.dp, vertical = 42.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Bottom) {
         listOf(54, 92, 70, 132, 108, 164).forEachIndexed { index, height ->
+            val progress = when {
+                index < 2 -> first
+                index < 4 -> second
+                else -> accent
+            }
             Box(
                 Modifier
-                    .offset(y = if (index == 3) (-motion).dp else (motion / 3).dp)
+                    .graphicsLayer { scaleY = progress.coerceAtLeast(.05f); transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 1f) }
                     .size(22.dp, height.dp)
                     .background(if (index % 2 == 0) secondary else tertiary, RoundedCornerShape(11.dp)),
             )
         }
-        Box(Modifier.offset((-20f + motion).dp, (-150f).dp).size(28.dp).background(primary, CircleShape))
+        Box(Modifier.offset((-20f + (1f - accent) * 118f).dp, (-150f - (1f - accent) * 72f).dp).graphicsLayer { scaleX = accent.coerceAtLeast(.2f); scaleY = accent.coerceAtLeast(.2f); rotationZ = (1f - accent) * 80f }.size(28.dp).background(primary, CircleShape))
     }
 }
 
 @Composable
-private fun StartArt(primary: Color, secondary: Color, tertiary: Color, motion: Float) {
-    Column(Modifier.fillMaxSize().padding(46.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+private fun StartArt(primary: Color, secondary: Color, tertiary: Color, first: Float, second: Float, accent: Float) {
+    Column(
+        Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
         repeat(3) { row ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 repeat(3) { column ->
                     val isCenter = row == 1 && column == 1
-                    Box(
-                        Modifier
-                            .offset(y = if (isCenter) (-motion).dp else (motion / 3).dp)
-                            .size(if (isCenter) 48.dp else 32.dp)
-                            .background(if (isCenter) primary else if ((row + column) % 2 == 0) secondary else tertiary, RoundedCornerShape(16.dp)),
-                    )
+                    val progress = when {
+                        isCenter -> accent
+                        row == 0 -> first
+                        row == 1 -> second
+                        else -> accent
+                    }
+                    val fromCenterX = (1 - column) * (1f - progress) * 82f
+                    val fromCenterY = (1 - row) * (1f - progress) * 82f
+                    Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                        Box(
+                            Modifier
+                                .offset(fromCenterX.dp, fromCenterY.dp)
+                                .graphicsLayer { scaleX = progress.coerceAtLeast(.12f); scaleY = progress.coerceAtLeast(.12f); rotationZ = (1f - progress) * if (isCenter) 35f else -18f }
+                                .size(if (isCenter) 48.dp else 32.dp)
+                                .background(if (isCenter) primary else if ((row + column) % 2 == 0) secondary else tertiary, RoundedCornerShape(16.dp)),
+                        )
+                    }
                 }
             }
+            if (row < 2) Spacer(Modifier.height(14.dp))
         }
     }
 }
