@@ -2,7 +2,9 @@
 
 **Category:** enhancement
 
-**Status:** ready-for-agent
+**Status:** superseded
+
+**Superseded by:** `spec.md` and the numbered implementation tickets in this directory.
 
 Notification-based reminders for habits — never scoped or started. Deprioritized repeatedly during early development in favor of getting the core tracking experience right first.
 
