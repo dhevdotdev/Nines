@@ -1,10 +1,17 @@
 package dev.dhev.nines.data
 
 import dev.dhev.nines.appearance.AppColorSource
+import dev.dhev.nines.appearance.toSeedArgb
+import androidx.compose.ui.graphics.Color
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class AppColorSourceTest {
+    @Test
+    fun customColorConvertsToAnArgbSeedInsteadOfComposePackedColor() {
+        assertEquals(0xFF00A896L, Color(0xFF00A896).toSeedArgb())
+    }
+
     @Test
     fun wallpaperFallsBackToNinesWhenSystemDynamicColorIsUnavailable() {
         assertEquals(AppColorSource.NINES, AppColorSource.WALLPAPER.effectiveSource(dynamicColorAvailable = false))

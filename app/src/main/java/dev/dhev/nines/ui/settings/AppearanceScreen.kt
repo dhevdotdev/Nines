@@ -42,6 +42,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import dev.dhev.nines.appearance.toSeedArgb
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
@@ -158,7 +159,7 @@ private fun CustomColorOption(seedArgb: Long, selected: Boolean, onSelect: (Long
                     Text("Nines will derive every accessible Material color role from this one color.", style = MaterialTheme.typography.bodySmall)
                 }
             },
-            confirmButton = { Button(onClick = { onSelect(color.value.toLong()); editing = false }) { Text("Use palette") } },
+            confirmButton = { Button(onClick = { onSelect(color.toSeedArgb()); editing = false }) { Text("Use palette") } },
             dismissButton = { Button(onClick = { editing = false }) { Text("Cancel") } },
         )
     }
@@ -189,6 +190,8 @@ private fun ColorSourceOption(
         else -> MaterialTheme.colorScheme.surfaceContainerLowest
     }
     val label = source.label()
+    val titleColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+    val descriptionColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -211,13 +214,13 @@ private fun ColorSourceOption(
             PalettePreview(scheme = scheme)
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(label, style = MaterialTheme.typography.titleMediumEmphasized)
+                    Text(label, style = MaterialTheme.typography.titleMediumEmphasized, color = titleColor)
                     if (selected) {
                         Spacer(Modifier.width(Spacing.small))
                         Icon(
                             imageVector = Icons.Filled.Check,
                             contentDescription = "Selected",
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
                             modifier = Modifier.size(18.dp),
                         )
                     }
@@ -226,7 +229,7 @@ private fun ColorSourceOption(
                 Text(
                     text = source.description(wallpaperAvailable = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = descriptionColor,
                 )
             }
         }
