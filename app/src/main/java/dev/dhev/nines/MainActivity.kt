@@ -28,12 +28,17 @@ import dev.dhev.nines.ui.nav.ArchivedHabitsRoute
 import dev.dhev.nines.ui.nav.HabitDetailRoute
 import dev.dhev.nines.ui.nav.HabitsRoute
 import dev.dhev.nines.ui.nav.SettingsRoute
+import dev.dhev.nines.ui.nav.AppearanceRoute
 import dev.dhev.nines.ui.nav.OnboardingRoute
 import dev.dhev.nines.data.OnboardingCompletionStore
+import dev.dhev.nines.data.AppearancePreferencesStore
+import dev.dhev.nines.appearance.AppColorSource
 import dev.dhev.nines.ui.onboarding.OnboardingScreen
 import dev.dhev.nines.ui.settings.ArchivedHabitsScreen
 import dev.dhev.nines.ui.settings.ArchivedHabitsViewModel
 import dev.dhev.nines.ui.settings.SettingsScreen
+import dev.dhev.nines.ui.settings.AppearanceScreen
+import dev.dhev.nines.ui.settings.AppearanceViewModel
 import dev.dhev.nines.ui.theme.NinesTheme
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.compose.koinInject
@@ -45,7 +50,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            NinesTheme {
+            val appearanceStore = koinInject<AppearancePreferencesStore>()
+            val colorSource by appearanceStore.colorSource.collectAsStateWithLifecycle(initialValue = AppColorSource.WALLPAPER)
+            NinesTheme(colorSource = colorSource) {
                 val onboardingStore = koinInject<OnboardingCompletionStore>()
                 val onboardingCompleted by onboardingStore.completed.collectAsStateWithLifecycle(initialValue = null)
                 if (onboardingCompleted == null) {
@@ -102,7 +109,18 @@ private fun NinesNavRoot(
                 SettingsScreen(
                     onBack = dropUnlessResumed { backStack.removeLastOrNull() },
                     onArchivedHabitsClick = { backStack.add(ArchivedHabitsRoute) },
+                    onAppearanceClick = { backStack.add(AppearanceRoute) },
                     onHowNinesWorksClick = { backStack.add(OnboardingRoute(replay = true)) },
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+            entry<AppearanceRoute> {
+                val viewModel = koinViewModel<AppearanceViewModel>()
+                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                AppearanceScreen(
+                    uiState = uiState,
+                    onAction = viewModel::onAction,
+                    onBack = dropUnlessResumed { backStack.removeLastOrNull() },
                     modifier = Modifier.fillMaxSize(),
                 )
             }

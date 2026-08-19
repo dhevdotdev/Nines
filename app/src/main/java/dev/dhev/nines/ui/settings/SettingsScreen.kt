@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -38,6 +39,7 @@ import dev.dhev.nines.ui.theme.Spacing
 fun SettingsScreen(
     onBack: () -> Unit,
     onArchivedHabitsClick: () -> Unit,
+    onAppearanceClick: () -> Unit,
     onHowNinesWorksClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -55,6 +57,11 @@ fun SettingsScreen(
         },
     ) { innerPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+            SettingsMenuRow(
+                icon = Icons.Filled.Palette,
+                label = "Appearance",
+                onClick = onAppearanceClick,
+            )
             SettingsMenuRow(
                 icon = Icons.Filled.School,
                 label = "How Nines works",

@@ -10,6 +10,8 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.material3.ColorScheme
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFontFamilyResolver
 import androidx.compose.ui.platform.LocalView
@@ -17,24 +19,20 @@ import androidx.core.view.WindowCompat
 import com.materialkolor.PaletteStyle
 import com.materialkolor.dynamiccolor.ColorSpec
 import com.materialkolor.rememberDynamicColorScheme
+import dev.dhev.nines.appearance.AppColorSource
 
 @Composable
 fun NinesTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    colorSource: AppColorSource = AppColorSource.WALLPAPER,
     dynamicColor: Boolean = true,
     content: @Composable () -> Unit,
 ) {
-    val context = LocalContext.current
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        else -> rememberDynamicColorScheme(
-            seedColor = NinesSeedColor,
-            isDark = darkTheme,
-            style = PaletteStyle.Expressive,
-            specVersion = ColorSpec.SpecVersion.SPEC_2025,
-        )
-    }
+    val colorScheme = rememberNinesColorScheme(
+        colorSource = colorSource,
+        darkTheme = darkTheme,
+        dynamicColor = dynamicColor,
+    )
 
     // Resolving a downloadable font is a real one-time cost per process (typeface fetch +
     // rasterization). Do it now, while the user is looking at the habit list with nothing
@@ -61,4 +59,25 @@ fun NinesTheme(
         typography = NinesTypography,
         content = content,
     )
+}
+
+@Composable
+fun rememberNinesColorScheme(
+    colorSource: AppColorSource,
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    dynamicColor: Boolean = true,
+): ColorScheme {
+    val context = LocalContext.current
+    val dynamicColorAvailable = dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+    val effectiveSource = colorSource.effectiveSource(dynamicColorAvailable)
+    return when (effectiveSource) {
+        AppColorSource.WALLPAPER ->
+            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        else -> rememberDynamicColorScheme(
+            seedColor = Color(requireNotNull(effectiveSource.seedArgb).toInt()),
+            isDark = darkTheme,
+            style = PaletteStyle.Expressive,
+            specVersion = ColorSpec.SpecVersion.SPEC_2025,
+        )
+    }
 }

@@ -8,6 +8,8 @@ data class HabitDetailRoute(val habitId: Long) : NinesRoute
 
 data object SettingsRoute : NinesRoute
 
+data object AppearanceRoute : NinesRoute
+
 data object ArchivedHabitsRoute : NinesRoute
 
 data class OnboardingRoute(val replay: Boolean) : NinesRoute
