@@ -120,7 +120,7 @@ fun OnboardingScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
-                OnboardingIllustration(page)
+                OnboardingIllustration(page, isActive = pagerState.settledPage == page)
                 Spacer(Modifier.height(32.dp))
                 Text(content.title, style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center)
                 Spacer(Modifier.height(12.dp))
@@ -131,7 +131,7 @@ fun OnboardingScreen(
 }
 
 @Composable
-private fun OnboardingIllustration(page: Int) {
+private fun OnboardingIllustration(page: Int, isActive: Boolean) {
     val primary = MaterialTheme.colorScheme.primary
     val secondary = MaterialTheme.colorScheme.secondary
     val tertiary = MaterialTheme.colorScheme.tertiary
@@ -143,13 +143,21 @@ private fun OnboardingIllustration(page: Int) {
     val second = remember(page) { Animatable(0f) }
     val accent = remember(page) { Animatable(0f) }
     val motionScheme = MaterialTheme.motionScheme
-    LaunchedEffect(page, animationsEnabled) {
-        if (animationsEnabled) {
-            playSignalMotion(motionScheme, first, second, accent)
-        } else {
+    LaunchedEffect(page, isActive, animationsEnabled) {
+        if (!animationsEnabled) {
             first.snapTo(1f)
             second.snapTo(1f)
             accent.snapTo(1f)
+        } else if (isActive) {
+            first.snapTo(0f)
+            second.snapTo(0f)
+            accent.snapTo(0f)
+            delay(120)
+            playSignalMotion(motionScheme, first, second, accent)
+        } else {
+            first.snapTo(0f)
+            second.snapTo(0f)
+            accent.snapTo(0f)
         }
     }
 

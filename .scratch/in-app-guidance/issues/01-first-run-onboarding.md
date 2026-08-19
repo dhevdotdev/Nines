@@ -26,3 +26,9 @@ The final implementation uses a distinct composition per onboarding page:
 routine path, target rings, insight trend, and a centered nine-node starting
 pattern. The artwork is intentionally unframed; an enclosing squircle made the
 composition feel like an app icon rather than page-level illustration.
+
+Signal playback is keyed to the pager's settled page, not composition. Compose
+precomposes neighboring pages, so launching from each page's first composition
+silently completed page-one/page-two motion before those pages were visible.
+Inactive pages stay at their reset state and animate after settling into view;
+reduced motion still renders the final state directly.
