@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
@@ -137,42 +138,78 @@ private fun OnboardingIllustration(page: Int) {
     val animationsEnabled = remember {
         Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) != 0f
     }
-    val drift = remember(page) { Animatable(-4f) }
+    val drift = remember(page) { Animatable(12f) }
     LaunchedEffect(page, animationsEnabled) {
         if (animationsEnabled) {
-            drift.animateTo(0f, spring(Spring.DampingRatioLowBouncy, Spring.StiffnessLow))
+            drift.animateTo(0f, spring(Spring.DampingRatioNoBouncy, Spring.StiffnessMedium))
         } else {
             drift.snapTo(0f)
         }
     }
 
-    Box(
-        modifier = Modifier
-            .size(260.dp)
-            .background(container.copy(alpha = .65f), RoundedCornerShape(72.dp))
-            .border(5.dp, primary, RoundedCornerShape(72.dp)),
-    ) {
-        Box(Modifier.offset(24.dp, (28f + drift.value).dp).size(94.dp).background(secondary, RoundedCornerShape(48.dp)))
-        Box(Modifier.offset((142f - drift.value).dp, (142f - drift.value / 2).dp).size(78.dp).background(tertiary, RoundedCornerShape(40.dp)))
-        Box(
-            Modifier
-                .offset(54.dp, 92.dp)
-                .size(160.dp, 14.dp)
-                .rotate(-24f + drift.value / 2)
-                .background(primary, RoundedCornerShape(7.dp)),
-        )
-        Box(Modifier.offset((92f + drift.value / 2).dp, 76.dp).size(32.dp).background(container, RoundedCornerShape(16.dp)))
-        Row(
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            repeat(if (page == 3) 9 else 6) { index ->
-                Box(
-                    Modifier
-                        .offset(y = if (index % 2 == 0) drift.value.dp else (-drift.value / 2).dp)
-                        .size((10 + index % 3 * 3).dp)
-                        .background(primary.copy(alpha = .8f), RoundedCornerShape(8.dp)),
-                )
+    Box(Modifier.size(260.dp).background(container.copy(alpha = .65f), RoundedCornerShape(72.dp)).border(5.dp, primary, RoundedCornerShape(72.dp))) {
+        when (page) {
+            0 -> RoutineArt(primary, secondary, tertiary, drift.value)
+            1 -> TargetArt(primary, secondary, tertiary, drift.value)
+            2 -> InsightArt(primary, secondary, tertiary, drift.value)
+            else -> StartArt(primary, secondary, tertiary, drift.value)
+        }
+    }
+}
+
+@Composable
+private fun RoutineArt(primary: Color, secondary: Color, tertiary: Color, motion: Float) {
+    Box(Modifier.fillMaxSize()) {
+        Box(Modifier.offset(28.dp, (38f + motion).dp).size(78.dp).background(tertiary, CircleShape))
+        Box(Modifier.offset((150f - motion).dp, 44.dp).size(64.dp).background(secondary, RoundedCornerShape(32.dp)))
+        Box(Modifier.offset(44.dp, 112.dp).size(172.dp, 14.dp).rotate(-18f + motion / 3).background(primary, RoundedCornerShape(7.dp)))
+        Row(Modifier.align(Alignment.BottomCenter).padding(bottom = 34.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            repeat(9) { index ->
+                Box(Modifier.offset(y = if (index % 2 == 0) motion.dp else (-motion / 2).dp).size(12.dp).background(primary, CircleShape))
+            }
+        }
+    }
+}
+
+@Composable
+private fun TargetArt(primary: Color, secondary: Color, tertiary: Color, motion: Float) {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(166.dp).border(12.dp, secondary, CircleShape))
+        Box(Modifier.size(112.dp).border(8.dp, primary, CircleShape))
+        Box(Modifier.offset((motion / 2).dp, (-motion).dp).size(30.dp).background(tertiary, CircleShape))
+        Box(Modifier.offset(0.dp, 82.dp).size(126.dp, 12.dp).rotate(-12f).background(primary, RoundedCornerShape(6.dp)))
+    }
+}
+
+@Composable
+private fun InsightArt(primary: Color, secondary: Color, tertiary: Color, motion: Float) {
+    Row(Modifier.fillMaxSize().padding(horizontal = 34.dp, vertical = 42.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Bottom) {
+        listOf(54, 92, 70, 132, 108, 164).forEachIndexed { index, height ->
+            Box(
+                Modifier
+                    .offset(y = if (index == 3) (-motion).dp else (motion / 3).dp)
+                    .size(22.dp, height.dp)
+                    .background(if (index % 2 == 0) secondary else tertiary, RoundedCornerShape(11.dp)),
+            )
+        }
+        Box(Modifier.offset((-20f + motion).dp, (-150f).dp).size(28.dp).background(primary, CircleShape))
+    }
+}
+
+@Composable
+private fun StartArt(primary: Color, secondary: Color, tertiary: Color, motion: Float) {
+    Column(Modifier.fillMaxSize().padding(46.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        repeat(3) { row ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                repeat(3) { column ->
+                    val isCenter = row == 1 && column == 1
+                    Box(
+                        Modifier
+                            .offset(y = if (isCenter) (-motion).dp else (motion / 3).dp)
+                            .size(if (isCenter) 48.dp else 32.dp)
+                            .background(if (isCenter) primary else if ((row + column) % 2 == 0) secondary else tertiary, RoundedCornerShape(16.dp)),
+                    )
+                }
             }
         }
     }

@@ -19,3 +19,6 @@ The onboarding artwork uses the selected Handmade Signal direction from the
 `prototype/onboarding-art` comparison. The production motion keeps the frame
 stable and uses a finite spring settle on the internal circles, path, and dots;
 the reduced-motion setting renders the settled state directly.
+
+The final implementation uses a distinct composition per onboarding page:
+routine path, target rings, insight trend, and the nine-node starting pattern.
