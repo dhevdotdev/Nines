@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dev.dhev.nines.data.HabitRepository
 import dev.dhev.nines.data.ReminderRepository
 import dev.dhev.nines.reminders.ReminderScheduler
+import dev.dhev.nines.reminders.ReminderNotificationCoordinator
 import dev.dhev.nines.data.local.entity.HabitEntity
 import dev.dhev.nines.data.local.entity.HabitType
 import dev.dhev.nines.data.local.entity.TargetKind
@@ -32,6 +33,7 @@ class HabitsViewModel(
     private val repository: HabitRepository,
     private val reminderRepository: ReminderRepository? = null,
     private val reminderScheduler: ReminderScheduler? = null,
+    private val reminderNotifications: ReminderNotificationCoordinator? = null,
 ) : ViewModel() {
 
     private val today = LocalDate.now()
@@ -133,6 +135,8 @@ class HabitsViewModel(
             }
             is HabitsAction.DeleteHabit -> viewModelScope.launch {
                 repository.archiveHabit(action.habitId)
+                reminderScheduler?.cancel(action.habitId)
+                reminderNotifications?.cancel(action.habitId)
             }
             is HabitsAction.ReorderHabits -> viewModelScope.launch {
                 repository.reorderHabits(action.orderedIds)

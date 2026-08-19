@@ -13,6 +13,8 @@ class ReminderRepository(private val reminderDao: ReminderDao) {
 
     suspend fun get(habitId: Long): ReminderEntity? = reminderDao.get(habitId)
 
+    suspend fun all(): List<ReminderEntity> = reminderDao.all()
+
     suspend fun configure(habitId: Long, localTime: LocalTime) {
         val existing = reminderDao.get(habitId)
         reminderDao.upsert((existing ?: ReminderEntity(habitId, localTime)).copy(localTime = localTime))
