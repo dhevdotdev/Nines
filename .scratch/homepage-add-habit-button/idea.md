@@ -2,7 +2,9 @@
 
 **Category:** enhancement
 
-**Status:** ready-for-agent
+**Status:** superseded
+
+**Superseded by:** `spec.md` and `issues/01-expressive-add-habit-action.md`
 
 ## Incoming request
 
