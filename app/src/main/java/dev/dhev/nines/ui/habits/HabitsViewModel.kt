@@ -3,6 +3,8 @@ package dev.dhev.nines.ui.habits
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.dhev.nines.data.HabitRepository
+import dev.dhev.nines.data.ReminderRepository
+import dev.dhev.nines.reminders.ReminderScheduler
 import dev.dhev.nines.data.local.entity.HabitEntity
 import dev.dhev.nines.data.local.entity.HabitType
 import dev.dhev.nines.data.local.entity.TargetKind
@@ -21,11 +23,16 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.ZoneId
 import kotlin.random.Random
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class HabitsViewModel(private val repository: HabitRepository) : ViewModel() {
+class HabitsViewModel(
+    private val repository: HabitRepository,
+    private val reminderRepository: ReminderRepository? = null,
+    private val reminderScheduler: ReminderScheduler? = null,
+) : ViewModel() {
 
     private val today = LocalDate.now()
     private val selectedDate = MutableStateFlow(today)
@@ -56,12 +63,15 @@ class HabitsViewModel(private val repository: HabitRepository) : ViewModel() {
 
     /** [date] is the selected date being browsed/edited - not necessarily today. */
     private fun habitItemFlow(habit: HabitEntity, date: LocalDate): Flow<HabitListItem?> =
-        repository.observeHabitSnapshot(
+        combine(
+            repository.observeHabitSnapshot(
             habitId = habit.id,
             selectedDate = flowOf(date),
             asOfDate = today,
-        ).map { snapshot ->
-            snapshot?.let(::habitListItemFromSnapshot)
+            ),
+            reminderRepository?.observe(habit.id) ?: flowOf(null),
+        ) { snapshot, reminder ->
+            snapshot?.let(::habitListItemFromSnapshot)?.copy(reminderTime = reminder?.localTime)
         }
 
     fun onAction(action: HabitsAction) {
@@ -83,7 +93,7 @@ class HabitsViewModel(private val repository: HabitRepository) : ViewModel() {
                 repository.setNumericEntry(action.habitId, action.date, action.value)
             }
             is HabitsAction.CreateHabit -> viewModelScope.launch {
-                repository.createHabit(
+                val habitId = repository.createHabit(
                     name = action.name,
                     type = action.type,
                     color = action.color,
@@ -95,6 +105,10 @@ class HabitsViewModel(private val repository: HabitRepository) : ViewModel() {
                     targetValue = action.targetValue,
                     targetKind = action.targetKind,
                 )
+                action.reminderTime?.let {
+                    reminderRepository?.configure(habitId, it)
+                    reminderScheduler?.schedule(habitId, it)
+                }
             }
             is HabitsAction.UpdateHabit -> viewModelScope.launch {
                 repository.updateHabit(
@@ -109,6 +123,13 @@ class HabitsViewModel(private val repository: HabitRepository) : ViewModel() {
                     targetValue = action.targetValue,
                     targetKind = action.targetKind,
                 )
+                action.reminderTime?.let {
+                    reminderRepository?.configure(action.habitId, it)
+                    reminderScheduler?.schedule(action.habitId, it)
+                } ?: run {
+                    reminderRepository?.remove(action.habitId)
+                    reminderScheduler?.cancel(action.habitId)
+                }
             }
             is HabitsAction.DeleteHabit -> viewModelScope.launch {
                 repository.archiveHabit(action.habitId)

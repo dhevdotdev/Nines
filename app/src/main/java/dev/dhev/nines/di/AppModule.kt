@@ -12,6 +12,8 @@ import dev.dhev.nines.ui.habits.HabitDetailViewModel
 import dev.dhev.nines.ui.habits.HabitsViewModel
 import dev.dhev.nines.ui.settings.ArchivedHabitsViewModel
 import dev.dhev.nines.ui.settings.AppearanceViewModel
+import dev.dhev.nines.reminders.ReminderScheduler
+import dev.dhev.nines.reminders.ReminderNotificationCoordinator
 import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModelOf
 import org.koin.dsl.module
@@ -32,6 +34,8 @@ val appModule = module {
     single { get<NinesDatabase>().reminderDao() }
     single { HabitRepository(get(), get(), get()) }
     single { ReminderRepository(get()) }
+    single { ReminderScheduler(androidContext()) }
+    single { ReminderNotificationCoordinator(androidContext(), get(), get(), get()) }
 
     viewModelOf(::HabitsViewModel)
     viewModelOf(::HabitDetailViewModel)

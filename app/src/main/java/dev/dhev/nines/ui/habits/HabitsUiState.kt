@@ -5,6 +5,7 @@ import dev.dhev.nines.data.local.entity.HabitType
 import dev.dhev.nines.data.local.entity.TargetKind
 import dev.dhev.nines.scoring.FrequencyProgress
 import java.time.LocalDate
+import java.time.LocalTime
 
 /** One day in a habit's detailed history. [state] is null when no entry was logged. */
 data class DayCell(
@@ -32,6 +33,7 @@ data class HabitListItem(
     val targetNumerator: Int = 1,
     val targetDenominator: Int = 1,
     val frequencyProgress: FrequencyProgress? = null,
+    val reminderTime: LocalTime? = null,
 )
 
 data class HabitsUiState(
@@ -59,6 +61,7 @@ sealed interface HabitsAction {
         val targetValue: Double? = null,
         val targetKind: TargetKind? = null,
         val unit: String? = null,
+        val reminderTime: LocalTime? = null,
     ) : HabitsAction
     data class UpdateHabit(
         val habitId: Long,
@@ -71,6 +74,7 @@ sealed interface HabitsAction {
         val targetValue: Double? = null,
         val targetKind: TargetKind? = null,
         val unit: String? = null,
+        val reminderTime: LocalTime? = null,
     ) : HabitsAction
     data class DeleteHabit(val habitId: Long) : HabitsAction
     data class ReorderHabits(val orderedIds: List<Long>) : HabitsAction

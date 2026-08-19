@@ -78,6 +78,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Switch
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.TimePickerDialog
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -108,6 +113,8 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.widthIn
 import java.time.LocalDate
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import dev.dhev.nines.BuildConfig
@@ -171,6 +178,8 @@ fun AddHabitSheet(
     var frequencyType by remember { mutableStateOf(initialFrequency.type) }
     var timesPerWeek by remember { mutableStateOf(initialFrequency.timesPerWeek) }
     var everyNDays by remember { mutableStateOf(initialFrequency.everyNDays) }
+    var reminderTime by remember { mutableStateOf(editing?.reminderTime) }
+    var showReminderTimePicker by remember { mutableStateOf(false) }
     // Skip the partially-expanded resting state: this sheet is a form, and a peeked-height
     // sheet doesn't grow when the IME appears — it just gets covered by the keyboard.
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -370,6 +379,28 @@ fun AddHabitSheet(
             }
 
             Spacer(Modifier.height(Spacing.large))
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Reminder", style = MaterialTheme.typography.labelLarge)
+                    Text(
+                        text = reminderTime?.format(DateTimeFormatter.ofPattern("h:mm a"))
+                            ?: "Off",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = reminderTime != null,
+                    onCheckedChange = { enabled ->
+                        if (enabled) showReminderTimePicker = true else reminderTime = null
+                    },
+                )
+            }
+            if (reminderTime != null) {
+                TextButton(onClick = { showReminderTimePicker = true }) { Text("Change reminder time") }
+            }
+
+            Spacer(Modifier.height(Spacing.large))
             Text(text = "Color", style = MaterialTheme.typography.labelLarge)
             Spacer(Modifier.height(Spacing.extraSmall))
             Row(
@@ -528,6 +559,7 @@ fun AddHabitSheet(
                                 targetValue = targetValue,
                                 targetKind = effectiveTargetKind,
                                 unit = unit.ifBlank { null },
+                                reminderTime = reminderTime,
                             )
                         } else {
                             HabitsAction.CreateHabit(
@@ -541,6 +573,7 @@ fun AddHabitSheet(
                                 targetValue = targetValue,
                                 targetKind = effectiveTargetKind,
                                 unit = unit.ifBlank { null },
+                                reminderTime = reminderTime,
                             )
                         },
                     )
@@ -551,6 +584,21 @@ fun AddHabitSheet(
                 Text(if (editing != null) "Save changes" else "Add habit")
             }
         }
+    }
+
+    if (showReminderTimePicker) {
+        val initial = reminderTime ?: LocalTime.of(19, 0)
+        val pickerState = rememberTimePickerState(initial.hour, initial.minute)
+        TimePickerDialog(
+            onDismissRequest = { showReminderTimePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    reminderTime = LocalTime.of(pickerState.hour, pickerState.minute)
+                    showReminderTimePicker = false
+                }) { Text("Done") }
+            },
+            title = { Text("Reminder time") },
+        ) { TimePicker(pickerState) }
     }
 }
 

@@ -45,6 +45,10 @@ class HabitRepository(
 
     fun observeHabit(habitId: Long): Flow<HabitEntity?> = habitDao.observeById(habitId)
 
+    suspend fun habit(habitId: Long): HabitEntity? = habitDao.getById(habitId)
+
+    suspend fun entryOn(habitId: Long, date: LocalDate): EntryEntity? = entryDao.entryOn(habitId, date)
+
     fun observeEntries(habitId: Long): Flow<List<EntryEntity>> = entryDao.observeEntries(habitId)
 
     fun observeScheduleVersions(habitId: Long): Flow<List<ScheduleVersionEntity>> =
