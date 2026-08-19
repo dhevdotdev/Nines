@@ -24,3 +24,8 @@ keeps named themes as inspired seed sources, not code or visual ports.
 
 Implemented with twelve theme-derived HCT sources and a persisted Custom seed
 editor. Full JVM and connected-device regression tests passed.
+
+Follow-up corrections: Custom now stores canonical ARGB rather than Compose's
+packed internal color value, selected cards use their paired on-container roles
+for contrast, and the misleading intensity control was removed because the
+Expressive scheme intentionally normalizes source saturation.
