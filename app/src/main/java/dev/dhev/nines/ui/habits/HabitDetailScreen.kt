@@ -46,6 +46,7 @@ import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.Button
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -116,6 +117,7 @@ fun HabitDetailScreen(
     var showEditSheet by remember { mutableStateOf(false) }
     var expandedMonth by remember { mutableStateOf<YearMonth?>(null) }
     var editingDay by remember { mutableStateOf<DayCell?>(null) }
+    var pendingBinaryToggle by remember { mutableStateOf<DayCell?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
     val snackbarScope = rememberCoroutineScope()
 
@@ -141,6 +143,14 @@ fun HabitDetailScreen(
             ) {
                 onAction(HabitDetailAction.UndoClearNumericEntry(date, value))
             }
+        }
+    }
+
+    fun requestBinaryToggle(day: DayCell) {
+        if (requiresHistoricalBinaryConfirmation(day.date, uiState.today)) {
+            pendingBinaryToggle = day
+        } else {
+            onAction(HabitDetailAction.Toggle(day.date))
         }
     }
 
@@ -271,7 +281,15 @@ fun HabitDetailScreen(
                         } else {
                             CheckOffButton(
                                 completed = uiState.completed,
-                                onToggle = { onAction(HabitDetailAction.Toggle(uiState.selectedDate)) },
+                                onToggle = {
+                                    requestBinaryToggle(
+                                        DayCell(
+                                            date = uiState.selectedDate,
+                                            state = if (uiState.completed) EntryState.COMPLETED else EntryState.IN_PROGRESS,
+                                            isToday = uiState.selectedDate == uiState.today,
+                                        ),
+                                    )
+                                },
                                 accentColor = colors.accent,
                                 modifier = Modifier
                                     .align(Alignment.TopEnd)
@@ -467,10 +485,44 @@ fun HabitDetailScreen(
                     haptics.performHapticFeedback(
                         if (day.state == EntryState.COMPLETED) HapticFeedbackType.ToggleOff else HapticFeedbackType.ToggleOn,
                     )
-                    onAction(HabitDetailAction.Toggle(day.date))
+                    requestBinaryToggle(day)
                 }
             },
             onDismiss = { expandedMonth = null },
+        )
+    }
+
+    pendingBinaryToggle?.let { day ->
+        val willComplete = day.state != EntryState.COMPLETED
+        val formattedDate = day.date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
+        AlertDialog(
+            onDismissRequest = { pendingBinaryToggle = null },
+            title = { Text(if (willComplete) "Mark habit done?" else "Mark habit not done?") },
+            text = {
+                Text(
+                    if (willComplete) {
+                        "This will mark this habit as done for $formattedDate."
+                    } else {
+                        "This will mark this habit as not done for $formattedDate."
+                    },
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        pendingBinaryToggle = null
+                        onAction(HabitDetailAction.SelectDate(day.date))
+                        onAction(HabitDetailAction.Toggle(day.date))
+                    },
+                ) {
+                    Text(if (willComplete) "Mark done" else "Mark not done")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingBinaryToggle = null }) {
+                    Text("Cancel")
+                }
+            },
         )
     }
 
@@ -498,6 +550,9 @@ fun HabitDetailScreen(
         )
     }
 }
+
+internal fun requiresHistoricalBinaryConfirmation(date: LocalDate, today: LocalDate): Boolean =
+    date.isBefore(today)
 
 /**
  * The full-size month view opened from tapping a compact card in [HistoryCalendar]. Cells here

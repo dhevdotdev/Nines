@@ -48,5 +48,14 @@ class HabitDetailHistoryTest {
         assertTrue(history.isEmpty())
     }
 
+    @Test
+    fun `only dates before today require binary backfill confirmation`() {
+        val today = LocalDate.of(2026, 8, 10)
+
+        assertTrue(requiresHistoricalBinaryConfirmation(today.minusDays(1), today))
+        assertTrue(!requiresHistoricalBinaryConfirmation(today, today))
+        assertTrue(!requiresHistoricalBinaryConfirmation(today.plusDays(1), today))
+    }
+
     private fun entry(date: LocalDate) = TimelineEntry(date, TimelineEntryState.COMPLETED)
 }
