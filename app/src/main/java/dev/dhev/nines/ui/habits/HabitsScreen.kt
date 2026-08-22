@@ -669,22 +669,6 @@ private fun EmptyHabitsState(onAddHabit: () -> Unit, modifier: Modifier = Modifi
                         .background(MaterialTheme.colorScheme.primaryContainer),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(18.dp)
-                            .size(28.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.tertiaryContainer),
-                    )
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.BottomStart)
-                            .padding(20.dp)
-                            .size(24.dp)
-                            .clip(MaterialTheme.shapes.small)
-                            .background(MaterialTheme.colorScheme.secondaryContainer),
-                    )
                     DrawnSproutIllustration(
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.size(76.dp),
