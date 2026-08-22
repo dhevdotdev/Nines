@@ -51,8 +51,5 @@ Temporarily deferring a Reminder without changing the Habit’s Entry. In contra
 **App color source**:
 The user-facing origin of Nines’ root appearance: Wallpaper, a named Nines or theme-inspired palette, or Custom. It determines the app-wide Material color scheme, not a Habit’s identity color.
 
-**Theme palette recipe**:
-A coordinated visual identity used to derive an app color source’s Material roles. A recipe may express several related accent characteristics while preserving accessible role pairings; it is not a literal export of another theme’s implementation or role table.
-
 **Material color role**:
 A semantic color position in the app-wide scheme, such as primary, secondary, tertiary, surface, container, or an `on*` paired foreground. Roles describe intended use and contrast relationships, not decorative swatches.
