@@ -96,13 +96,29 @@ import java.util.Locale
 import kotlin.math.roundToInt
 
 @Composable
-fun InsightsSection(uiState: HabitDetailUiState, accent: Color) {
+fun InsightsSection(
+    uiState: HabitDetailUiState,
+    accent: Color,
+    onGuidanceRequested: (MetricGuidance) -> Unit = {},
+) {
     val rows = buildList<@Composable () -> Unit> {
         uiState.recordProgressLabel?.let { label ->
-            add { RecordProgressRow(label = label, accent = accent) }
+            add {
+                RecordProgressRow(
+                    label = label,
+                    accent = accent,
+                    onGuidanceRequested = onGuidanceRequested,
+                )
+            }
         }
         if (uiState.weekdayRates.size == 7) {
-            add { WeekdayBreakdownRow(rates = uiState.weekdayRates, accent = accent) }
+            add {
+                WeekdayBreakdownRow(
+                    rates = uiState.weekdayRates,
+                    accent = accent,
+                    onGuidanceRequested = onGuidanceRequested,
+                )
+            }
         }
         if (uiState.type == HabitType.NUMERICAL && uiState.targetKind != null) {
             val target = uiState.targetValue
@@ -114,15 +130,28 @@ fun InsightsSection(uiState: HabitDetailUiState, accent: Color) {
                         target = target,
                         targetKind = uiState.targetKind,
                         accent = accent,
+                        onGuidanceRequested = onGuidanceRequested,
                     )
                 }
             }
         }
         uiState.momentumDeltaPoints?.let { delta ->
-            add { MomentumRow(deltaPoints = delta, accent = accent) }
+            add {
+                MomentumRow(
+                    deltaPoints = delta,
+                    accent = accent,
+                    onGuidanceRequested = onGuidanceRequested,
+                )
+            }
         }
         uiState.typicalTimeOfDay?.let { timeOfDay ->
-            add { TypicalTimeRow(timeOfDay = timeOfDay, accent = accent) }
+            add {
+                TypicalTimeRow(
+                    timeOfDay = timeOfDay,
+                    accent = accent,
+                    onGuidanceRequested = onGuidanceRequested,
+                )
+            }
         }
         if (uiState.numericTotal != null && uiState.numericAverage != null) {
             add {
@@ -131,11 +160,19 @@ fun InsightsSection(uiState: HabitDetailUiState, accent: Color) {
                     average = uiState.numericAverage,
                     unit = uiState.unit,
                     accent = accent,
+                    onGuidanceRequested = onGuidanceRequested,
                 )
             }
         }
         uiState.longestGap?.let { gap ->
-            add { LongestGapRow(gap = gap, accent = accent, today = uiState.today) }
+            add {
+                LongestGapRow(
+                    gap = gap,
+                    accent = accent,
+                    today = uiState.today,
+                    onGuidanceRequested = onGuidanceRequested,
+                )
+            }
         }
     }
     Spacer(Modifier.height(Spacing.extraLarge))
@@ -166,7 +203,11 @@ fun InsightsSection(uiState: HabitDetailUiState, accent: Color) {
 }
 
 @Composable
-private fun RecordProgressRow(label: String, accent: Color) {
+private fun RecordProgressRow(
+    label: String,
+    accent: Color,
+    onGuidanceRequested: (MetricGuidance) -> Unit,
+) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(
             imageVector = Icons.Filled.LocalFireDepartment,
@@ -176,11 +217,21 @@ private fun RecordProgressRow(label: String, accent: Color) {
         )
         Spacer(Modifier.width(Spacing.small))
         Text(text = label, style = MaterialTheme.typography.bodyMedium)
+        MetricGuidanceButton(
+            guidance = metricGuidance(MetricGuidanceKey.RECORD),
+            onClick = { onGuidanceRequested(metricGuidance(MetricGuidanceKey.RECORD)) },
+        )
     }
 }
 
 @Composable
-private fun NumericTotalsRow(total: Double, average: Double, unit: String?, accent: Color) {
+private fun NumericTotalsRow(
+    total: Double,
+    average: Double,
+    unit: String?,
+    accent: Color,
+    onGuidanceRequested: (MetricGuidance) -> Unit,
+) {
     val unitSuffix = unit?.let { " $it" } ?: ""
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(
@@ -194,11 +245,20 @@ private fun NumericTotalsRow(total: Double, average: Double, unit: String?, acce
             text = "${formatValue(total)}$unitSuffix total · averaging ${formatValue(average)}$unitSuffix per entry",
             style = MaterialTheme.typography.bodyMedium,
         )
+        MetricGuidanceButton(
+            guidance = metricGuidance(MetricGuidanceKey.NUMERIC_TOTALS),
+            onClick = { onGuidanceRequested(metricGuidance(MetricGuidanceKey.NUMERIC_TOTALS)) },
+        )
     }
 }
 
 @Composable
-private fun LongestGapRow(gap: StreakRun, accent: Color, today: LocalDate) {
+private fun LongestGapRow(
+    gap: StreakRun,
+    accent: Color,
+    today: LocalDate,
+    onGuidanceRequested: (MetricGuidance) -> Unit,
+) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(
             imageVector = Icons.Filled.EventBusy,
@@ -211,11 +271,19 @@ private fun LongestGapRow(gap: StreakRun, accent: Color, today: LocalDate) {
             text = "Longest gap: ${gap.length} days (${streakRangeLabel(gap, today)})",
             style = MaterialTheme.typography.bodyMedium,
         )
+        MetricGuidanceButton(
+            guidance = metricGuidance(MetricGuidanceKey.GAP),
+            onClick = { onGuidanceRequested(metricGuidance(MetricGuidanceKey.GAP)) },
+        )
     }
 }
 
 @Composable
-private fun WeekdayBreakdownRow(rates: List<Double>, accent: Color) {
+private fun WeekdayBreakdownRow(
+    rates: List<Double>,
+    accent: Color,
+    onGuidanceRequested: (MetricGuidance) -> Unit,
+) {
     // Color/alpha, not shape or position, so this fades in rather than springing - the
     // library's own rule is spatial for anything that moves or resizes, effects for anything
     // that's purely a color change, and a fade reads calmer for seven cells appearing together.
@@ -226,6 +294,10 @@ private fun WeekdayBreakdownRow(rates: List<Double>, accent: Color) {
             text = "By day of week",
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        MetricGuidanceButton(
+            guidance = metricGuidance(MetricGuidanceKey.WEEKDAY),
+            onClick = { onGuidanceRequested(metricGuidance(MetricGuidanceKey.WEEKDAY)) },
         )
         Spacer(Modifier.height(Spacing.small))
         Row(
@@ -285,7 +357,13 @@ private const val TargetChartMaxScale = 1.25f
  * a glance instead of a column of fractions.
  */
 @Composable
-private fun TargetProgressRow(days: List<DayCell>, target: Double, targetKind: TargetKind, accent: Color) {
+private fun TargetProgressRow(
+    days: List<DayCell>,
+    target: Double,
+    targetKind: TargetKind,
+    accent: Color,
+    onGuidanceRequested: (MetricGuidance) -> Unit,
+) {
     // AT_MOST inverts what "met" means (staying under a ceiling, not reaching a floor) but not
     // the bar mechanics - a bar that reaches the line still means "landed exactly on target"
     // either way, only which side of it counts as success flips.
@@ -297,11 +375,17 @@ private fun TargetProgressRow(days: List<DayCell>, target: Double, targetKind: T
     var animateIn by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { animateIn = true }
     Column {
-        Text(
-            text = "Recent days vs. target",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = "Recent days vs. target",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            MetricGuidanceButton(
+                guidance = metricGuidance(MetricGuidanceKey.TARGET),
+                onClick = { onGuidanceRequested(metricGuidance(MetricGuidanceKey.TARGET)) },
+            )
+        }
         Spacer(Modifier.height(Spacing.small))
         Box(modifier = Modifier.fillMaxWidth().height(TargetChartHeight)) {
             HorizontalDivider(
@@ -359,7 +443,11 @@ private fun TargetProgressRow(days: List<DayCell>, target: Double, targetKind: T
 }
 
 @Composable
-private fun MomentumRow(deltaPoints: Double, accent: Color) {
+private fun MomentumRow(
+    deltaPoints: Double,
+    accent: Color,
+    onGuidanceRequested: (MetricGuidance) -> Unit,
+) {
     val roundedDelta = kotlin.math.abs(deltaPoints).roundToInt()
     // A delta that rounds to zero isn't "0% more consistent" (which reads like a broken
     // template), it's just flat - a distinct third state, not a degenerate case of up or down.
@@ -392,11 +480,19 @@ private fun MomentumRow(deltaPoints: Double, accent: Color) {
             },
             style = MaterialTheme.typography.bodyMedium,
         )
+        MetricGuidanceButton(
+            guidance = metricGuidance(MetricGuidanceKey.MOMENTUM),
+            onClick = { onGuidanceRequested(metricGuidance(MetricGuidanceKey.MOMENTUM)) },
+        )
     }
 }
 
 @Composable
-private fun TypicalTimeRow(timeOfDay: String, accent: Color) {
+private fun TypicalTimeRow(
+    timeOfDay: String,
+    accent: Color,
+    onGuidanceRequested: (MetricGuidance) -> Unit,
+) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(
             imageVector = Icons.Filled.Schedule,
@@ -408,6 +504,10 @@ private fun TypicalTimeRow(timeOfDay: String, accent: Color) {
         Text(
             text = "Usually logged in the $timeOfDay",
             style = MaterialTheme.typography.bodyMedium,
+        )
+        MetricGuidanceButton(
+            guidance = metricGuidance(MetricGuidanceKey.TIME),
+            onClick = { onGuidanceRequested(metricGuidance(MetricGuidanceKey.TIME)) },
         )
     }
 }
