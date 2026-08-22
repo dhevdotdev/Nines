@@ -4,10 +4,14 @@
 
 **Blocked by:** 03 — Explain Detail-screen metrics
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 - [ ] Homepage status and frequency-progress indicators expose guidance where their meaning is not self-evident.
 - [ ] Selected-date and calendar/history dot states have concise explanations tied to Entries and the selected date.
 - [ ] The same guidance surface and interaction grammar are reused instead of creating a second help system.
 - [ ] Guidance does not alter completion, numeric logging, date selection, calendar navigation, or derived-state behavior.
 - [ ] Compose semantics and connected smoke coverage verify representative homepage and history explanations.
+
+## Comments
+
+Closed with detail metric guidance. Its shared interaction model was rejected during visual review, so any future indicator education should begin as a new design problem.
