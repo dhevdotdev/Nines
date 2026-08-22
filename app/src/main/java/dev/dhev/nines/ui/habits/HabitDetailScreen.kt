@@ -118,7 +118,6 @@ fun HabitDetailScreen(
     var expandedMonth by remember { mutableStateOf<YearMonth?>(null) }
     var editingDay by remember { mutableStateOf<DayCell?>(null) }
     var pendingBinaryToggle by remember { mutableStateOf<DayCell?>(null) }
-    var guidance by remember { mutableStateOf<MetricGuidance?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
     val snackbarScope = rememberCoroutineScope()
 
@@ -320,30 +319,18 @@ fun HabitDetailScreen(
                                 // on, but that whole narrative layer is on hold for now (see the
                                 // project's own notes on this) — plain, common wording instead of
                                 // jargon until/unless that layer comes back deliberately.
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        text = "consistency",
-                                        style = MaterialTheme.typography.labelMediumEmphasized,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                    MetricGuidanceButton(
-                                        guidance = metricGuidance(MetricGuidanceKey.SCORE),
-                                        onClick = { guidance = metricGuidance(MetricGuidanceKey.SCORE) },
-                                    )
-                                }
+                                Text(
+                                    text = "consistency",
+                                    style = MaterialTheme.typography.labelMediumEmphasized,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
                                 cycleProgressLabel(uiState)?.let { label ->
                                     Spacer(Modifier.height(Spacing.extraSmall))
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(
-                                            text = label,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                        )
-                                        MetricGuidanceButton(
-                                            guidance = metricGuidance(MetricGuidanceKey.FREQUENCY),
-                                            onClick = { guidance = metricGuidance(MetricGuidanceKey.FREQUENCY) },
-                                        )
-                                    }
+                                    Text(
+                                        text = label,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                    )
                                 }
                             }
                         }
@@ -362,24 +349,18 @@ fun HabitDetailScreen(
                             value = "${uiState.currentStreak}",
                             label = "current streak",
                             accent = colors.accent,
-                            guidance = metricGuidance(MetricGuidanceKey.STREAK),
-                            onGuidanceRequested = { guidance = it },
                         )
                         StatColumn(
                             icon = null,
                             value = "${uiState.bestStreak}",
                             label = "best streak",
                             accent = colors.accent,
-                            guidance = metricGuidance(MetricGuidanceKey.STREAK),
-                            onGuidanceRequested = { guidance = it },
                         )
                         StatColumn(
                             icon = null,
                             value = "${uiState.totalCompletions}",
                             label = "total",
                             accent = colors.accent,
-                            guidance = metricGuidance(MetricGuidanceKey.TOTAL),
-                            onGuidanceRequested = { guidance = it },
                         )
                     }
                 }
@@ -428,11 +409,7 @@ fun HabitDetailScreen(
                 }
             }
 
-            InsightsSection(
-                uiState = uiState,
-                accent = colors.accent,
-                onGuidanceRequested = { guidance = it },
-            )
+            InsightsSection(uiState = uiState, accent = colors.accent)
 
             Spacer(Modifier.height(Spacing.large))
         }
@@ -570,13 +547,6 @@ fun HabitDetailScreen(
                 }
             },
             onDismiss = { editingDay = null },
-        )
-    }
-
-    guidance?.let { selectedGuidance ->
-        MetricGuidanceDialog(
-            guidance = selectedGuidance,
-            onDismiss = { guidance = null },
         )
     }
 }

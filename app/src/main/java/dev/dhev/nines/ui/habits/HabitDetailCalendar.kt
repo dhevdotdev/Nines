@@ -355,8 +355,6 @@ fun StatColumn(
     value: String,
     label: String,
     accent: Color,
-    guidance: MetricGuidance? = null,
-    onGuidanceRequested: (MetricGuidance) -> Unit = {},
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.extraSmall)) {
@@ -365,19 +363,11 @@ fun StatColumn(
             }
             Text(text = value, style = MaterialTheme.typography.titleLargeEmphasized, color = accent)
         }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            guidance?.let {
-                MetricGuidanceButton(
-                    guidance = it,
-                    onClick = { onGuidanceRequested(it) },
-                )
-            }
-        }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
