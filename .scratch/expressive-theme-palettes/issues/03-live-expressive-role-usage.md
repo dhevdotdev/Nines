@@ -7,15 +7,15 @@ calm and per-Habit identity colors remain independent.
 
 **Blocked by:** 01 — Resolve coordinated theme palette recipes.
 
-**Status:** done
+**Status:** ready-for-agent
 
-- [x] Representative live surfaces visibly use primary, secondary, and
+- [ ] Representative live surfaces visibly use primary, secondary, and
       tertiary roles with their intended emphasis hierarchy.
-- [x] Large reading surfaces continue to use surface/container roles rather
+- [ ] Large reading surfaces continue to use surface/container roles rather
       than arbitrary accent fills or screen-local hardcoded colors.
-- [x] `on*` content roles remain paired with their parent fills throughout the
+- [ ] `on*` content roles remain paired with their parent fills throughout the
       changed surfaces.
-- [x] Existing Wallpaper, Custom, Habit identity, system-bar, and persistence
+- [ ] Existing Wallpaper, Custom, Habit identity, system-bar, and persistence
       behavior remains intact.
-- [x] Compose/device verification confirms representative named themes no
+- [ ] Compose/device verification confirms representative named themes no
       longer read as a single-color tint in the live app.

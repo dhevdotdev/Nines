@@ -20,7 +20,6 @@ import com.materialkolor.PaletteStyle
 import com.materialkolor.dynamiccolor.ColorSpec
 import com.materialkolor.rememberDynamicColorScheme
 import dev.dhev.nines.appearance.AppColorSource
-import dev.dhev.nines.appearance.themePaletteRecipe
 
 @Composable
 fun NinesTheme(
@@ -86,23 +85,11 @@ fun rememberNinesColorScheme(
                     specVersion = ColorSpec.SpecVersion.SPEC_2025,
                 )
             }
-        AppColorSource.CUSTOM -> rememberDynamicColorScheme(
-            seedColor = Color(customSeedArgb.toInt()),
+        else -> rememberDynamicColorScheme(
+            seedColor = Color((effectiveSource.seedArgb ?: customSeedArgb).toInt()),
             isDark = darkTheme,
             style = PaletteStyle.Expressive,
             specVersion = ColorSpec.SpecVersion.SPEC_2025,
         )
-        else -> {
-            val recipe = effectiveSource.themePaletteRecipe()
-            rememberDynamicColorScheme(
-                seedColor = Color(recipe.anchorArgb.toInt()),
-                primary = Color(recipe.anchorArgb.toInt()),
-                secondary = Color(recipe.companionArgb.toInt()),
-                tertiary = Color(recipe.highlightArgb.toInt()),
-                isDark = darkTheme,
-                style = PaletteStyle.Expressive,
-                specVersion = ColorSpec.SpecVersion.SPEC_2025,
-            )
-        }
     }
 }

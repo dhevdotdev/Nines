@@ -7,16 +7,16 @@ semantics.
 
 **Blocked by:** None — can start immediately.
 
-**Status:** done
+**Status:** ready-for-agent
 
-- [x] Named sources expose anchor, companion, and highlight palette
+- [ ] Named sources expose anchor, companion, and highlight palette
       characteristics without copying external role tables.
-- [x] Catppuccin, Tokyo Night, Dracula, and representative remaining sources
+- [ ] Catppuccin, Tokyo Night, Dracula, and representative remaining sources
       resolve to visibly distinct primary, secondary, and tertiary roles in
       both light and dark mode.
-- [x] Wallpaper and Custom continue through the same root resolution contract,
+- [ ] Wallpaper and Custom continue through the same root resolution contract,
       with Custom remaining one-seed and persisted.
-- [x] Paired `on*` roles remain readable and source selection semantics remain
+- [ ] Paired `on*` roles remain readable and source selection semantics remain
       unchanged.
-- [x] Deterministic automated tests cover representative sources, both modes,
+- [ ] Deterministic automated tests cover representative sources, both modes,
       Wallpaper fallback, Custom, role distinction, and paired contrast.
