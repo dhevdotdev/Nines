@@ -1,9 +1,11 @@
 package dev.dhev.nines.data
 
 import dev.dhev.nines.appearance.AppColorSource
+import dev.dhev.nines.appearance.themePaletteRecipe
 import dev.dhev.nines.appearance.toSeedArgb
 import androidx.compose.ui.graphics.Color
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Test
 
 class AppColorSourceTest {
@@ -47,5 +49,15 @@ class AppColorSourceTest {
             ),
             AppColorSource.themeCollection,
         )
+    }
+
+    @Test
+    fun namedThemesDescribeThreeDistinctPaletteAnchors() {
+        AppColorSource.themeCollection.forEach { source ->
+            val recipe = source.themePaletteRecipe()
+            assertNotEquals(recipe.anchorArgb, recipe.companionArgb)
+            assertNotEquals(recipe.anchorArgb, recipe.highlightArgb)
+            assertNotEquals(recipe.companionArgb, recipe.highlightArgb)
+        }
     }
 }

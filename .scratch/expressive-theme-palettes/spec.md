@@ -1,6 +1,6 @@
 # Expressive, coordinated theme palettes
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Problem Statement
 
