@@ -85,10 +85,7 @@ scoring model, or persistence path.
 
 - Historical date selection from the widget.
 - A widget-specific measurable editor.
-- Multiple independent widget configurations.
-- Categories, filters, pinned-habit configuration, or advanced customization.
-- Export/import and billing.
-- Wear OS, lock-screen widgets, Android Auto, or other surfaces.
+- A second scoring, Entry, or persistence path for widget behavior.
 
 ## Further Notes
 
