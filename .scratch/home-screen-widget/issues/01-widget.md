@@ -1,6 +1,6 @@
 # Home-screen widget
 
-Status: needs-triage
+Status: ready-for-agent
 
 A home-screen widget for quick habit tracking without opening the app. Never scoped.
 
