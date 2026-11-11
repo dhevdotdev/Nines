@@ -2,7 +2,11 @@ package dev.dhev.nines.debug
 
 import dev.dhev.nines.data.DemoData
 import dev.dhev.nines.data.HabitRepository
+import dev.dhev.nines.data.local.HabitDao
+import dev.dhev.nines.data.local.ScheduleVersionDao
+import dev.dhev.nines.data.local.entity.HabitEntity
 import dev.dhev.nines.data.local.entity.HabitType
+import dev.dhev.nines.data.local.entity.ScheduleVersionEntity
 import dev.dhev.nines.data.local.entity.TargetKind
 import java.time.Instant
 import java.time.LocalDate
@@ -15,6 +19,8 @@ import kotlin.random.Random
  */
 class DemoDataSeeder(
     private val repository: HabitRepository,
+    private val habitDao: HabitDao,
+    private val scheduleVersionDao: ScheduleVersionDao,
 ) : DemoData {
     override val isAvailable = true
 
@@ -36,20 +42,31 @@ class DemoDataSeeder(
             targetDenominator: Int,
             targetValue: Double?,
             targetKind: TargetKind?,
-        ): Long = repository.createHabit(
-            name = name,
-            type = type,
-            unit = unit,
-            color = color,
-            iconKey = iconKey,
-            backgroundStyleKey = backgroundStyleKey,
-            targetNumerator = targetNumerator,
-            targetDenominator = targetDenominator,
-            targetValue = targetValue,
-            targetKind = targetKind,
-            createdAt = createdAt(createdDaysAgo),
-            scheduleEffectiveFrom = daysAgo(createdDaysAgo),
-        )
+        ): Long {
+            val habitId = habitDao.insert(
+                HabitEntity(
+                    name = name,
+                    type = type,
+                    unit = unit,
+                    color = color,
+                    iconKey = iconKey,
+                    backgroundStyleKey = backgroundStyleKey,
+                    position = habitDao.nextPosition(),
+                    createdAt = createdAt(createdDaysAgo),
+                ),
+            )
+            scheduleVersionDao.insert(
+                ScheduleVersionEntity(
+                    habitId = habitId,
+                    effectiveFromDate = daysAgo(createdDaysAgo),
+                    targetNumerator = targetNumerator,
+                    targetDenominator = targetDenominator,
+                    targetValue = targetValue,
+                    targetKind = targetKind,
+                ),
+            )
+            return habitId
+        }
 
         // 1. Meditate — daily, ~9.5 months old (crosses a year boundary so the calendar's sticky
         // year indicator has something to actually demonstrate), 21-day streak up to today.

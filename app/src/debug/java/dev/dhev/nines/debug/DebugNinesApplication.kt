@@ -8,7 +8,7 @@ import org.koin.dsl.module
 class DebugNinesApplication : NinesApplication() {
     override fun variantModules(): List<Module> = listOf(
         module {
-            single<DemoData> { DemoDataSeeder(get()) }
+            single<DemoData> { DemoDataSeeder(get(), get(), get()) }
         },
     )
 }

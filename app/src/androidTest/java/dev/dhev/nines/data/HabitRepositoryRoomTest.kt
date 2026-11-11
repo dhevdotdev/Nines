@@ -23,8 +23,10 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneOffset
 
 @RunWith(AndroidJUnit4::class)
 class HabitRepositoryRoomTest {
@@ -35,7 +37,12 @@ class HabitRepositoryRoomTest {
     fun setUp() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         database = Room.inMemoryDatabaseBuilder(context, NinesDatabase::class.java).build()
-        repository = HabitRepository(database.habitDao(), database.scheduleVersionDao(), database.entryDao())
+        repository = HabitRepository(
+            database.habitDao(),
+            database.scheduleVersionDao(),
+            database.entryDao(),
+            clock = Clock.fixed(Instant.parse("2026-08-01T00:00:00Z"), ZoneOffset.UTC),
+        )
     }
 
     @After
@@ -45,16 +52,12 @@ class HabitRepositoryRoomTest {
 
     @Test
     fun createHabitPersistsPositionAndInitialSchedule() = runBlocking {
-        val createdAt = LocalDate.of(2026, 8, 1).atStartOfDay(java.time.ZoneOffset.UTC).toInstant()
-
         val habitId =
             repository.createHabit(
                 name = "Read",
                 type = HabitType.BOOLEAN,
                 color = 0xFF000000.toInt(),
                 iconKey = "book",
-                createdAt = createdAt,
-                scheduleEffectiveFrom = createdAt.atZone(java.time.ZoneOffset.UTC).toLocalDate(),
                 targetNumerator = 2,
                 targetDenominator = 7,
             )
@@ -115,7 +118,6 @@ class HabitRepositoryRoomTest {
                 iconKey = "water",
                 targetValue = 2.0,
                 targetKind = TargetKind.AT_LEAST,
-                scheduleEffectiveFrom = LocalDate.of(2026, 8, 1),
             )
         val date = LocalDate.of(2026, 8, 16)
 
@@ -141,7 +143,6 @@ class HabitRepositoryRoomTest {
                 iconKey = "water",
                 targetValue = 2.0,
                 targetKind = TargetKind.AT_LEAST,
-                scheduleEffectiveFrom = LocalDate.of(2026, 8, 1),
             )
         val date = LocalDate.of(2026, 8, 16)
         repository.setNumericEntry(habitId, date, 2.5)
@@ -164,8 +165,6 @@ class HabitRepositoryRoomTest {
                 type = HabitType.BOOLEAN,
                 color = 0xFF000000.toInt(),
                 iconKey = "check",
-                createdAt = created.atStartOfDay(java.time.ZoneOffset.UTC).toInstant(),
-                scheduleEffectiveFrom = created,
             )
         database.entryDao().upsert(completedEntry(habitId, selected))
 
@@ -264,8 +263,6 @@ class HabitRepositoryRoomTest {
         type = HabitType.BOOLEAN,
         color = 0xFF000000.toInt(),
         iconKey = "check",
-        createdAt = Instant.parse("2026-08-01T00:00:00Z"),
-        scheduleEffectiveFrom = LocalDate.of(2026, 8, 1),
     )
 
     private fun completedEntry(

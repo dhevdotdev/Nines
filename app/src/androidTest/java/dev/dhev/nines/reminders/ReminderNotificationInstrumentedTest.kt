@@ -159,6 +159,5 @@ class ReminderNotificationInstrumentedTest {
             type = HabitType.BOOLEAN,
             color = 0,
             iconKey = "default",
-            scheduleEffectiveFrom = java.time.LocalDate.now(),
         ).also(createdHabitIds::add)
 }

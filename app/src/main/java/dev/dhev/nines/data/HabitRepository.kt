@@ -26,15 +26,16 @@ import dev.dhev.nines.scoring.computeScheduleAwareScoreSeries
 import dev.dhev.nines.scoring.isReminderResolvedOn
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.OffsetDateTime
-import java.time.ZoneId
 
 class HabitRepository(
     private val habitDao: HabitDao,
     private val scheduleVersionDao: ScheduleVersionDao,
     private val entryDao: EntryDao,
+    private val clock: Clock = Clock.systemDefaultZone(),
 ) {
     data class HabitTimelineSnapshot(
         val habit: HabitEntity,
@@ -88,7 +89,7 @@ class HabitRepository(
         selectedDate,
     ) { habit, timelineData, date ->
         habit?.let {
-            val createdDate = it.createdAt.atZone(ZoneId.systemDefault()).toLocalDate()
+            val createdDate = it.createdAt.atZone(clock.zone).toLocalDate()
             val effectiveSelectedDate = minOf(date, asOfDate)
             val boundedEntries = timelineData.entries
                 .filter { entry ->
@@ -124,9 +125,6 @@ class HabitRepository(
         unit: String? = null,
         targetValue: Double? = null,
         targetKind: TargetKind? = null,
-        // Overridable so tests and debug demo-data can backdate a habit; real creation uses the defaults.
-        createdAt: Instant = Instant.now(),
-        scheduleEffectiveFrom: LocalDate = LocalDate.now(),
     ): Long {
         val position = habitDao.nextPosition()
         val habitId = habitDao.insert(
@@ -138,13 +136,13 @@ class HabitRepository(
                 iconKey = iconKey,
                 backgroundStyleKey = backgroundStyleKey,
                 position = position,
-                createdAt = createdAt,
+                createdAt = clock.instant(),
             ),
         )
         scheduleVersionDao.insert(
             ScheduleVersionEntity(
                 habitId = habitId,
-                effectiveFromDate = scheduleEffectiveFrom,
+                effectiveFromDate = LocalDate.now(clock),
                 targetNumerator = targetNumerator,
                 targetDenominator = targetDenominator,
                 targetValue = targetValue,
@@ -161,7 +159,7 @@ class HabitRepository(
             entryDao.delete(existing)
             return
         }
-        val now = Instant.now()
+        val now = clock.instant()
         entryDao.upsert(
             EntryEntity(
                 habitId = habitId,
@@ -189,7 +187,7 @@ class HabitRepository(
     /** Sets a numeric habit's value for [date] outright, for manual entry rather than +/- taps. */
     suspend fun setNumericEntry(habitId: Long, date: LocalDate, value: Double) {
         val existing = entryDao.entryOn(habitId, date)
-        val now = Instant.now()
+        val now = clock.instant()
         val newValue = value.coerceAtLeast(0.0)
         val schedule = scheduleVersionDao.versionEffectiveOn(habitId, date)
         val meetsTarget = when (schedule?.targetKind) {
@@ -219,7 +217,7 @@ class HabitRepository(
     /** Soft-delete: hides the habit from [observeActiveHabits] without touching its history. */
     suspend fun archiveHabit(habitId: Long) {
         val habit = habitDao.getById(habitId) ?: return
-        habitDao.update(habit.copy(archivedAt = Instant.now()))
+        habitDao.update(habit.copy(archivedAt = clock.instant()))
     }
 
     /** Undoes [archiveHabit]. Appended to the end of the active list (via [HabitDao.nextPosition])
@@ -266,7 +264,7 @@ class HabitRepository(
             ),
         )
 
-        val today = LocalDate.now()
+        val today = LocalDate.now(clock)
         val current = scheduleVersionDao.versionEffectiveOn(habitId, today)
         val scheduleChanged = current == null ||
             current.targetNumerator != targetNumerator ||
@@ -289,7 +287,7 @@ class HabitRepository(
 
     suspend fun setSkipped(habitId: Long, date: LocalDate) {
         val existing = entryDao.entryOn(habitId, date)
-        val now = Instant.now()
+        val now = clock.instant()
         entryDao.upsert(
             EntryEntity(
                 habitId = habitId,
@@ -327,5 +325,5 @@ class HabitRepository(
         )
     }
 
-    private fun currentTzOffsetMinutes(): Int = OffsetDateTime.now().offset.totalSeconds / 60
+    private fun currentTzOffsetMinutes(): Int = OffsetDateTime.now(clock).offset.totalSeconds / 60
 }
