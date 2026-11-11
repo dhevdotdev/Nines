@@ -36,6 +36,11 @@ internal fun TargetKind?.toFrequencyTargetKind(): FrequencyTargetKind = when (th
     TargetKind.AT_LEAST, null -> FrequencyTargetKind.AT_LEAST
 }
 
+internal fun FrequencyTargetKind.toTargetKind(): TargetKind = when (this) {
+    FrequencyTargetKind.AT_MOST -> TargetKind.AT_MOST
+    FrequencyTargetKind.AT_LEAST -> TargetKind.AT_LEAST
+}
+
 internal fun ScheduleVersionEntity.toTimelineSchedule() = TimelineSchedule(
     effectiveFromDate = effectiveFromDate,
     target = ScheduleTarget(targetNumerator, targetDenominator),

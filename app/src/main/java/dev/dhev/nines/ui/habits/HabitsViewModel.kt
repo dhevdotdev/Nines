@@ -6,8 +6,10 @@ import dev.dhev.nines.data.DemoData
 import dev.dhev.nines.data.HabitRepository
 import dev.dhev.nines.data.ReminderRepository
 import dev.dhev.nines.data.local.entity.HabitEntity
+import dev.dhev.nines.data.todayFlow
 import dev.dhev.nines.reminders.ReminderNotificationCoordinator
 import dev.dhev.nines.reminders.ReminderScheduler
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -21,6 +23,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.Clock
 import java.time.LocalDate
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -30,49 +33,55 @@ class HabitsViewModel(
     private val reminderScheduler: ReminderScheduler? = null,
     private val reminderNotifications: ReminderNotificationCoordinator? = null,
     private val demoData: DemoData = DemoData.None,
+    private val clock: Clock = Clock.systemDefaultZone(),
+    private val computeDispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) : ViewModel() {
 
-    private val today = LocalDate.now()
-    private val selectedDate = MutableStateFlow(today)
+    /** A date the user browsed to. Null means "follow today", including across midnight. */
+    private val browsedDate = MutableStateFlow<LocalDate?>(null)
 
-    val uiState: StateFlow<HabitsUiState> = combine(
+    private fun selectedDate(): LocalDate = browsedDate.value ?: LocalDate.now(clock)
+
+    // Rolling over at midnight restarts the per-habit pipeline for the new day. The heavy score and
+    // streak recompute for every habit runs off the main thread: without flowOn it would run on
+    // viewModelScope's Main.immediate for N habits at once on every entries change.
+    val uiState: StateFlow<HabitsUiState> = clock
+        .todayFlow()
+        .flatMapLatest { todayDate -> habitsUiState(todayDate).flowOn(computeDispatcher) }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = HabitsUiState(today = LocalDate.now(clock)),
+        )
+
+    private fun habitsUiState(todayDate: LocalDate): Flow<HabitsUiState> = combine(
         repository.observeActiveHabits(),
-        selectedDate,
-    ) { habits, date -> habits to date }
+        browsedDate,
+    ) { habits, browsed -> habits to (browsed ?: todayDate) }
         .flatMapLatest { (habits, date) ->
             if (habits.isEmpty()) {
                 flowOf(emptyList<HabitListItem>() to date)
             } else {
-                combine(habits.map { habitItemFlow(it, date) }) { items ->
+                combine(habits.map { habitItemFlow(it, todayDate, date) }) { items ->
                     items.filterNotNull() to date
                 }
             }
-        }
-        .map { (items, date) ->
+        }.map { (items, date) ->
             HabitsUiState(
                 habits = items,
                 isLoading = false,
-                today = today,
+                today = todayDate,
                 selectedDate = date,
                 demoDataAvailable = demoData.isAvailable,
             )
         }
-        // Every habit's score/streak recompute combines here, all on whatever dispatcher
-        // collects this flow - without this, that's viewModelScope's Main.immediate, i.e. the
-        // main thread, for N habits at once on every entries change.
-        .flowOn(Dispatchers.Default)
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = HabitsUiState(),
-        )
 
     /** [date] is the selected date being browsed/edited - not necessarily today. */
-    private fun habitItemFlow(habit: HabitEntity, date: LocalDate): Flow<HabitListItem?> = combine(
+    private fun habitItemFlow(habit: HabitEntity, todayDate: LocalDate, date: LocalDate): Flow<HabitListItem?> = combine(
         repository.observeHabitSnapshot(
             habitId = habit.id,
             selectedDate = flowOf(date),
-            asOfDate = today,
+            asOfDate = todayDate,
         ),
         reminderRepository?.observe(habit.id) ?: flowOf(null),
     ) { snapshot, reminder ->
@@ -81,18 +90,18 @@ class HabitsViewModel(
 
     fun onAction(action: HabitsAction) {
         when (action) {
-            is HabitsAction.SelectDate -> selectedDate.value = action.date
+            is HabitsAction.SelectDate -> browsedDate.value = action.date.takeIf { it != LocalDate.now(clock) }
 
             is HabitsAction.ToggleHabit -> viewModelScope.launch {
-                repository.toggleCompletion(action.habitId, selectedDate.value)
+                repository.toggleCompletion(action.habitId, selectedDate())
             }
 
             is HabitsAction.IncrementHabit -> viewModelScope.launch {
-                repository.incrementNumericEntry(action.habitId, selectedDate.value, action.delta)
+                repository.incrementNumericEntry(action.habitId, selectedDate(), action.delta)
             }
 
             is HabitsAction.SetNumericValue -> viewModelScope.launch {
-                repository.setNumericEntry(action.habitId, selectedDate.value, action.value)
+                repository.setNumericEntry(action.habitId, selectedDate(), action.value)
             }
 
             is HabitsAction.ClearNumericEntry -> viewModelScope.launch {

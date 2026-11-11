@@ -18,8 +18,10 @@ import dev.dhev.nines.ui.habits.HabitsViewModel
 import dev.dhev.nines.ui.settings.AppearanceViewModel
 import dev.dhev.nines.ui.settings.ArchivedHabitsViewModel
 import org.koin.android.ext.koin.androidContext
+import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.androidx.viewmodel.dsl.viewModelOf
 import org.koin.dsl.module
+import java.time.Clock
 
 @Suppress("DEPRECATION") // viewModelOf: Koin's flagged replacement package has no such function in 4.2.2 yet
 val appModule =
@@ -38,14 +40,15 @@ val appModule =
         single { get<NinesDatabase>().scheduleVersionDao() }
         single { get<NinesDatabase>().entryDao() }
         single { get<NinesDatabase>().reminderDao() }
-        single { HabitRepository(get(), get(), get()) }
+        single<Clock> { Clock.systemDefaultZone() }
+        single { HabitRepository(get(), get(), get(), get()) }
         single { ReminderRepository(get()) }
         single<DemoData> { DemoData.None }
         single { ReminderScheduler(androidContext()) }
         single { ReminderNotificationCoordinator(androidContext(), get(), get(), get(), get()) }
 
-        viewModelOf(::HabitsViewModel)
-        viewModelOf(::HabitDetailViewModel)
+        viewModel { HabitsViewModel(get(), get(), get(), get(), get(), get()) }
+        viewModel { params -> HabitDetailViewModel(params.get(), get(), get()) }
         viewModelOf(::ArchivedHabitsViewModel)
         viewModelOf(::AppearanceViewModel)
     }

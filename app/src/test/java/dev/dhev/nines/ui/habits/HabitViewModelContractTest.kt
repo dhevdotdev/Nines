@@ -1,5 +1,6 @@
 package dev.dhev.nines.ui.habits
 
+import dev.dhev.nines.TestClock
 import dev.dhev.nines.data.DemoData
 import dev.dhev.nines.data.HabitRepository
 import dev.dhev.nines.data.local.EntryDao
@@ -17,10 +18,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestCoroutineScheduler
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.Assert.assertEquals
@@ -30,8 +34,10 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TestWatcher
 import org.junit.runner.Description
+import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
+import kotlin.time.Duration.Companion.hours
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class HabitViewModelContractTest {
@@ -42,7 +48,7 @@ class HabitViewModelContractTest {
     fun `homepage selected date changes and return to today use matching entry`() = runTest(mainDispatcherRule.dispatcher) {
         val today = LocalDate.now()
         val fixture = Fixture(today)
-        val viewModel = HabitsViewModel(fixture.repository)
+        val viewModel = HabitsViewModel(fixture.repository, computeDispatcher = mainDispatcherRule.dispatcher)
 
         assertTrue(
             viewModel.uiState
@@ -66,7 +72,7 @@ class HabitViewModelContractTest {
     @Test
     fun `demo data is unavailable by default and the seed action is a no-op`() = runTest(mainDispatcherRule.dispatcher) {
         val fixture = Fixture(LocalDate.now())
-        val viewModel = HabitsViewModel(fixture.repository)
+        val viewModel = HabitsViewModel(fixture.repository, computeDispatcher = mainDispatcherRule.dispatcher)
 
         assertFalse(viewModel.uiState.first { !it.isLoading }.demoDataAvailable)
         viewModel.onAction(HabitsAction.SeedDemoData)
@@ -85,7 +91,11 @@ class HabitViewModelContractTest {
                 seeded++
             }
         }
-        val viewModel = HabitsViewModel(Fixture(LocalDate.now()).repository, demoData = demoData)
+        val viewModel = HabitsViewModel(
+            Fixture(LocalDate.now()).repository,
+            demoData = demoData,
+            computeDispatcher = mainDispatcherRule.dispatcher,
+        )
 
         assertTrue(viewModel.uiState.first { !it.isLoading }.demoDataAvailable)
         viewModel.onAction(HabitsAction.SeedDemoData)
@@ -98,7 +108,7 @@ class HabitViewModelContractTest {
     fun `homepage toggle writes to the selected date`() = runTest(mainDispatcherRule.dispatcher) {
         val today = LocalDate.now()
         val fixture = Fixture(today)
-        val viewModel = HabitsViewModel(fixture.repository)
+        val viewModel = HabitsViewModel(fixture.repository, computeDispatcher = mainDispatcherRule.dispatcher)
         viewModel.uiState.first { !it.isLoading }
 
         val historicalDate = today.minusDays(1)
@@ -120,7 +130,7 @@ class HabitViewModelContractTest {
     fun `homepage numeric logging writes value to the selected date`() = runTest(mainDispatcherRule.dispatcher) {
         val today = LocalDate.now()
         val fixture = Fixture(today, HabitType.NUMERICAL)
-        val viewModel = HabitsViewModel(fixture.repository)
+        val viewModel = HabitsViewModel(fixture.repository, computeDispatcher = mainDispatcherRule.dispatcher)
         val historicalDate = today.minusDays(1)
 
         viewModel.onAction(HabitsAction.SelectDate(historicalDate))
@@ -146,7 +156,7 @@ class HabitViewModelContractTest {
     fun `homepage clear and undo numeric entry use the action date`() = runTest(mainDispatcherRule.dispatcher) {
         val today = LocalDate.now()
         val fixture = Fixture(today, HabitType.NUMERICAL)
-        val viewModel = HabitsViewModel(fixture.repository)
+        val viewModel = HabitsViewModel(fixture.repository, computeDispatcher = mainDispatcherRule.dispatcher)
         val historicalDate = today.minusDays(1)
 
         viewModel.onAction(HabitsAction.SetNumericValue(fixture.habit.id, 3.5))
@@ -176,7 +186,7 @@ class HabitViewModelContractTest {
     fun `detail selected date changes and missing habit resolves without loading`() = runTest(mainDispatcherRule.dispatcher) {
         val today = LocalDate.now()
         val fixture = Fixture(today)
-        val viewModel = HabitDetailViewModel(fixture.habit.id, fixture.repository)
+        val viewModel = HabitDetailViewModel(fixture.habit.id, fixture.repository, computeDispatcher = mainDispatcherRule.dispatcher)
         viewModel.uiState.first { !it.isLoading }
 
         val historicalDate = today.minusDays(1)
@@ -187,17 +197,78 @@ class HabitViewModelContractTest {
         advanceUntilIdle()
         assertEquals(today, viewModel.uiState.first { it.selectedDate == today }.selectedDate)
 
-        val missing = HabitDetailViewModel(999L, fixture.repository)
+        val missing = HabitDetailViewModel(999L, fixture.repository, computeDispatcher = mainDispatcherRule.dispatcher)
         val missingState = missing.uiState.first { !it.isLoading }
         assertEquals(999L, missingState.habitId)
         assertEquals("", missingState.name)
     }
 
     @Test
+    fun `homepage today and the selected date roll over at midnight`() = runTest(mainDispatcherRule.dispatcher) {
+        val clock = TestClock(testScheduler, Instant.parse("2026-03-18T22:00:00Z"))
+        val viewModel = HabitsViewModel(
+            Fixture(LocalDate.of(2026, 3, 18), clock = clock).repository,
+            clock = clock,
+            computeDispatcher = mainDispatcherRule.dispatcher,
+        )
+        val collector = launch { viewModel.uiState.collect {} }
+        val before = viewModel.uiState.first { !it.isLoading }
+        assertEquals(LocalDate.of(2026, 3, 18), before.today)
+        assertEquals(LocalDate.of(2026, 3, 18), before.selectedDate)
+
+        advanceTimeBy(3.hours)
+        runCurrent()
+        val after = viewModel.uiState.first { it.today == LocalDate.of(2026, 3, 19) }
+
+        assertEquals("a user following today keeps following it", LocalDate.of(2026, 3, 19), after.selectedDate)
+        collector.cancel()
+        advanceUntilIdle()
+    }
+
+    @Test
+    fun `homepage keeps a browsed past date across midnight`() = runTest(mainDispatcherRule.dispatcher) {
+        val clock = TestClock(testScheduler, Instant.parse("2026-03-18T22:00:00Z"))
+        val viewModel = HabitsViewModel(
+            Fixture(LocalDate.of(2026, 3, 18), clock = clock).repository,
+            clock = clock,
+            computeDispatcher = mainDispatcherRule.dispatcher,
+        )
+        val collector = launch { viewModel.uiState.collect {} }
+        viewModel.uiState.first { !it.isLoading }
+        viewModel.onAction(HabitsAction.SelectDate(LocalDate.of(2026, 3, 16)))
+        runCurrent()
+        viewModel.uiState.first { it.selectedDate == LocalDate.of(2026, 3, 16) }
+
+        advanceTimeBy(3.hours)
+        runCurrent()
+        val after = viewModel.uiState.first { it.today == LocalDate.of(2026, 3, 19) }
+
+        assertEquals(LocalDate.of(2026, 3, 16), after.selectedDate)
+        collector.cancel()
+        advanceUntilIdle()
+    }
+
+    @Test
+    fun `detail today rolls over at midnight`() = runTest(mainDispatcherRule.dispatcher) {
+        val clock = TestClock(testScheduler, Instant.parse("2026-03-18T22:00:00Z"))
+        val fixture = Fixture(LocalDate.of(2026, 3, 18), clock = clock)
+        val viewModel = HabitDetailViewModel(fixture.habit.id, fixture.repository, clock, mainDispatcherRule.dispatcher)
+        val collector = launch { viewModel.uiState.collect {} }
+        assertEquals(LocalDate.of(2026, 3, 18), viewModel.uiState.first { !it.isLoading }.today)
+
+        advanceTimeBy(3.hours)
+        runCurrent()
+
+        assertEquals(LocalDate.of(2026, 3, 19), viewModel.uiState.first { it.today == LocalDate.of(2026, 3, 19) }.today)
+        collector.cancel()
+        advanceUntilIdle()
+    }
+
+    @Test
     fun `detail logging action uses selected date`() = runTest(mainDispatcherRule.dispatcher) {
         val today = LocalDate.now()
         val fixture = Fixture(today)
-        val viewModel = HabitDetailViewModel(fixture.habit.id, fixture.repository)
+        val viewModel = HabitDetailViewModel(fixture.habit.id, fixture.repository, computeDispatcher = mainDispatcherRule.dispatcher)
         val historicalDate = today.minusDays(1)
         viewModel.onAction(HabitDetailAction.SelectDate(historicalDate))
         advanceUntilIdle()
@@ -212,6 +283,7 @@ class HabitViewModelContractTest {
     private class Fixture(
         today: LocalDate,
         type: HabitType = HabitType.BOOLEAN,
+        clock: Clock = Clock.systemDefaultZone(),
     ) {
         val habit =
             HabitEntity(
@@ -250,7 +322,7 @@ class HabitViewModelContractTest {
                     ),
                 ),
             )
-        val repository = HabitRepository(FakeHabitDao(habits), FakeScheduleDao(schedules), FakeEntryDao(entries))
+        val repository = HabitRepository(FakeHabitDao(habits), FakeScheduleDao(schedules), FakeEntryDao(entries), clock)
     }
 
     private class FakeHabitDao(
