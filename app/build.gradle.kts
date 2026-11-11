@@ -1,6 +1,6 @@
-import org.gradle.testing.jacoco.tasks.JacocoReport
-import org.gradle.testing.jacoco.plugins.JacocoTaskExtension
 import org.gradle.api.tasks.testing.Test
+import org.gradle.testing.jacoco.plugins.JacocoTaskExtension
+import org.gradle.testing.jacoco.tasks.JacocoReport
 
 plugins {
     alias(libs.plugins.android.application)
@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.androidx.room)
     alias(libs.plugins.androidx.baselineprofile)
+    alias(libs.plugins.detekt)
     jacoco
 }
 
@@ -62,6 +63,13 @@ baselineProfile {
     dexLayoutOptimization = true
 }
 
+detekt {
+    buildUponDefaultConfig = true
+    config.setFrom(rootProject.file("config/detekt/detekt.yml"))
+    baseline = file("detekt-baseline.xml")
+    source.setFrom("src/main/java", "src/test/java", "src/androidTest/java")
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
@@ -114,9 +122,10 @@ dependencies {
 tasks.register<JacocoReport>("jacocoDebugUnitTestReport") {
     dependsOn("testDebugUnitTest")
 
-    val mainClasses = layout.buildDirectory.dir(
-        "intermediates/built_in_kotlinc/debug/compileDebugKotlin/classes",
-    )
+    val mainClasses =
+        layout.buildDirectory.dir(
+            "intermediates/built_in_kotlinc/debug/compileDebugKotlin/classes",
+        )
     classDirectories.setFrom(
         fileTree(mainClasses) {
             exclude(
@@ -135,5 +144,27 @@ tasks.register<JacocoReport>("jacocoDebugUnitTestReport") {
         xml.required.set(true)
         html.required.set(true)
         csv.required.set(false)
+    }
+}
+
+// The scoring engine is the product's core and is fully testable on the JVM, so it carries a floor.
+// UI and Android framework code is covered by the connected tests instead and has no JVM threshold.
+tasks.register<JacocoCoverageVerification>("jacocoDebugUnitTestCoverageVerification") {
+    dependsOn("testDebugUnitTest")
+
+    val mainClasses = layout.buildDirectory.dir(
+        "intermediates/built_in_kotlinc/debug/compileDebugKotlin/classes",
+    )
+    classDirectories.setFrom(fileTree(mainClasses))
+    executionData.setFrom(fileTree(layout.buildDirectory) { include("jacoco/testDebugUnitTest.exec") })
+    violationRules {
+        rule {
+            element = "BUNDLE"
+            includes = listOf("dev.dhev.nines.scoring.*")
+            limit {
+                counter = "INSTRUCTION"
+                minimum = "0.85".toBigDecimal()
+            }
+        }
     }
 }

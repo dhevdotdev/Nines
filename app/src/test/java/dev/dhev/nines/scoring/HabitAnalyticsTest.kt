@@ -13,19 +13,25 @@ class HabitAnalyticsTest {
 
     @Test
     fun `analytics is date bounded and ranks streaks`() {
-        val result = computeHabitAnalytics(
-            HabitAnalyticsInput(
-                kind = TimelineHabitKind.BOOLEAN,
-                createdDate = created,
-                asOfDate = asOf,
-                entries = listOf(
-                    entry(0),
-                    entry(1), entry(2), entry(3),
-                    entry(8), entry(9), entry(10),
-                    entry(11),
+        val result =
+            computeHabitAnalytics(
+                HabitAnalyticsInput(
+                    kind = TimelineHabitKind.BOOLEAN,
+                    createdDate = created,
+                    asOfDate = asOf,
+                    entries =
+                    listOf(
+                        entry(0),
+                        entry(1),
+                        entry(2),
+                        entry(3),
+                        entry(8),
+                        entry(9),
+                        entry(10),
+                        entry(11),
+                    ),
                 ),
-            ),
-        )
+            )
 
         assertEquals(6, result.totalCompletions)
         assertEquals(3, result.bestStreak)
@@ -36,17 +42,19 @@ class HabitAnalyticsTest {
 
     @Test
     fun `numeric aggregates and typical time use completed values only`() {
-        val result = computeHabitAnalytics(
-            HabitAnalyticsInput(
-                kind = TimelineHabitKind.NUMERICAL,
-                createdDate = created,
-                asOfDate = asOf,
-                entries = (1..5).map { day ->
-                    entry(day, value = day.toDouble(), createdAt = Instant.parse("2026-01-0${day}T08:00:00Z"))
-                } + entry(0, value = 200.0, createdAt = Instant.parse("2025-12-31T08:00:00Z"))
-                    + entry(6, state = TimelineEntryState.IN_PROGRESS, value = 100.0),
-            ),
-        )
+        val result =
+            computeHabitAnalytics(
+                HabitAnalyticsInput(
+                    kind = TimelineHabitKind.NUMERICAL,
+                    createdDate = created,
+                    asOfDate = asOf,
+                    entries =
+                    (1..5).map { day ->
+                        entry(day, value = day.toDouble(), createdAt = Instant.parse("2026-01-0${day}T08:00:00Z"))
+                    } + entry(0, value = 200.0, createdAt = Instant.parse("2025-12-31T08:00:00Z")) +
+                        entry(6, state = TimelineEntryState.IN_PROGRESS, value = 100.0),
+                ),
+            )
 
         assertEquals(15.0, result.numericTotal ?: 0.0, 0.0)
         assertEquals(3.0, result.numericAverage ?: 0.0, 0.0)
@@ -57,70 +65,78 @@ class HabitAnalyticsTest {
 
     @Test
     fun `thresholds expose weekday rates at fourteen days and gaps at three days`() {
-        val fourteenDay = computeHabitAnalytics(
-            HabitAnalyticsInput(
-                kind = TimelineHabitKind.BOOLEAN,
-                createdDate = created,
-                asOfDate = created.plusDays(13),
-                entries = listOf(entry(1)),
-            ),
-        )
-        val thirteenDay = computeHabitAnalytics(
-            HabitAnalyticsInput(
-                kind = TimelineHabitKind.BOOLEAN,
-                createdDate = created,
-                asOfDate = created.plusDays(12),
-                entries = listOf(entry(1)),
-            ),
-        )
-        val gap = computeHabitAnalytics(
-            HabitAnalyticsInput(
-                kind = TimelineHabitKind.BOOLEAN,
-                createdDate = created,
-                asOfDate = created.plusDays(5),
-                entries = listOf(entry(1), entry(2), entry(6)),
-            ),
-        )
-        val twoDayGap = computeHabitAnalytics(
-            HabitAnalyticsInput(
-                kind = TimelineHabitKind.BOOLEAN,
-                createdDate = created,
-                asOfDate = created.plusDays(3),
-                entries = listOf(entry(1), entry(4)),
-            ),
-        )
-        val fourTimedEntries = computeHabitAnalytics(
-            HabitAnalyticsInput(
-                kind = TimelineHabitKind.BOOLEAN,
-                createdDate = created,
-                asOfDate = created.plusDays(3),
-                entries = (1..4).map { day -> entry(day, createdAt = Instant.parse("2026-01-0${day}T08:00:00Z")) },
-            ),
-        )
-        val fiveTimedEntries = computeHabitAnalytics(
-            HabitAnalyticsInput(
-                kind = TimelineHabitKind.BOOLEAN,
-                createdDate = created,
-                asOfDate = created.plusDays(4),
-                entries = (1..5).map { day -> entry(day, createdAt = Instant.parse("2026-01-0${day}T08:00:00Z")) },
-            ),
-        )
-        val momentum59Days = computeHabitAnalytics(
-            HabitAnalyticsInput(
-                kind = TimelineHabitKind.BOOLEAN,
-                createdDate = created,
-                asOfDate = created.plusDays(58),
-                entries = emptyList(),
-            ),
-        )
-        val momentum60Days = computeHabitAnalytics(
-            HabitAnalyticsInput(
-                kind = TimelineHabitKind.BOOLEAN,
-                createdDate = created,
-                asOfDate = created.plusDays(59),
-                entries = emptyList(),
-            ),
-        )
+        val fourteenDay =
+            computeHabitAnalytics(
+                HabitAnalyticsInput(
+                    kind = TimelineHabitKind.BOOLEAN,
+                    createdDate = created,
+                    asOfDate = created.plusDays(13),
+                    entries = listOf(entry(1)),
+                ),
+            )
+        val thirteenDay =
+            computeHabitAnalytics(
+                HabitAnalyticsInput(
+                    kind = TimelineHabitKind.BOOLEAN,
+                    createdDate = created,
+                    asOfDate = created.plusDays(12),
+                    entries = listOf(entry(1)),
+                ),
+            )
+        val gap =
+            computeHabitAnalytics(
+                HabitAnalyticsInput(
+                    kind = TimelineHabitKind.BOOLEAN,
+                    createdDate = created,
+                    asOfDate = created.plusDays(5),
+                    entries = listOf(entry(1), entry(2), entry(6)),
+                ),
+            )
+        val twoDayGap =
+            computeHabitAnalytics(
+                HabitAnalyticsInput(
+                    kind = TimelineHabitKind.BOOLEAN,
+                    createdDate = created,
+                    asOfDate = created.plusDays(3),
+                    entries = listOf(entry(1), entry(4)),
+                ),
+            )
+        val fourTimedEntries =
+            computeHabitAnalytics(
+                HabitAnalyticsInput(
+                    kind = TimelineHabitKind.BOOLEAN,
+                    createdDate = created,
+                    asOfDate = created.plusDays(3),
+                    entries = (1..4).map { day -> entry(day, createdAt = Instant.parse("2026-01-0${day}T08:00:00Z")) },
+                ),
+            )
+        val fiveTimedEntries =
+            computeHabitAnalytics(
+                HabitAnalyticsInput(
+                    kind = TimelineHabitKind.BOOLEAN,
+                    createdDate = created,
+                    asOfDate = created.plusDays(4),
+                    entries = (1..5).map { day -> entry(day, createdAt = Instant.parse("2026-01-0${day}T08:00:00Z")) },
+                ),
+            )
+        val momentum59Days =
+            computeHabitAnalytics(
+                HabitAnalyticsInput(
+                    kind = TimelineHabitKind.BOOLEAN,
+                    createdDate = created,
+                    asOfDate = created.plusDays(58),
+                    entries = emptyList(),
+                ),
+            )
+        val momentum60Days =
+            computeHabitAnalytics(
+                HabitAnalyticsInput(
+                    kind = TimelineHabitKind.BOOLEAN,
+                    createdDate = created,
+                    asOfDate = created.plusDays(59),
+                    entries = emptyList(),
+                ),
+            )
 
         assertEquals(7, fourteenDay.weekdayRates.size)
         assertTrue(thirteenDay.weekdayRates.isEmpty())
@@ -136,30 +152,34 @@ class HabitAnalyticsTest {
     @Test
     fun `analytics honors upstream run analysis from the timeline`() {
         val entries = listOf(entry(1), entry(2), entry(5))
-        val timeline = buildHabitTimeline(
-            HabitTimelineInput(
-                kind = TimelineHabitKind.BOOLEAN,
-                createdDate = created,
-                selectedDate = asOf,
-                entries = entries,
-                schedules = listOf(TimelineSchedule(created, ScheduleTarget.DAILY)),
-            ),
-        )
+        val timeline =
+            buildHabitTimeline(
+                HabitTimelineInput(
+                    kind = TimelineHabitKind.BOOLEAN,
+                    createdDate = created,
+                    selectedDate = asOf,
+                    entries = entries,
+                    schedules = listOf(TimelineSchedule(created, ScheduleTarget.DAILY)),
+                ),
+            )
 
-        val result = computeHabitAnalytics(
-            HabitAnalyticsInput(
-                kind = TimelineHabitKind.BOOLEAN,
-                createdDate = created,
-                asOfDate = asOf,
-                entries = entries,
-                runAnalysis = timeline.runAnalysis,
-            ),
-        )
+        val result =
+            computeHabitAnalytics(
+                HabitAnalyticsInput(
+                    kind = TimelineHabitKind.BOOLEAN,
+                    createdDate = created,
+                    asOfDate = asOf,
+                    entries = entries,
+                    runAnalysis = timeline.runAnalysis,
+                ),
+            )
 
         assertEquals(timeline.currentStreak, result.currentStreak)
         assertEquals(timeline.runAnalysis.streakRuns.maxOf { it.length }, result.bestStreak)
         assertEquals(
-            timeline.runAnalysis.gapRuns.filter { it.length >= 3 }.maxBy { it.length },
+            timeline.runAnalysis.gapRuns
+                .filter { it.length >= 3 }
+                .maxBy { it.length },
             result.longestGap,
         )
     }

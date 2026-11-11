@@ -16,7 +16,10 @@ import dev.dhev.nines.data.local.entity.ScheduleVersionEntity
 @TypeConverters(Converters::class)
 abstract class NinesDatabase : RoomDatabase() {
     abstract fun habitDao(): HabitDao
+
     abstract fun scheduleVersionDao(): ScheduleVersionDao
+
     abstract fun entryDao(): EntryDao
+
     abstract fun reminderDao(): ReminderDao
 }

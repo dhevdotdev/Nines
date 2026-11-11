@@ -17,28 +17,28 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SelectableDates
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.ripple
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -61,14 +61,14 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.graphics.shapes.Morph
 import dev.dhev.nines.ui.theme.Spacing
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
-import java.time.Instant
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 private const val RAIL_WINDOW_DAYS = 7
 private val NON_TODAY_DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE, MMM d")
@@ -88,9 +88,10 @@ fun DayRail(
     modifier: Modifier = Modifier,
 ) {
     var showCalendar by remember { mutableStateOf(false) }
-    val weekStart = remember(today) {
-        today.minusDays(today.dayOfWeek.value.toLong() % 7) // dayOfWeek.value: Mon=1..Sun=7, so Sun=7%7=0 back
-    }
+    val weekStart =
+        remember(today) {
+            today.minusDays(today.dayOfWeek.value.toLong() % 7) // dayOfWeek.value: Mon=1..Sun=7, so Sun=7%7=0 back
+        }
     val days = remember(weekStart) { (0 until RAIL_WINDOW_DAYS).map { weekStart.plusDays(it.toLong()) } }
     val haptics = LocalHapticFeedback.current
     // A plain Row with equal weights, not a LazyRow - exactly 7 days always exist, so dividing
@@ -98,7 +99,8 @@ fun DayRail(
     // each chip's natural width overflows on most screens, clipping the last day right at the
     // edge - looks broken for a component whose entire point is showing the complete week.
     Row(
-        modifier = modifier
+        modifier =
+        modifier
             .fillMaxWidth()
             .padding(horizontal = Spacing.large, vertical = Spacing.small),
         verticalAlignment = Alignment.CenterVertically,
@@ -112,7 +114,8 @@ fun DayRail(
                 isSelected = date == selectedDate,
                 isToday = date == today,
                 isFuture = isFuture,
-                onClick = if (isFuture) {
+                onClick =
+                if (isFuture) {
                     null
                 } else {
                     {
@@ -153,14 +156,16 @@ private fun CalendarDialog(
     onDismiss: () -> Unit,
 ) {
     val todayMillis = today.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
-    val pickerState = rememberDatePickerState(
-        initialSelectedDateMillis = selectedDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
-        selectableDates = object : SelectableDates {
-            override fun isSelectableDate(utcTimeMillis: Long): Boolean = utcTimeMillis <= todayMillis
+    val pickerState =
+        rememberDatePickerState(
+            initialSelectedDateMillis = selectedDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
+            selectableDates =
+            object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean = utcTimeMillis <= todayMillis
 
-            override fun isSelectableYear(year: Int): Boolean = year <= today.year
-        },
-    )
+                override fun isSelectableYear(year: Int): Boolean = year <= today.year
+            },
+        )
     DatePickerDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
@@ -236,43 +241,46 @@ private fun DayChip(
         animationSpec = MaterialTheme.motionScheme.fastEffectsSpec(),
         label = "dayChipContainer",
     )
-    val numberColor = when {
-        isFuture -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
-        isSelected -> MaterialTheme.colorScheme.onPrimary
-        isToday -> MaterialTheme.colorScheme.primary
-        else -> MaterialTheme.colorScheme.onSurface
-    }
-    val weekdayLetterColor = if (isFuture) {
-        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
-    } else {
-        MaterialTheme.colorScheme.onSurfaceVariant
-    }
+    val numberColor =
+        when {
+            isFuture -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+            isSelected -> MaterialTheme.colorScheme.onPrimary
+            isToday -> MaterialTheme.colorScheme.primary
+            else -> MaterialTheme.colorScheme.onSurface
+        }
+    val weekdayLetterColor =
+        if (isFuture) {
+            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        }
 
-    var chipModifier = modifier
-        .graphicsLayer {
-            scaleX = entrance.value
-            scaleY = entrance.value
-            alpha = entrance.value
-        }
-        .clip(MaterialTheme.shapes.large)
-        .semantics {
-            contentDescription = date.format(DateTimeFormatter.ofPattern("EEEE, MMMM d"))
-            role = Role.Button
-            stateDescription = if (isSelected) "Selected" else "Not selected"
-            if (isFuture) disabled()
-        }
+    var chipModifier =
+        modifier
+            .graphicsLayer {
+                scaleX = entrance.value
+                scaleY = entrance.value
+                alpha = entrance.value
+            }.clip(MaterialTheme.shapes.large)
+            .semantics {
+                contentDescription = date.format(DateTimeFormatter.ofPattern("EEEE, MMMM d"))
+                role = Role.Button
+                stateDescription = if (isSelected) "Selected" else "Not selected"
+                if (isFuture) disabled()
+            }
     if (onClick != null) {
-        chipModifier = chipModifier.clickable(
-            interactionSource = remember { MutableInteractionSource() },
-            indication = ripple(),
-            onClick = {
-                scope.launch {
-                    selectionPop.snapTo(0.8f)
-                    selectionPop.animateTo(1f, animationSpec = spatialSpec)
-                }
-                onClick()
-            },
-        )
+        chipModifier =
+            chipModifier.clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = ripple(),
+                onClick = {
+                    scope.launch {
+                        selectionPop.snapTo(0.8f)
+                        selectionPop.animateTo(1f, animationSpec = spatialSpec)
+                    }
+                    onClick()
+                },
+            )
     }
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -284,14 +292,14 @@ private fun DayChip(
             color = weekdayLetterColor,
         )
         Spacer(Modifier.height(4.dp))
-        var circleModifier = Modifier
-            .size(38.dp)
-            .graphicsLayer {
-                scaleX = selectionPop.value
-                scaleY = selectionPop.value
-            }
-            .clip(shape)
-            .background(containerColor)
+        var circleModifier =
+            Modifier
+                .size(38.dp)
+                .graphicsLayer {
+                    scaleX = selectionPop.value
+                    scaleY = selectionPop.value
+                }.clip(shape)
+                .background(containerColor)
         if (isToday && !isSelected) {
             circleModifier = circleModifier.border(1.5.dp, MaterialTheme.colorScheme.primary, shape)
         }
@@ -321,14 +329,20 @@ private class MorphShape(
 ) : Shape {
     private val bounds = morph.calculateMaxBounds()
 
-    override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
+    override fun createOutline(
+        size: Size,
+        layoutDirection: LayoutDirection,
+        density: Density,
+    ): Outline {
         val left = bounds[0]
         val top = bounds[1]
         val boundsWidth = bounds[2] - bounds[0]
         val boundsHeight = bounds[3] - bounds[1]
         val scaleX = size.width / boundsWidth
         val scaleY = size.height / boundsHeight
+
         fun tx(x: Float) = (x - left) * scaleX
+
         fun ty(y: Float) = (y - top) * scaleY
 
         val path = Path()
@@ -337,9 +351,12 @@ private class MorphShape(
                 path.moveTo(tx(cubic.anchor0X), ty(cubic.anchor0Y))
             }
             path.cubicTo(
-                tx(cubic.control0X), ty(cubic.control0Y),
-                tx(cubic.control1X), ty(cubic.control1Y),
-                tx(cubic.anchor1X), ty(cubic.anchor1Y),
+                tx(cubic.control0X),
+                ty(cubic.control0Y),
+                tx(cubic.control1X),
+                ty(cubic.control1Y),
+                tx(cubic.anchor1X),
+                ty(cubic.anchor1Y),
             )
         }
         path.close()
@@ -350,10 +367,15 @@ private class MorphShape(
 /** Shown only while browsing a date other than today, so a retroactive edit can never get
  * silently mistaken for logging today's entry. */
 @Composable
-fun NonTodayIndicator(selectedDate: LocalDate, onJumpToToday: () -> Unit, modifier: Modifier = Modifier) {
+fun NonTodayIndicator(
+    selectedDate: LocalDate,
+    onJumpToToday: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val haptics = LocalHapticFeedback.current
     Row(
-        modifier = modifier
+        modifier =
+        modifier
             .fillMaxWidth()
             .padding(horizontal = Spacing.large, vertical = Spacing.extraSmall),
         verticalAlignment = Alignment.CenterVertically,

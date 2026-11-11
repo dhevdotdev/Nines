@@ -282,8 +282,11 @@ class HabitTimelineTest {
         )
         val scheduleAwareSeries = computeScheduleAwareScoreSeries(
             scheduleForDate = { date ->
-                if (date.isBefore(scheduleChangeDate)) ScheduleTarget.DAILY
-                else ScheduleTarget(numerator = 3, denominator = 7)
+                if (date.isBefore(scheduleChangeDate)) {
+                    ScheduleTarget.DAILY
+                } else {
+                    ScheduleTarget(numerator = 3, denominator = 7)
+                }
             },
             completedDates = completedDates,
             skippedDates = emptySet(),

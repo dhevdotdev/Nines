@@ -1,0 +1,33 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ComplexCondition:HabitDetailInsights.kt:strongest != null &amp;&amp; weakest != null &amp;&amp; strongest != weakest &amp;&amp; rates[strongest] &gt; rates[weakest]</ID>
+    <ID>CyclomaticComplexMethod:AppearanceScreen.kt:private fun AppColorSource.description: String</ID>
+    <ID>CyclomaticComplexMethod:AppearanceScreen.kt:private fun AppColorSource.label: String</ID>
+    <ID>CyclomaticComplexMethod:HabitAnalytics.kt:fun computeHabitAnalytics: HabitAnalytics</ID>
+    <ID>CyclomaticComplexMethod:HabitsViewModel.kt:HabitsViewModel$fun onAction</ID>
+    <ID>CyclomaticComplexMethod:HabitsViewModel.kt:HabitsViewModel$private suspend fun seedDemoData</ID>
+    <ID>CyclomaticComplexMethod:ReminderActionReceiver.kt:ReminderActionReceiver$override fun onReceive</ID>
+    <ID>CyclomaticComplexMethod:ReminderNotificationCoordinator.kt:ReminderNotificationCoordinator$@SuppressLint("MissingPermission") suspend fun deliver</ID>
+    <ID>LongMethod:HabitAnalytics.kt:fun computeHabitAnalytics: HabitAnalytics</ID>
+    <ID>LongMethod:HabitAnalyticsTest.kt:HabitAnalyticsTest$@Test fun `thresholds expose weekday rates at fourteen days and gaps at three days`</ID>
+    <ID>LongMethod:HabitTimeline.kt:fun buildHabitTimeline: HabitTimeline</ID>
+    <ID>LongMethod:HabitTimelineTest.kt:HabitTimelineTest$@Test fun `score changes when a new schedule takes effect inside the range`</ID>
+    <ID>LongMethod:HabitsViewModel.kt:HabitsViewModel$fun onAction</ID>
+    <ID>LongMethod:HabitsViewModel.kt:HabitsViewModel$private suspend fun seedDemoData</ID>
+    <ID>LongMethod:ReminderActionReceiver.kt:ReminderActionReceiver$override fun onReceive</ID>
+    <ID>MatchingDeclarationName:Dimensions.kt:Spacing</ID>
+    <ID>MatchingDeclarationName:HabitCardBackground.kt:CardBackgroundStyle</ID>
+    <ID>MatchingDeclarationName:HabitColor.kt:HabitColors</ID>
+    <ID>MatchingDeclarationName:ReminderResolution.kt:ReminderResolutionInput</ID>
+    <ID>MayBeConstant:HabitIcons.kt:HabitIcons$val default = "fitness"</ID>
+    <ID>ReturnCount:HabitDetailCalendar.kt:fun cycleProgressLabel: String?</ID>
+    <ID>ReturnCount:HabitRepository.kt:HabitRepository$suspend fun isReminderResolved: Boolean</ID>
+    <ID>SwallowedException:HabitScoreTest.kt:HabitScoreTest$e: IllegalArgumentException</ID>
+    <ID>TooManyFunctions:HabitRepository.kt:HabitRepository</ID>
+    <ID>TopLevelPropertyNaming:HabitDetailInsights.kt:// Bars are allowed to rise 25% above the target line before clipping, so a day that blew past // goal reads as visibly taller instead of clipping flush with every day that merely met it. private const val TargetChartMaxScale = 1.25f</ID>
+    <ID>UnusedParameter:HabitDetailCalendar.kt:unit: String?</ID>
+    <ID>UnusedParameter:HabitDetailInsights.kt:accent: Color</ID>
+  </CurrentIssues>
+</SmellBaseline>

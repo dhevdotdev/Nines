@@ -11,7 +11,10 @@ import kotlinx.coroutines.launch
 import org.koin.core.context.GlobalContext
 
 class ReminderRestoreReceiver : BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent) {
+    override fun onReceive(
+        context: Context,
+        intent: Intent,
+    ) {
         if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
         val pending = goAsync()
         CoroutineScope(Dispatchers.IO).launch {

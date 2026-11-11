@@ -15,8 +15,11 @@ You need the Android SDK (set `ANDROID_HOME` or `sdk.dir` in `local.properties`)
 
 Debug builds on a device or emulator: see `.agents/skills/verify-nines`. Instrumented tests (Room, reminders, UI) run on a device or emulator with `./gradlew :app:connectedDebugAndroidTest`.
 
+Format with `./gradlew spotlessApply`, run static analysis with `./gradlew :app:detekt`, and enable the pre-commit hook once with `git config core.hooksPath .githooks`. The app needs no environment variables or secrets.
+
 ## Project
 
+- `docs/architecture.md` explains how the code is laid out.
 - `GLOSSARY.md` defines the domain terms (Habit, Entry, Schedule, Score, Streak).
 - `docs/adr/` records architectural decisions.
 - Planned work is tracked in [GitHub Issues](https://github.com/dhevdotdev/Nines/issues).

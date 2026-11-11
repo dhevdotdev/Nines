@@ -6,7 +6,6 @@ import org.junit.Test
 import java.time.LocalDate
 
 class HabitVisibilityTest {
-
     @Test
     fun `a habit is visible on the exact date it was created`() {
         val createdAt = LocalDate.of(2026, 3, 10)

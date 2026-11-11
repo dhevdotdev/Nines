@@ -4,3 +4,13 @@ updates:
     directory: /
     schedule:
       interval: monthly
+  - package-ecosystem: gradle
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      androidx:
+        patterns: ['androidx.*']
+    ignore:
+      # Material 3 is pinned outside the Compose BOM on purpose, see docs/adr/0007.
+      - dependency-name: 'androidx.compose.material3:material3'

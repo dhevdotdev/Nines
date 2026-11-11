@@ -20,10 +20,16 @@ data class HabitGesturePolicyInput(
     val swipeDirection: HabitSwipeDirection?,
 )
 
-fun canEnterReorderMode(selectedDate: LocalDate, today: LocalDate): Boolean = selectedDate == today
+fun canEnterReorderMode(
+    selectedDate: LocalDate,
+    today: LocalDate,
+): Boolean = selectedDate == today
 
-fun isReorderModeActive(reorderMode: Boolean, selectedDate: LocalDate, today: LocalDate): Boolean =
-    reorderMode && canEnterReorderMode(selectedDate, today)
+fun isReorderModeActive(
+    reorderMode: Boolean,
+    selectedDate: LocalDate,
+    today: LocalDate,
+): Boolean = reorderMode && canEnterReorderMode(selectedDate, today)
 
 /** Keeps gesture meaning and mode exclusivity independent of pointer/Compose implementation. */
 fun habitSwipeAction(input: HabitGesturePolicyInput): HabitSwipeAction = when {

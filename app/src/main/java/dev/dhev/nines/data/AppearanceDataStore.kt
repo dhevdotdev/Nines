@@ -5,5 +5,4 @@ import androidx.datastore.preferences.preferencesDataStore
 
 private val Context.appearancePreferences by preferencesDataStore(name = "nines_appearance")
 
-fun Context.appearancePreferencesStore(): AppearancePreferencesStore =
-    AppearancePreferencesStore(appearancePreferences)
+fun Context.appearancePreferencesStore(): AppearancePreferencesStore = AppearancePreferencesStore(appearancePreferences)

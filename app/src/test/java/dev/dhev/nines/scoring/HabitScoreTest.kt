@@ -9,19 +9,19 @@ import java.time.LocalDate
 private const val TOLERANCE = 0.002
 
 class HabitScoreTest {
-
     @Test
     fun `daily habit half-life lands at day 13`() {
         val start = LocalDate.of(2026, 1, 1)
         val allDates = generateSequence(start) { it.plusDays(1) }.take(90).toSet()
 
-        val series = computeScoreSeries(
-            target = ScheduleTarget.DAILY,
-            completedDates = allDates,
-            skippedDates = emptySet(),
-            startDate = start,
-            endDate = start.plusDays(89),
-        )
+        val series =
+            computeScoreSeries(
+                target = ScheduleTarget.DAILY,
+                completedDates = allDates,
+                skippedDates = emptySet(),
+                startDate = start,
+                endDate = start.plusDays(89),
+            )
 
         fun scoreOnDay(day: Int) = series[day - 1].score
 
@@ -38,13 +38,14 @@ class HabitScoreTest {
         val completed = generateSequence(start) { it.plusDays(1) }.take(20).toSet()
         val skipDay = start.plusDays(20)
 
-        val withSkip = computeScoreSeries(
-            target = ScheduleTarget.DAILY,
-            completedDates = completed,
-            skippedDates = setOf(skipDay),
-            startDate = start,
-            endDate = skipDay,
-        )
+        val withSkip =
+            computeScoreSeries(
+                target = ScheduleTarget.DAILY,
+                completedDates = completed,
+                skippedDates = setOf(skipDay),
+                startDate = start,
+                endDate = skipDay,
+            )
 
         val scoreBeforeSkip = withSkip[withSkip.size - 2].score
         val scoreOnSkipDay = withSkip.last().score
@@ -58,13 +59,14 @@ class HabitScoreTest {
         val completed = generateSequence(start) { it.plusDays(1) }.take(200).toSet()
         val endDate = start.plusDays(213) // 200 completed days + 14 missed days
 
-        val series = computeScoreSeries(
-            target = ScheduleTarget.DAILY,
-            completedDates = completed,
-            skippedDates = emptySet(),
-            startDate = start,
-            endDate = endDate,
-        )
+        val series =
+            computeScoreSeries(
+                target = ScheduleTarget.DAILY,
+                completedDates = completed,
+                skippedDates = emptySet(),
+                startDate = start,
+                endDate = endDate,
+            )
 
         val scoreBeforeMisses = series[199].score
         val scoreAfter14Misses = series.last().score
@@ -81,18 +83,20 @@ class HabitScoreTest {
         val start = LocalDate.of(2026, 1, 5) // a Monday
         val target = ScheduleTarget(numerator = 3, denominator = 7)
 
-        val completed = generateSequence(start) { it.plusDays(1) }
-            .take(91)
-            .filter { it.dayOfWeek in setOf(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY, DayOfWeek.FRIDAY) }
-            .toSet()
+        val completed =
+            generateSequence(start) { it.plusDays(1) }
+                .take(91)
+                .filter { it.dayOfWeek in setOf(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY, DayOfWeek.FRIDAY) }
+                .toSet()
 
-        val series = computeScoreSeries(
-            target = target,
-            completedDates = completed,
-            skippedDates = emptySet(),
-            startDate = start,
-            endDate = start.plusDays(90),
-        )
+        val series =
+            computeScoreSeries(
+                target = target,
+                completedDates = completed,
+                skippedDates = emptySet(),
+                startDate = start,
+                endDate = start.plusDays(90),
+            )
 
         fun scoreAfterWeeks(weeks: Int) = series[weeks * 7 - 1].score
 

@@ -13,8 +13,8 @@ import dev.dhev.nines.data.local.entity.TargetKind
 import dev.dhev.nines.scoring.decayMultiplier
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.produceIn
-import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -47,16 +47,17 @@ class HabitRepositoryRoomTest {
     fun createHabitPersistsPositionAndInitialSchedule() = runBlocking {
         val createdAt = LocalDate.of(2026, 8, 1).atStartOfDay(java.time.ZoneOffset.UTC).toInstant()
 
-        val habitId = repository.createHabit(
-            name = "Read",
-            type = HabitType.BOOLEAN,
-            color = 0xFF000000.toInt(),
-            iconKey = "book",
-            createdAt = createdAt,
-            scheduleEffectiveFrom = createdAt.atZone(java.time.ZoneOffset.UTC).toLocalDate(),
-            targetNumerator = 2,
-            targetDenominator = 7,
-        )
+        val habitId =
+            repository.createHabit(
+                name = "Read",
+                type = HabitType.BOOLEAN,
+                color = 0xFF000000.toInt(),
+                iconKey = "book",
+                createdAt = createdAt,
+                scheduleEffectiveFrom = createdAt.atZone(java.time.ZoneOffset.UTC).toLocalDate(),
+                targetNumerator = 2,
+                targetDenominator = 7,
+            )
 
         val habit = database.habitDao().getById(habitId)
         val schedule = database.scheduleVersionDao().getVersions(habitId)
@@ -76,25 +77,46 @@ class HabitRepositoryRoomTest {
         database.entryDao().upsert(completedEntry(firstId, date))
 
         repository.archiveHabit(firstId)
-        assertEquals(listOf(secondId), database.habitDao().observeActiveHabits().first().map { it.id })
-        assertTrue(database.habitDao().observeArchivedHabits().first().any { it.id == firstId })
+        assertEquals(
+            listOf(secondId),
+            database
+                .habitDao()
+                .observeActiveHabits()
+                .first()
+                .map { it.id },
+        )
+        assertTrue(
+            database
+                .habitDao()
+                .observeArchivedHabits()
+                .first()
+                .any { it.id == firstId },
+        )
 
         repository.restoreHabit(firstId)
-        assertEquals(listOf(secondId, firstId), database.habitDao().observeActiveHabits().first().map { it.id })
+        assertEquals(
+            listOf(secondId, firstId),
+            database
+                .habitDao()
+                .observeActiveHabits()
+                .first()
+                .map { it.id },
+        )
         assertEquals(EntryState.COMPLETED, database.entryDao().entryOn(firstId, date)?.state)
     }
 
     @Test
     fun numericLoggingUsesScheduleAndTimelineObservesUpdatedEntry() = runBlocking {
-        val habitId = repository.createHabit(
-            name = "Water",
-            type = HabitType.NUMERICAL,
-            color = 0xFF000000.toInt(),
-            iconKey = "water",
-            targetValue = 2.0,
-            targetKind = TargetKind.AT_LEAST,
-            scheduleEffectiveFrom = LocalDate.of(2026, 8, 1),
-        )
+        val habitId =
+            repository.createHabit(
+                name = "Water",
+                type = HabitType.NUMERICAL,
+                color = 0xFF000000.toInt(),
+                iconKey = "water",
+                targetValue = 2.0,
+                targetKind = TargetKind.AT_LEAST,
+                scheduleEffectiveFrom = LocalDate.of(2026, 8, 1),
+            )
         val date = LocalDate.of(2026, 8, 16)
 
         database.entryDao().upsert(completedEntry(habitId, date.minusDays(1)))
@@ -111,15 +133,16 @@ class HabitRepositoryRoomTest {
 
     @Test
     fun clearNumericEntryDeletesEntryAndSetRestoresIt() = runBlocking {
-        val habitId = repository.createHabit(
-            name = "Water",
-            type = HabitType.NUMERICAL,
-            color = 0xFF000000.toInt(),
-            iconKey = "water",
-            targetValue = 2.0,
-            targetKind = TargetKind.AT_LEAST,
-            scheduleEffectiveFrom = LocalDate.of(2026, 8, 1),
-        )
+        val habitId =
+            repository.createHabit(
+                name = "Water",
+                type = HabitType.NUMERICAL,
+                color = 0xFF000000.toInt(),
+                iconKey = "water",
+                targetValue = 2.0,
+                targetKind = TargetKind.AT_LEAST,
+                scheduleEffectiveFrom = LocalDate.of(2026, 8, 1),
+            )
         val date = LocalDate.of(2026, 8, 16)
         repository.setNumericEntry(habitId, date, 2.5)
 
@@ -135,22 +158,25 @@ class HabitRepositoryRoomTest {
     fun observationStreamMapsRoomRowsAndSelectedDateBoundary() = runBlocking {
         val created = LocalDate.of(2026, 8, 1)
         val selected = LocalDate.of(2026, 8, 5)
-        val habitId = repository.createHabit(
-            name = "Observe",
-            type = HabitType.BOOLEAN,
-            color = 0xFF000000.toInt(),
-            iconKey = "check",
-            createdAt = created.atStartOfDay(java.time.ZoneOffset.UTC).toInstant(),
-            scheduleEffectiveFrom = created,
-        )
+        val habitId =
+            repository.createHabit(
+                name = "Observe",
+                type = HabitType.BOOLEAN,
+                color = 0xFF000000.toInt(),
+                iconKey = "check",
+                createdAt = created.atStartOfDay(java.time.ZoneOffset.UTC).toInstant(),
+                scheduleEffectiveFrom = created,
+            )
         database.entryDao().upsert(completedEntry(habitId, selected))
 
         val selectedDate = kotlinx.coroutines.flow.MutableStateFlow(selected)
-        val snapshots = repository.observeHabitSnapshot(
-            habitId = habitId,
-            selectedDate = selectedDate,
-            asOfDate = selected.plusDays(2),
-        ).produceIn(this)
+        val snapshots =
+            repository
+                .observeHabitSnapshot(
+                    habitId = habitId,
+                    selectedDate = selectedDate,
+                    asOfDate = selected.plusDays(2),
+                ).produceIn(this)
         val snapshot = snapshots.receive()
         selectedDate.value = selected.minusDays(1)
         val historicalSnapshot = withTimeout(3_000) { snapshots.receive() }
@@ -159,13 +185,16 @@ class HabitRepositoryRoomTest {
         assertNotNull(snapshot)
         assertEquals("Observe", snapshot?.habit?.name)
         assertEquals(selected, snapshot?.timeline?.selectedDate)
-        assertEquals(EntryState.COMPLETED, snapshot?.timeline?.selectedEntry?.state?.let {
-            when (it) {
-                dev.dhev.nines.scoring.TimelineEntryState.COMPLETED -> EntryState.COMPLETED
-                dev.dhev.nines.scoring.TimelineEntryState.SKIPPED -> EntryState.SKIPPED
-                dev.dhev.nines.scoring.TimelineEntryState.IN_PROGRESS -> EntryState.IN_PROGRESS
-            }
-        })
+        assertEquals(
+            EntryState.COMPLETED,
+            snapshot?.timeline?.selectedEntry?.state?.let {
+                when (it) {
+                    dev.dhev.nines.scoring.TimelineEntryState.COMPLETED -> EntryState.COMPLETED
+                    dev.dhev.nines.scoring.TimelineEntryState.SKIPPED -> EntryState.SKIPPED
+                    dev.dhev.nines.scoring.TimelineEntryState.IN_PROGRESS -> EntryState.IN_PROGRESS
+                }
+            },
+        )
         assertEquals(selected.minusDays(1), historicalSnapshot?.timeline?.selectedDate)
     }
 
@@ -174,10 +203,20 @@ class HabitRepositoryRoomTest {
         val habitId = createHabit("Schedule")
         val effectiveDate = LocalDate.of(2026, 8, 16)
         database.scheduleVersionDao().insert(
-            ScheduleVersionEntity(habitId = habitId, effectiveFromDate = effectiveDate, targetNumerator = 2, targetDenominator = 7),
+            ScheduleVersionEntity(
+                habitId = habitId,
+                effectiveFromDate = effectiveDate,
+                targetNumerator = 2,
+                targetDenominator = 7,
+            ),
         )
         database.scheduleVersionDao().insert(
-            ScheduleVersionEntity(habitId = habitId, effectiveFromDate = effectiveDate, targetNumerator = 3, targetDenominator = 7),
+            ScheduleVersionEntity(
+                habitId = habitId,
+                effectiveFromDate = effectiveDate,
+                targetNumerator = 3,
+                targetDenominator = 7,
+            ),
         )
 
         val selected = database.scheduleVersionDao().versionEffectiveOn(habitId, effectiveDate)
@@ -185,7 +224,12 @@ class HabitRepositoryRoomTest {
 
         assertEquals(3, selected?.targetNumerator)
         assertEquals(7, selected?.targetDenominator)
-        assertEquals(3, timeline.schedules.last().target.numerator)
+        assertEquals(
+            3,
+            timeline.schedules
+                .last()
+                .target.numerator,
+        )
     }
 
     @Test
@@ -193,7 +237,12 @@ class HabitRepositoryRoomTest {
         val habitId = createHabit("Score")
         val boundary = LocalDate.of(2026, 8, 12)
         database.scheduleVersionDao().insert(
-            ScheduleVersionEntity(habitId = habitId, effectiveFromDate = boundary, targetNumerator = 2, targetDenominator = 3),
+            ScheduleVersionEntity(
+                habitId = habitId,
+                effectiveFromDate = boundary,
+                targetNumerator = 2,
+                targetDenominator = 3,
+            ),
         )
         database.entryDao().upsert(completedEntry(habitId, boundary))
         database.entryDao().upsert(completedEntry(habitId, boundary.plusDays(1)))
@@ -219,7 +268,10 @@ class HabitRepositoryRoomTest {
         scheduleEffectiveFrom = LocalDate.of(2026, 8, 1),
     )
 
-    private fun completedEntry(habitId: Long, date: LocalDate) = EntryEntity(
+    private fun completedEntry(
+        habitId: Long,
+        date: LocalDate,
+    ) = EntryEntity(
         habitId = habitId,
         date = date,
         state = EntryState.COMPLETED,

@@ -24,17 +24,22 @@ data class HabitColors(
  * it can be batch-computed for many seeds inside one `remember` block — see
  * [rememberHabitColorsForPalette] — rather than paying real HCT/CAM16 math per item, per call.
  */
-private fun deriveHabitColors(seed: Color, currentScheme: ColorScheme, isDark: Boolean): HabitColors {
+private fun deriveHabitColors(
+    seed: Color,
+    currentScheme: ColorScheme,
+    isDark: Boolean,
+): HabitColors {
     val harmonized = currentScheme.harmonizeWithPrimary(seed)
     // TonalSpot: calm, low-chroma — Material's own "safe default, close to stock Material You."
     // Expressive maximizes chroma by design, which reads as heavy at the small sizes habit
     // accents are used at (icon chips, pills, swatches) rather than a single hero surface.
-    val scheme = dynamicColorScheme(
-        seedColor = harmonized,
-        isDark = isDark,
-        style = PaletteStyle.TonalSpot,
-        specVersion = ColorSpec.SpecVersion.SPEC_2025,
-    )
+    val scheme =
+        dynamicColorScheme(
+            seedColor = harmonized,
+            isDark = isDark,
+            style = PaletteStyle.TonalSpot,
+            specVersion = ColorSpec.SpecVersion.SPEC_2025,
+        )
     return HabitColors(
         container = scheme.primaryContainer,
         onContainer = scheme.onPrimaryContainer,
@@ -44,7 +49,10 @@ private fun deriveHabitColors(seed: Color, currentScheme: ColorScheme, isDark: B
 
 /** Single-habit convenience wrapper — memoized, but recomputes independently per call site. */
 @Composable
-fun rememberHabitColors(seed: Color, isDark: Boolean = isSystemInDarkTheme()): HabitColors {
+fun rememberHabitColors(
+    seed: Color,
+    isDark: Boolean = isSystemInDarkTheme(),
+): HabitColors {
     val currentScheme = MaterialTheme.colorScheme
     return remember(seed, currentScheme.primary, isDark) {
         deriveHabitColors(seed, currentScheme, isDark)
@@ -59,7 +67,10 @@ fun rememberHabitColors(seed: Color, isDark: Boolean = isSystemInDarkTheme()): H
  * not once per sheet open.
  */
 @Composable
-fun rememberHabitColorsForPalette(seeds: List<Color>, isDark: Boolean = isSystemInDarkTheme()): List<HabitColors> {
+fun rememberHabitColorsForPalette(
+    seeds: List<Color>,
+    isDark: Boolean = isSystemInDarkTheme(),
+): List<HabitColors> {
     val currentScheme = MaterialTheme.colorScheme
     return remember(seeds, currentScheme.primary, isDark) {
         seeds.map { seed -> deriveHabitColors(seed, currentScheme, isDark) }

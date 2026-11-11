@@ -4,11 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.dhev.nines.data.HabitRepository
 import dev.dhev.nines.data.ReminderRepository
-import dev.dhev.nines.reminders.ReminderScheduler
-import dev.dhev.nines.reminders.ReminderNotificationCoordinator
 import dev.dhev.nines.data.local.entity.HabitEntity
 import dev.dhev.nines.data.local.entity.HabitType
 import dev.dhev.nines.data.local.entity.TargetKind
+import dev.dhev.nines.reminders.ReminderNotificationCoordinator
+import dev.dhev.nines.reminders.ReminderScheduler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -64,36 +64,41 @@ class HabitsViewModel(
         )
 
     /** [date] is the selected date being browsed/edited - not necessarily today. */
-    private fun habitItemFlow(habit: HabitEntity, date: LocalDate): Flow<HabitListItem?> =
-        combine(
-            repository.observeHabitSnapshot(
+    private fun habitItemFlow(habit: HabitEntity, date: LocalDate): Flow<HabitListItem?> = combine(
+        repository.observeHabitSnapshot(
             habitId = habit.id,
             selectedDate = flowOf(date),
             asOfDate = today,
-            ),
-            reminderRepository?.observe(habit.id) ?: flowOf(null),
-        ) { snapshot, reminder ->
-            snapshot?.let(::habitListItemFromSnapshot)?.copy(reminderTime = reminder?.localTime)
-        }
+        ),
+        reminderRepository?.observe(habit.id) ?: flowOf(null),
+    ) { snapshot, reminder ->
+        snapshot?.let(::habitListItemFromSnapshot)?.copy(reminderTime = reminder?.localTime)
+    }
 
     fun onAction(action: HabitsAction) {
         when (action) {
             is HabitsAction.SelectDate -> selectedDate.value = action.date
+
             is HabitsAction.ToggleHabit -> viewModelScope.launch {
                 repository.toggleCompletion(action.habitId, selectedDate.value)
             }
+
             is HabitsAction.IncrementHabit -> viewModelScope.launch {
                 repository.incrementNumericEntry(action.habitId, selectedDate.value, action.delta)
             }
+
             is HabitsAction.SetNumericValue -> viewModelScope.launch {
                 repository.setNumericEntry(action.habitId, selectedDate.value, action.value)
             }
+
             is HabitsAction.ClearNumericEntry -> viewModelScope.launch {
                 repository.clearNumericEntry(action.habitId, action.date)
             }
+
             is HabitsAction.UndoClearNumericEntry -> viewModelScope.launch {
                 repository.setNumericEntry(action.habitId, action.date, action.value)
             }
+
             is HabitsAction.CreateHabit -> viewModelScope.launch {
                 val habitId = repository.createHabit(
                     name = action.name,
@@ -112,6 +117,7 @@ class HabitsViewModel(
                     reminderScheduler?.schedule(habitId, it)
                 }
             }
+
             is HabitsAction.UpdateHabit -> viewModelScope.launch {
                 repository.updateHabit(
                     habitId = action.habitId,
@@ -133,14 +139,17 @@ class HabitsViewModel(
                     reminderScheduler?.cancel(action.habitId)
                 }
             }
+
             is HabitsAction.DeleteHabit -> viewModelScope.launch {
                 repository.archiveHabit(action.habitId)
                 reminderScheduler?.cancel(action.habitId)
                 reminderNotifications?.cancel(action.habitId)
             }
+
             is HabitsAction.ReorderHabits -> viewModelScope.launch {
                 repository.reorderHabits(action.orderedIds)
             }
+
             is HabitsAction.SeedDemoData -> viewModelScope.launch { seedDemoData() }
         }
     }
@@ -152,8 +161,7 @@ class HabitsViewModel(
         val today = LocalDate.now()
         val random = Random(42)
         fun daysAgo(n: Long) = today.minusDays(n)
-        fun createdAt(daysAgoCreated: Long): Instant =
-            daysAgo(daysAgoCreated).atStartOfDay(ZoneId.systemDefault()).toInstant()
+        fun createdAt(daysAgoCreated: Long): Instant = daysAgo(daysAgoCreated).atStartOfDay(ZoneId.systemDefault()).toInstant()
 
         suspend fun addHabit(
             name: String,

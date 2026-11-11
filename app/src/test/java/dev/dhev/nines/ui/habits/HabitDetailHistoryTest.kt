@@ -2,10 +2,10 @@ package dev.dhev.nines.ui.habits
 
 import dev.dhev.nines.scoring.TimelineEntry
 import dev.dhev.nines.scoring.TimelineEntryState
-import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.LocalDate
 
 class HabitDetailHistoryTest {
     private val created = LocalDate.of(2026, 8, 1)
@@ -14,20 +14,22 @@ class HabitDetailHistoryTest {
 
     @Test
     fun `detail history clips to creation selected and as-of dates`() {
-        val history = buildDetailHistory(
-            entries = listOf(
-                entry(created.minusDays(1)),
-                entry(created),
-                entry(selected),
-                entry(asOf),
-                entry(asOf.plusDays(1)),
-            ),
-            createdDate = created,
-            historyStartDate = created.minusDays(3),
-            selectedDate = selected,
-            asOfDate = asOf,
-            today = asOf,
-        )
+        val history =
+            buildDetailHistory(
+                entries =
+                listOf(
+                    entry(created.minusDays(1)),
+                    entry(created),
+                    entry(selected),
+                    entry(asOf),
+                    entry(asOf.plusDays(1)),
+                ),
+                createdDate = created,
+                historyStartDate = created.minusDays(3),
+                selectedDate = selected,
+                asOfDate = asOf,
+                today = asOf,
+            )
 
         assertEquals(created, history.first().date)
         assertEquals(selected, history.last().date)
@@ -36,14 +38,15 @@ class HabitDetailHistoryTest {
 
     @Test
     fun `detail history is empty before habit creation`() {
-        val history = buildDetailHistory(
-            entries = emptyList(),
-            createdDate = selected.plusDays(1),
-            historyStartDate = created,
-            selectedDate = selected,
-            asOfDate = asOf,
-            today = asOf,
-        )
+        val history =
+            buildDetailHistory(
+                entries = emptyList(),
+                createdDate = selected.plusDays(1),
+                historyStartDate = created,
+                selectedDate = selected,
+                asOfDate = asOf,
+                today = asOf,
+            )
 
         assertTrue(history.isEmpty())
     }

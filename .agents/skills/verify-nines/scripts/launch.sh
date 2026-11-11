@@ -17,4 +17,6 @@ fi
 $ADB install -r app/build/outputs/apk/debug/app-debug.apk >/dev/null
 $ADB shell pm clear dev.dhev.nines >/dev/null
 $ADB shell am start -W -n dev.dhev.nines/.MainActivity >/dev/null
+here="$(dirname "$0")"
+for _ in $(seq 1 30); do ADB="$ADB" python3 "$here/ui.py" dump 2>/dev/null | grep -q "Skip" && break; sleep 2; done
 echo "ready: $($ADB devices | awk 'NR>1 && $2=="device"{print $1; exit}') (emulator started by this run: $started_emulator)"

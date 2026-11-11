@@ -1,8 +1,8 @@
 package dev.dhev.nines.data
 
 import android.content.Context
-import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.flow.first
@@ -19,9 +19,10 @@ class OnboardingCompletionStoreTest {
     fun completionIsFalseInitiallyAndPersistsAfterMarkingComplete() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val fileName = "onboarding-test-${UUID.randomUUID()}"
-        val dataStore = PreferenceDataStoreFactory.create {
-            context.preferencesDataStoreFile(fileName)
-        }
+        val dataStore =
+            PreferenceDataStoreFactory.create {
+                context.preferencesDataStoreFile(fileName)
+            }
         val store = OnboardingCompletionStore(dataStore)
 
         assertFalse(store.completed.first())

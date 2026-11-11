@@ -22,8 +22,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -45,12 +45,12 @@ import androidx.compose.material.icons.filled.Functions
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material3.Button
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -94,6 +94,7 @@ import dev.dhev.nines.ui.theme.Spacing
 import dev.dhev.nines.ui.theme.contrastingIconColor
 import dev.dhev.nines.ui.theme.rememberHabitColors
 import dev.dhev.nines.ui.theme.rememberHabitColorsForPalette
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -101,7 +102,6 @@ import java.time.format.FormatStyle
 import java.time.format.TextStyle
 import java.util.Locale
 import kotlin.math.roundToInt
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -551,8 +551,7 @@ fun HabitDetailScreen(
     }
 }
 
-internal fun requiresHistoricalBinaryConfirmation(date: LocalDate, today: LocalDate): Boolean =
-    date.isBefore(today)
+internal fun requiresHistoricalBinaryConfirmation(date: LocalDate, today: LocalDate): Boolean = date.isBefore(today)
 
 /**
  * The full-size month view opened from tapping a compact card in [HistoryCalendar]. Cells here

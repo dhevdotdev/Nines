@@ -34,5 +34,8 @@ interface HabitDao {
     suspend fun nextPosition(): Int
 
     @Query("UPDATE habits SET position = :position WHERE id = :habitId")
-    suspend fun updatePosition(habitId: Long, position: Int)
+    suspend fun updatePosition(
+        habitId: Long,
+        position: Int,
+    )
 }

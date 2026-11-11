@@ -3,6 +3,7 @@ package dev.dhev.nines.ui.theme
 import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MotionScheme
 import androidx.compose.material3.dynamicDarkColorScheme
@@ -10,7 +11,6 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
-import androidx.compose.material3.ColorScheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFontFamilyResolver
@@ -29,12 +29,13 @@ fun NinesTheme(
     dynamicColor: Boolean = true,
     content: @Composable () -> Unit,
 ) {
-    val colorScheme = rememberNinesColorScheme(
-        colorSource = colorSource,
-        customSeedArgb = customSeedArgb,
-        darkTheme = darkTheme,
-        dynamicColor = dynamicColor,
-    )
+    val colorScheme =
+        rememberNinesColorScheme(
+            colorSource = colorSource,
+            customSeedArgb = customSeedArgb,
+            darkTheme = darkTheme,
+            dynamicColor = dynamicColor,
+        )
 
     // Resolving a downloadable font is a real one-time cost per process (typeface fetch +
     // rasterization). Do it now, while the user is looking at the habit list with nothing
@@ -74,7 +75,7 @@ fun rememberNinesColorScheme(
     val dynamicColorAvailable = dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     val effectiveSource = colorSource.effectiveSource(dynamicColorAvailable)
     return when (effectiveSource) {
-        AppColorSource.WALLPAPER ->
+        AppColorSource.WALLPAPER -> {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
             } else {
@@ -85,11 +86,15 @@ fun rememberNinesColorScheme(
                     specVersion = ColorSpec.SpecVersion.SPEC_2025,
                 )
             }
-        else -> rememberDynamicColorScheme(
-            seedColor = Color((effectiveSource.seedArgb ?: customSeedArgb).toInt()),
-            isDark = darkTheme,
-            style = PaletteStyle.Expressive,
-            specVersion = ColorSpec.SpecVersion.SPEC_2025,
-        )
+        }
+
+        else -> {
+            rememberDynamicColorScheme(
+                seedColor = Color((effectiveSource.seedArgb ?: customSeedArgb).toInt()),
+                isDark = darkTheme,
+                style = PaletteStyle.Expressive,
+                specVersion = ColorSpec.SpecVersion.SPEC_2025,
+            )
+        }
     }
 }

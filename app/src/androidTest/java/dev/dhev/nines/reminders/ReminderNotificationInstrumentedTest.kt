@@ -37,7 +37,10 @@ class ReminderNotificationInstrumentedTest {
         context = ApplicationProvider.getApplicationContext()
         val uiAutomation = InstrumentationRegistry.getInstrumentation().uiAutomation
         uiAutomation.adoptShellPermissionIdentity("android.permission.GRANT_RUNTIME_PERMISSIONS")
-        uiAutomation.executeShellCommand("pm grant ${context.packageName} android.permission.POST_NOTIFICATIONS").close()
+        uiAutomation
+            .executeShellCommand(
+                "pm grant ${context.packageName} android.permission.POST_NOTIFICATIONS",
+            ).close()
         uiAutomation.dropShellPermissionIdentity()
         assumeTrue(NotificationManagerCompat.from(context).areNotificationsEnabled())
         habits = GlobalContext.get().get()
@@ -55,7 +58,8 @@ class ReminderNotificationInstrumentedTest {
             reminders.remove(it)
             habits.archiveHabit(it)
         }
-        context.getSystemService(NotificationManager::class.java)
+        context
+            .getSystemService(NotificationManager::class.java)
             .cancel(ReminderNotificationCoordinator.COMBINED_NOTIFICATION_ID)
     }
 
@@ -69,9 +73,12 @@ class ReminderNotificationInstrumentedTest {
         var notification: android.app.Notification? = null
         withTimeout(5_000) {
             while (true) {
-                notification = context.getSystemService(NotificationManager::class.java)
-                    .activeNotifications.firstOrNull { it.id == habitId.toInt() }
-                    ?.notification
+                notification =
+                    context
+                        .getSystemService(NotificationManager::class.java)
+                        .activeNotifications
+                        .firstOrNull { it.id == habitId.toInt() }
+                        ?.notification
                 if (notification != null) break
                 delay(50)
             }
@@ -84,8 +91,13 @@ class ReminderNotificationInstrumentedTest {
                 delay(50)
             }
         }
-        assertEquals(0, context.getSystemService(NotificationManager::class.java)
-            .activeNotifications.count { it.id == habitId.toInt() })
+        assertEquals(
+            0,
+            context
+                .getSystemService(NotificationManager::class.java)
+                .activeNotifications
+                .count { it.id == habitId.toInt() },
+        )
     }
 
     @Test
@@ -101,11 +113,19 @@ class ReminderNotificationInstrumentedTest {
         coordinator.deliver(first)
         coordinator.deliver(second)
 
-        val summary = context.getSystemService(NotificationManager::class.java)
-            .activeNotifications.first { it.id == ReminderNotificationCoordinator.COMBINED_NOTIFICATION_ID }
+        val summary =
+            context
+                .getSystemService(NotificationManager::class.java)
+                .activeNotifications
+                .first { it.id == ReminderNotificationCoordinator.COMBINED_NOTIFICATION_ID }
         assertEquals(0, summary.notification.actions?.size ?: 0)
-        assertEquals(0, context.getSystemService(NotificationManager::class.java)
-            .activeNotifications.count { it.id == first.toInt() || it.id == second.toInt() })
+        assertEquals(
+            0,
+            context
+                .getSystemService(NotificationManager::class.java)
+                .activeNotifications
+                .count { it.id == first.toInt() || it.id == second.toInt() },
+        )
         preferences.setCombineSimultaneous(false)
     }
 
@@ -115,7 +135,10 @@ class ReminderNotificationInstrumentedTest {
         reminders.configure(habitId, LocalTime.now().plusMinutes(1))
         val uiAutomation = InstrumentationRegistry.getInstrumentation().uiAutomation
         uiAutomation.adoptShellPermissionIdentity("android.permission.GRANT_RUNTIME_PERMISSIONS")
-        uiAutomation.executeShellCommand("pm revoke ${context.packageName} android.permission.POST_NOTIFICATIONS").close()
+        uiAutomation
+            .executeShellCommand(
+                "pm revoke ${context.packageName} android.permission.POST_NOTIFICATIONS",
+            ).close()
         uiAutomation.dropShellPermissionIdentity()
 
         coordinator.deliver(habitId)
@@ -123,17 +146,19 @@ class ReminderNotificationInstrumentedTest {
         assertTrue(reminders.get(habitId)?.activeDate != null)
         assertTrue(reminders.get(habitId)?.localTime != null)
         uiAutomation.adoptShellPermissionIdentity("android.permission.GRANT_RUNTIME_PERMISSIONS")
-        uiAutomation.executeShellCommand("pm grant ${context.packageName} android.permission.POST_NOTIFICATIONS").close()
+        uiAutomation
+            .executeShellCommand(
+                "pm grant ${context.packageName} android.permission.POST_NOTIFICATIONS",
+            ).close()
         uiAutomation.dropShellPermissionIdentity()
     }
 
-    private suspend fun createHabit(name: String): Long {
-        return habits.createHabit(
+    private suspend fun createHabit(name: String): Long = habits
+        .createHabit(
             name = name,
             type = HabitType.BOOLEAN,
             color = 0,
             iconKey = "default",
             scheduleEffectiveFrom = java.time.LocalDate.now(),
         ).also(createdHabitIds::add)
-    }
 }

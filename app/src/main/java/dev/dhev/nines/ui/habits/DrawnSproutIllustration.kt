@@ -26,7 +26,10 @@ import androidx.compose.ui.graphics.drawscope.Stroke
  * composition; there's nothing for the caller to drive.
  */
 @Composable
-fun DrawnSproutIllustration(color: Color, modifier: Modifier = Modifier) {
+fun DrawnSproutIllustration(
+    color: Color,
+    modifier: Modifier = Modifier,
+) {
     var started by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { started = true }
 
@@ -51,31 +54,39 @@ fun DrawnSproutIllustration(color: Color, modifier: Modifier = Modifier) {
         val h = size.height
         val strokeWidth = size.minDimension * 0.05f
 
-        val stem = Path().apply {
-            moveTo(w * 0.5f, h * 0.85f)
-            cubicTo(w * 0.47f, h * 0.65f, w * 0.53f, h * 0.45f, w * 0.5f, h * 0.22f)
-        }
+        val stem =
+            Path().apply {
+                moveTo(w * 0.5f, h * 0.85f)
+                cubicTo(w * 0.47f, h * 0.65f, w * 0.53f, h * 0.45f, w * 0.5f, h * 0.22f)
+            }
         drawTrimmedStroke(stem, stemProgress, color, strokeWidth)
 
-        val leftLeaf = Path().apply {
-            moveTo(w * 0.50f, h * 0.58f)
-            cubicTo(w * 0.30f, h * 0.52f, w * 0.18f, h * 0.38f, w * 0.26f, h * 0.22f)
-            cubicTo(w * 0.40f, h * 0.30f, w * 0.49f, h * 0.44f, w * 0.50f, h * 0.58f)
-            close()
-        }
+        val leftLeaf =
+            Path().apply {
+                moveTo(w * 0.50f, h * 0.58f)
+                cubicTo(w * 0.30f, h * 0.52f, w * 0.18f, h * 0.38f, w * 0.26f, h * 0.22f)
+                cubicTo(w * 0.40f, h * 0.30f, w * 0.49f, h * 0.44f, w * 0.50f, h * 0.58f)
+                close()
+            }
         drawTrimmedStroke(leftLeaf, leftLeafProgress, color, strokeWidth)
 
-        val rightLeaf = Path().apply {
-            moveTo(w * 0.50f, h * 0.46f)
-            cubicTo(w * 0.68f, h * 0.41f, w * 0.80f, h * 0.28f, w * 0.73f, h * 0.13f)
-            cubicTo(w * 0.60f, h * 0.20f, w * 0.51f, h * 0.32f, w * 0.50f, h * 0.46f)
-            close()
-        }
+        val rightLeaf =
+            Path().apply {
+                moveTo(w * 0.50f, h * 0.46f)
+                cubicTo(w * 0.68f, h * 0.41f, w * 0.80f, h * 0.28f, w * 0.73f, h * 0.13f)
+                cubicTo(w * 0.60f, h * 0.20f, w * 0.51f, h * 0.32f, w * 0.50f, h * 0.46f)
+                close()
+            }
         drawTrimmedStroke(rightLeaf, rightLeafProgress, color, strokeWidth)
     }
 }
 
-private fun DrawScope.drawTrimmedStroke(path: Path, progress: Float, color: Color, strokeWidth: Float) {
+private fun DrawScope.drawTrimmedStroke(
+    path: Path,
+    progress: Float,
+    color: Color,
+    strokeWidth: Float,
+) {
     if (progress <= 0f) return
     val measure = PathMeasure().apply { setPath(path, forceClosed = false) }
     val trimmed = Path()

@@ -42,6 +42,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -62,15 +63,14 @@ import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.toShape
 import androidx.compose.material3.MediumFloatingActionButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
@@ -78,15 +78,16 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TimePickerDialog
-import androidx.compose.material3.rememberTimePickerState
-import androidx.compose.material3.SwipeToDismissBoxValue
-import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberTimePickerState
+import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -111,23 +112,22 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.widthIn
-import java.time.LocalDate
-import java.time.LocalTime
-import java.time.format.DateTimeFormatter
-import kotlin.math.abs
-import kotlin.math.roundToInt
 import dev.dhev.nines.BuildConfig
 import dev.dhev.nines.data.local.entity.HabitType
 import dev.dhev.nines.data.local.entity.TargetKind
+import dev.dhev.nines.ui.theme.HabitColors
 import dev.dhev.nines.ui.theme.HabitPalette
 import dev.dhev.nines.ui.theme.Spacing
-import dev.dhev.nines.ui.theme.HabitColors
 import dev.dhev.nines.ui.theme.contrastingIconColor
 import dev.dhev.nines.ui.theme.rememberHabitColors
 import dev.dhev.nines.ui.theme.rememberHabitColorsForPalette
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 private enum class FrequencyType { DAILY, TIMES_PER_WEEK, EVERY_N_DAYS }
 
@@ -145,8 +145,7 @@ private fun frequencyStateFor(editing: HabitListItem?): FrequencyState {
         else -> FrequencyState(FrequencyType.DAILY, 3, 2)
     }
 }
-private fun formatEditableValue(value: Double): String =
-    if (value == value.toLong().toDouble()) value.toLong().toString() else value.toString()
+private fun formatEditableValue(value: Double): String = if (value == value.toLong().toDouble()) value.toLong().toString() else value.toString()
 
 @Suppress("DEPRECATION") // rememberModalBottomSheetState: flagged replacement has no such function in 1.5.0-alpha25 yet
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -320,6 +319,7 @@ fun AddHabitSheet(
                             NumberStepper(value = timesPerWeek, onValueChange = { timesPerWeek = it }, range = 1..7)
                         }
                     }
+
                     FrequencyType.EVERY_N_DAYS -> Column {
                         Spacer(Modifier.height(Spacing.default))
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.default)) {
@@ -327,6 +327,7 @@ fun AddHabitSheet(
                             NumberStepper(value = everyNDays, onValueChange = { everyNDays = it }, range = 2..30)
                         }
                     }
+
                     FrequencyType.DAILY -> Box(Modifier)
                 }
             }
@@ -417,7 +418,10 @@ fun AddHabitSheet(
                     Box(
                         modifier = Modifier
                             .size(40.dp)
-                            .graphicsLayer { scaleX = scale; scaleY = scale }
+                            .graphicsLayer {
+                                scaleX = scale
+                                scaleY = scale
+                            }
                             .clip(CircleShape)
                             .background(previewColor)
                             .border(
@@ -461,7 +465,10 @@ fun AddHabitSheet(
                     Box(
                         modifier = Modifier
                             .size(56.dp)
-                            .graphicsLayer { scaleX = scale; scaleY = scale }
+                            .graphicsLayer {
+                                scaleX = scale
+                                scaleY = scale
+                            }
                             .clip(squircle)
                             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                             .border(
@@ -510,7 +517,10 @@ fun AddHabitSheet(
                     Box(
                         modifier = Modifier
                             .size(44.dp)
-                            .graphicsLayer { scaleX = scale; scaleY = scale }
+                            .graphicsLayer {
+                                scaleX = scale
+                                scaleY = scale
+                            }
                             .clip(squircle)
                             .background(chipBackground)
                             .clickable(

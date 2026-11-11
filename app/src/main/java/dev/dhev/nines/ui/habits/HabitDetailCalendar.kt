@@ -21,8 +21,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -47,8 +47,8 @@ import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -134,11 +134,12 @@ fun ExpandedMonthDialog(
 
                 val firstOfMonth = month.atDay(1)
                 val leadingBlanks = firstOfMonth.dayOfWeek.value % 7
-                val cells = buildList {
-                    repeat(leadingBlanks) { add(null) }
-                    for (day in 1..month.lengthOfMonth()) add(month.atDay(day))
-                    while (size % 7 != 0) add(null)
-                }
+                val cells =
+                    buildList {
+                        repeat(leadingBlanks) { add(null) }
+                        for (day in 1..month.lengthOfMonth()) add(month.atDay(day))
+                        while (size % 7 != 0) add(null)
+                    }
 
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.extraSmall)) {
                     cells.chunked(7).forEach { week ->
@@ -149,34 +150,49 @@ fun ExpandedMonthDialog(
                             week.forEach { date ->
                                 val cell = date?.let { byDate[it] }
                                 val enabled = date != null && !date.isAfter(today)
-                                val (fill, cellAlpha) = when (cell?.state) {
-                                    EntryState.COMPLETED -> accent to 1f
-                                    EntryState.IN_PROGRESS -> accent to 0.4f
-                                    EntryState.SKIPPED, null -> MaterialTheme.colorScheme.surfaceContainerHighest to 0.6f
-                                }
+                                val (fill, cellAlpha) =
+                                    when (cell?.state) {
+                                        EntryState.COMPLETED -> {
+                                            accent to 1f
+                                        }
+
+                                        EntryState.IN_PROGRESS -> {
+                                            accent to 0.4f
+                                        }
+
+                                        EntryState.SKIPPED, null -> {
+                                            MaterialTheme.colorScheme.surfaceContainerHighest to
+                                                0.6f
+                                        }
+                                    }
                                 Box(
-                                    modifier = Modifier
+                                    modifier =
+                                    Modifier
                                         .size(ExpandedDayCellSize)
                                         .clip(CircleShape)
                                         .background(fill.copy(alpha = if (date == null) 0f else cellAlpha))
                                         .then(
                                             if (date == today) {
-                                                val ringColor = if (cell?.state == EntryState.COMPLETED) {
-                                                    contrastingIconColor(accent)
-                                                } else {
-                                                    accent
-                                                }
+                                                val ringColor =
+                                                    if (cell?.state == EntryState.COMPLETED) {
+                                                        contrastingIconColor(accent)
+                                                    } else {
+                                                        accent
+                                                    }
                                                 Modifier.border(1.5.dp, ringColor, CircleShape)
                                             } else {
                                                 Modifier
                                             },
-                                        )
-                                        .clickable(
+                                        ).clickable(
                                             interactionSource = remember { MutableInteractionSource() },
                                             indication = ripple(),
                                             enabled = enabled,
                                         ) {
-                                            date?.let { onDayClick(cell ?: DayCell(date = it, state = null, isToday = it == today)) }
+                                            date?.let {
+                                                onDayClick(
+                                                    cell ?: DayCell(date = it, state = null, isToday = it == today),
+                                                )
+                                            }
                                         },
                                     contentAlignment = Alignment.Center,
                                 ) {
@@ -184,7 +200,8 @@ fun ExpandedMonthDialog(
                                         Text(
                                             text = date.dayOfMonth.toString(),
                                             style = MaterialTheme.typography.labelMedium,
-                                            color = if (cell?.state == EntryState.COMPLETED) {
+                                            color =
+                                            if (cell?.state == EntryState.COMPLETED) {
                                                 contrastingIconColor(accent)
                                             } else {
                                                 MaterialTheme.colorScheme.onSurface
@@ -199,7 +216,8 @@ fun ExpandedMonthDialog(
 
                 Spacer(Modifier.height(Spacing.default))
                 Text(
-                    text = if (habitType == HabitType.NUMERICAL) {
+                    text =
+                    if (habitType == HabitType.NUMERICAL) {
                         "Tap a day to log or edit an entry."
                     } else {
                         "Tap a day to mark it done or not done."
@@ -215,18 +233,35 @@ fun ExpandedMonthDialog(
         }
     }
 }
+
 private val ExpandedDayCellSize = 36.dp
 
-private fun dayStatusLabel(day: DayCell, unit: String?, today: LocalDate): String = when (day.state) {
-    EntryState.COMPLETED -> if (day.numericValue != null) {
-        "Completed · ${formatValue(day.numericValue)}${unit?.let { " $it" } ?: ""}"
-    } else {
-        "Completed"
+private fun dayStatusLabel(
+    day: DayCell,
+    unit: String?,
+    today: LocalDate,
+): String = when (day.state) {
+    EntryState.COMPLETED -> {
+        if (day.numericValue != null) {
+            "Completed · ${formatValue(day.numericValue)}${unit?.let { " $it" } ?: ""}"
+        } else {
+            "Completed"
+        }
     }
-    EntryState.IN_PROGRESS -> "In progress · ${formatValue(day.numericValue ?: 0.0)}${unit?.let { " $it" } ?: ""}"
-    EntryState.SKIPPED -> "Skipped"
-    null -> if (day.date.isAfter(today)) "Upcoming" else "Not logged"
+
+    EntryState.IN_PROGRESS -> {
+        "In progress · ${formatValue(day.numericValue ?: 0.0)}${unit?.let { " $it" } ?: ""}"
+    }
+
+    EntryState.SKIPPED -> {
+        "Skipped"
+    }
+
+    null -> {
+        if (day.date.isAfter(today)) "Upcoming" else "Not logged"
+    }
 }
+
 /**
  * "3× per week", "Goal: at least 20 pages", "Every 2 days" — the schedule this habit was
  * actually set up with, which the detail screen previously didn't surface anywhere at all despite
@@ -236,11 +271,12 @@ private fun dayStatusLabel(day: DayCell, unit: String?, today: LocalDate): Strin
 fun scheduleLabel(uiState: HabitDetailUiState): String {
     if (uiState.type == HabitType.NUMERICAL && uiState.targetValue != null) {
         val kindWord = if (uiState.targetKind == TargetKind.AT_MOST) "at most" else "at least"
-        val amount = if (uiState.targetValue == uiState.targetValue.toLong().toDouble()) {
-            uiState.targetValue.toLong().toString()
-        } else {
-            "%.1f".format(uiState.targetValue)
-        }
+        val amount =
+            if (uiState.targetValue == uiState.targetValue.toLong().toDouble()) {
+                uiState.targetValue.toLong().toString()
+            } else {
+                "%.1f".format(uiState.targetValue)
+            }
         return "Goal: $kindWord $amount${uiState.unit?.let { " $it" } ?: ""}"
     }
     val num = uiState.targetNumerator
@@ -251,6 +287,7 @@ fun scheduleLabel(uiState: HabitDetailUiState): String {
         else -> "Every $den days"
     }
 }
+
 /**
  * How much of the current window's slack is left, e.g. "2/3 this week" — only shown for
  * habits with real slack in their schedule (daily habits have none: the streak already says
@@ -270,7 +307,13 @@ fun cycleProgressLabel(uiState: HabitDetailUiState): String? {
  * history reads as a set of concrete achievements instead of a proportional-length visualization.
  */
 @Composable
-fun StreakRow(rank: Int, streak: StreakRun, fraction: Float, accent: Color, today: LocalDate) {
+fun StreakRow(
+    rank: Int,
+    streak: StreakRun,
+    fraction: Float,
+    accent: Color,
+    today: LocalDate,
+) {
     val rowHeight = 44.dp
     // Grows in once on appearance rather than snapping straight to its final length - the fill
     // IS the data here, so the reveal is what sells "this row's length means something" instead
@@ -291,20 +334,23 @@ fun StreakRow(rank: Int, streak: StreakRun, fraction: Float, accent: Color, toda
             // The fill itself IS the ranking - a #1 row reads as visibly longer than a #5 row
             // at a glance, rather than making someone compare four-digit-day-count text.
             Box(
-                modifier = Modifier
+                modifier =
+                Modifier
                     .width(maxWidth * animatedFraction)
                     .height(rowHeight)
                     .background(accent.copy(alpha = 0.14f)),
             )
             Row(
-                modifier = Modifier
+                modifier =
+                Modifier
                     .height(rowHeight)
                     .fillMaxWidth()
                     .padding(horizontal = Spacing.default),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(
-                    modifier = Modifier
+                    modifier =
+                    Modifier
                         .size(22.dp)
                         .clip(CircleShape)
                         .background(accent.copy(alpha = 0.22f)),
@@ -332,13 +378,17 @@ fun StreakRow(rank: Int, streak: StreakRun, fraction: Float, accent: Color, toda
     }
 }
 
-internal fun streakRangeLabel(streak: StreakRun, today: LocalDate): String {
+internal fun streakRangeLabel(
+    streak: StreakRun,
+    today: LocalDate,
+): String {
     val formatter = DateTimeFormatter.ofPattern("MMM d")
-    val startText = if (streak.start.year != today.year) {
-        DateTimeFormatter.ofPattern("MMM d, yyyy").format(streak.start)
-    } else {
-        formatter.format(streak.start)
-    }
+    val startText =
+        if (streak.start.year != today.year) {
+            DateTimeFormatter.ofPattern("MMM d, yyyy").format(streak.start)
+        } else {
+            formatter.format(streak.start)
+        }
     return if (streak.start == streak.end) startText else "$startText – ${formatter.format(streak.end)}"
 }
 
@@ -357,7 +407,10 @@ fun StatColumn(
     accent: Color,
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.extraSmall)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.extraSmall),
+        ) {
             icon?.let {
                 Icon(imageVector = it, contentDescription = null, tint = accent, modifier = Modifier.size(18.dp))
             }
@@ -403,9 +456,10 @@ fun HistoryCalendar(
         derivedStateOf {
             val layout = listState.layoutInfo
             val viewportCenter = (layout.viewportStartOffset + layout.viewportEndOffset) / 2
-            val centerItem = layout.visibleItemsInfo.minByOrNull {
-                kotlin.math.abs((it.offset + it.size / 2) - viewportCenter)
-            }
+            val centerItem =
+                layout.visibleItemsInfo.minByOrNull {
+                    kotlin.math.abs((it.offset + it.size / 2) - viewportCenter)
+                }
             months.getOrElse(centerItem?.index ?: 0) { months.last() }.year
         }
     }
@@ -419,8 +473,13 @@ fun HistoryCalendar(
             targetState = visibleYear,
             transitionSpec = {
                 val goingBackInTime = targetState < initialState
-                (slideInVertically(tween(220)) { height -> if (goingBackInTime) height else -height } + fadeIn(tween(220)))
-                    .togetherWith(slideOutVertically(tween(220)) { height -> if (goingBackInTime) -height else height } + fadeOut(tween(220)))
+                (
+                    slideInVertically(tween(220)) { height -> if (goingBackInTime) height else -height } +
+                        fadeIn(tween(220))
+                    ).togetherWith(
+                    slideOutVertically(tween(220)) { height -> if (goingBackInTime) -height else height } +
+                        fadeOut(tween(220)),
+                )
             },
             label = "historyYear",
         ) { year ->
@@ -449,6 +508,7 @@ fun HistoryCalendar(
 }
 
 private val MonthCardWidth = 84.dp
+
 // A month can occupy at most six Sunday-starting weeks. Keeping every card at that height
 // prevents the content below the history rail from jumping as different months become visible.
 private val MonthCardHeight = 96.dp
@@ -464,7 +524,8 @@ fun MonthCalendar(
 ) {
     val locale = remember { Locale.getDefault() }
     Column(
-        modifier = Modifier
+        modifier =
+        Modifier
             .width(MonthCardWidth)
             .height(MonthCardHeight)
             .clip(RoundedCornerShape(12.dp))
@@ -472,8 +533,7 @@ fun MonthCalendar(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = ripple(),
                 onClick = onClick,
-            )
-            .padding(4.dp),
+            ).padding(4.dp),
     ) {
         Text(
             text = month.month.getDisplayName(TextStyle.SHORT, locale),
@@ -485,11 +545,12 @@ fun MonthCalendar(
         val firstOfMonth = month.atDay(1)
         // ISO DayOfWeek is Monday=1..Sunday=7; %7 maps Sunday to 0 so the grid starts on Sunday.
         val leadingBlanks = firstOfMonth.dayOfWeek.value % 7
-        val cells = buildList {
-            repeat(leadingBlanks) { add(null) }
-            for (day in 1..month.lengthOfMonth()) add(month.atDay(day))
-            while (size % 7 != 0) add(null)
-        }
+        val cells =
+            buildList {
+                repeat(leadingBlanks) { add(null) }
+                for (day in 1..month.lengthOfMonth()) add(month.atDay(day))
+                while (size % 7 != 0) add(null)
+            }
 
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             cells.chunked(7).forEach { week ->
@@ -500,26 +561,29 @@ fun MonthCalendar(
                         // the month and days before the habit existed — no cell is ever fully
                         // blank, so the grid always reads as one solid, intentional rectangle
                         // rather than a patchwork of holes and squares.
-                        val (fill, cellAlpha) = when (cell?.state) {
-                            EntryState.COMPLETED -> accent to 1f
-                            EntryState.IN_PROGRESS -> accent to 0.4f
-                            EntryState.SKIPPED, null -> MaterialTheme.colorScheme.surfaceContainerHighest to 0.6f
-                        }
+                        val (fill, cellAlpha) =
+                            when (cell?.state) {
+                                EntryState.COMPLETED -> accent to 1f
+                                EntryState.IN_PROGRESS -> accent to 0.4f
+                                EntryState.SKIPPED, null -> MaterialTheme.colorScheme.surfaceContainerHighest to 0.6f
+                            }
                         // Individual cells are no longer separately tappable — at 9dp they're far
                         // too small to hit reliably. The whole card is one tap target (see
                         // MonthCalendar's onClick) that opens a bigger, actually-tappable grid.
                         Box(
-                            modifier = Modifier
+                            modifier =
+                            Modifier
                                 .size(DayCellSize)
                                 .clip(RoundedCornerShape(2.dp))
                                 .background(fill.copy(alpha = cellAlpha))
                                 .then(
                                     if (date == today) {
-                                        val ringColor = if (cell?.state == EntryState.COMPLETED) {
-                                            contrastingIconColor(accent)
-                                        } else {
-                                            accent
-                                        }
+                                        val ringColor =
+                                            if (cell?.state == EntryState.COMPLETED) {
+                                                contrastingIconColor(accent)
+                                            } else {
+                                                accent
+                                            }
                                         Modifier.border(1.dp, ringColor, RoundedCornerShape(2.dp))
                                     } else {
                                         Modifier

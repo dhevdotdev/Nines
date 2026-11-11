@@ -21,8 +21,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -47,8 +47,8 @@ import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -269,8 +269,7 @@ private fun WeekdayBreakdownRow(rates: List<Double>, accent: Color) {
     }
 }
 
-private fun weekdayName(index: Int): String =
-    java.time.DayOfWeek.of(index + 1).getDisplayName(TextStyle.FULL, Locale.getDefault())
+private fun weekdayName(index: Int): String = java.time.DayOfWeek.of(index + 1).getDisplayName(TextStyle.FULL, Locale.getDefault())
 
 private val TargetChartHeight = 56.dp
 
@@ -334,10 +333,12 @@ private fun TargetProgressRow(days: List<DayCell>, target: Double, targetKind: T
                             .background(
                                 when {
                                     metTarget -> accent
+
                                     // Going over a ceiling is a violation, not just a shortfall -
                                     // worth a clearer color than the muted-accent "didn't get
                                     // there yet" used for an AT_LEAST day that fell short.
                                     targetKind == TargetKind.AT_MOST -> MaterialTheme.colorScheme.error.copy(alpha = 0.6f)
+
                                     else -> accent.copy(alpha = 0.35f)
                                 },
                             ),

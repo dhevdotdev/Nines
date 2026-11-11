@@ -77,7 +77,8 @@ fun ArchivedHabitsScreen(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Spacer(Modifier.height(Spacing.extraLarge * 2))
                         Box(
-                            modifier = Modifier
+                            modifier =
+                            Modifier
                                 .size(72.dp)
                                 .clip(CircleShape)
                                 .background(MaterialTheme.colorScheme.surfaceContainerHigh),
@@ -101,7 +102,8 @@ fun ArchivedHabitsScreen(
                 }
             } else {
                 LazyColumn(
-                    contentPadding = PaddingValues(
+                    contentPadding =
+                    PaddingValues(
                         start = Spacing.large,
                         end = Spacing.large,
                         top = Spacing.default,
@@ -122,7 +124,10 @@ fun ArchivedHabitsScreen(
 }
 
 @Composable
-private fun ArchivedHabitRow(habit: ArchivedHabitItem, onRestore: () -> Unit) {
+private fun ArchivedHabitRow(
+    habit: ArchivedHabitItem,
+    onRestore: () -> Unit,
+) {
     val colors = rememberHabitColors(Color(habit.color))
     val haptics = LocalHapticFeedback.current
     var restored by remember { mutableStateOf(false) }
@@ -134,14 +139,16 @@ private fun ArchivedHabitRow(habit: ArchivedHabitItem, onRestore: () -> Unit) {
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Row(
-            modifier = Modifier
+            modifier =
+            Modifier
                 .fillMaxWidth()
                 .padding(horizontal = Spacing.default, vertical = Spacing.small),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Spacing.default),
         ) {
             Box(
-                modifier = Modifier
+                modifier =
+                Modifier
                     .size(40.dp)
                     .clip(CircleShape)
                     .background(colors.accent.copy(alpha = 0.5f)),

@@ -1,7 +1,7 @@
 package dev.dhev.nines.scoring
 
-import java.time.LocalDate
 import java.time.Instant
+import java.time.LocalDate
 
 /** The two kinds of Habit entries understood by the shared timeline projection. */
 enum class TimelineHabitKind {
@@ -81,49 +81,61 @@ fun buildHabitTimeline(input: HabitTimelineInput): HabitTimeline {
         )
     }
 
-    val entries = input.entries
-        .filter { !it.date.isAfter(input.selectedDate) && !it.date.isBefore(input.createdDate) }
+    val entries =
+        input.entries
+            .filter { !it.date.isAfter(input.selectedDate) && !it.date.isBefore(input.createdDate) }
     val entriesByDate = entries.associateBy { it.date }
-    val completedDates = entries
-        .filter { it.state == TimelineEntryState.COMPLETED }
-        .map { it.date }
-        .toSet()
-    val skippedDates = entries
-        .filter { it.state == TimelineEntryState.SKIPPED }
-        .map { it.date }
-        .toSet()
+    val completedDates =
+        entries
+            .filter { it.state == TimelineEntryState.COMPLETED }
+            .map { it.date }
+            .toSet()
+    val skippedDates =
+        entries
+            .filter { it.state == TimelineEntryState.SKIPPED }
+            .map { it.date }
+            .toSet()
     val selectedSchedule = scheduleEffectiveOn(input.schedules, input.selectedDate)
-    val score = computeScheduleAwareScoreSeries(
-        scheduleForDate = { date -> scheduleEffectiveOn(input.schedules, date)?.target },
-        completedDates = completedDates,
-        skippedDates = skippedDates,
-        startDate = input.createdDate,
-        endDate = input.selectedDate,
-    ).lastOrNull()?.score ?: 0.0
+    val score =
+        computeScheduleAwareScoreSeries(
+            scheduleForDate = { date -> scheduleEffectiveOn(input.schedules, date)?.target },
+            completedDates = completedDates,
+            skippedDates = skippedDates,
+            startDate = input.createdDate,
+            endDate = input.selectedDate,
+        ).lastOrNull()?.score ?: 0.0
     val runAnalysis = analyzeHabitRuns(completedDates, input.createdDate, input.selectedDate)
-    val frequencyProgress = selectedSchedule?.let { schedule ->
-        when (input.kind) {
-            TimelineHabitKind.BOOLEAN -> computeFrequencyProgress(
-                selectedDate = input.selectedDate,
-                target = schedule.target,
-                input = FrequencyProgressInput.BooleanEntries(completedDates),
-            )
-            TimelineHabitKind.NUMERICAL -> schedule.targetValue?.let { targetValue ->
-                computeFrequencyProgress(
-                    selectedDate = input.selectedDate,
-                    target = schedule.target,
-                    input = FrequencyProgressInput.NumericEntries(
-                        valuesByDate = entries
-                            .filter { it.state != TimelineEntryState.SKIPPED }
-                            .mapNotNull { entry -> entry.numericValue?.let { entry.date to it } }
-                            .toMap(),
-                        targetValue = targetValue,
-                        targetKind = schedule.targetKind ?: FrequencyTargetKind.AT_LEAST,
-                    ),
-                )
+    val frequencyProgress =
+        selectedSchedule?.let { schedule ->
+            when (input.kind) {
+                TimelineHabitKind.BOOLEAN -> {
+                    computeFrequencyProgress(
+                        selectedDate = input.selectedDate,
+                        target = schedule.target,
+                        input = FrequencyProgressInput.BooleanEntries(completedDates),
+                    )
+                }
+
+                TimelineHabitKind.NUMERICAL -> {
+                    schedule.targetValue?.let { targetValue ->
+                        computeFrequencyProgress(
+                            selectedDate = input.selectedDate,
+                            target = schedule.target,
+                            input =
+                            FrequencyProgressInput.NumericEntries(
+                                valuesByDate =
+                                entries
+                                    .filter { it.state != TimelineEntryState.SKIPPED }
+                                    .mapNotNull { entry -> entry.numericValue?.let { entry.date to it } }
+                                    .toMap(),
+                                targetValue = targetValue,
+                                targetKind = schedule.targetKind ?: FrequencyTargetKind.AT_LEAST,
+                            ),
+                        )
+                    }
+                }
             }
         }
-    }
 
     return HabitTimeline(
         isVisible = true,

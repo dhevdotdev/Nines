@@ -23,8 +23,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -98,7 +98,11 @@ private fun SettingsSwitchRow(
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(label, style = MaterialTheme.typography.bodyLarge)
-            Text(supportingText, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                supportingText,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
         Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
@@ -112,18 +116,19 @@ private fun SettingsMenuRow(
 ) {
     val haptics = LocalHapticFeedback.current
     Row(
-        modifier = Modifier
+        modifier =
+        Modifier
             .fillMaxWidth()
             .clickable {
                 haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
                 onClick()
-            }
-            .padding(horizontal = Spacing.large, vertical = Spacing.default),
+            }.padding(horizontal = Spacing.large, vertical = Spacing.default),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.default),
     ) {
         Box(
-            modifier = Modifier
+            modifier =
+            Modifier
                 .size(40.dp)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh),

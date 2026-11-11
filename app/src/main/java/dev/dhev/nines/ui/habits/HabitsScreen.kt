@@ -5,7 +5,6 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.ContextCompat
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SizeTransform
@@ -49,6 +48,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -69,30 +69,30 @@ import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.toShape
 import androidx.compose.material3.MediumFloatingActionButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -109,8 +109,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
@@ -119,22 +119,22 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.widthIn
-import java.time.LocalDate
-import kotlin.math.abs
-import kotlin.math.roundToInt
+import androidx.core.content.ContextCompat
 import dev.dhev.nines.BuildConfig
 import dev.dhev.nines.data.local.entity.HabitType
 import dev.dhev.nines.data.local.entity.TargetKind
+import dev.dhev.nines.ui.theme.HabitColors
 import dev.dhev.nines.ui.theme.HabitPalette
 import dev.dhev.nines.ui.theme.Spacing
-import dev.dhev.nines.ui.theme.HabitColors
 import dev.dhev.nines.ui.theme.contrastingIconColor
 import dev.dhev.nines.ui.theme.rememberHabitColors
 import dev.dhev.nines.ui.theme.rememberHabitColorsForPalette
+import kotlinx.coroutines.launch
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
-import kotlinx.coroutines.launch
+import java.time.LocalDate
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -362,11 +362,11 @@ fun HabitsScreen(
                                 // would be nonsensical - that congratulation only means anything for the
                                 // day you're actually tracking live, not a historical correction session.
                                 visible = uiState.selectedDate == today &&
-                                visibleHabits.isNotEmpty() && visibleHabits.all { it.completed },
+                                    visibleHabits.isNotEmpty() && visibleHabits.all { it.completed },
                                 enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) +
-                                expandVertically(animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()),
+                                    expandVertically(animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()),
                                 exit = fadeOut(MaterialTheme.motionScheme.defaultEffectsSpec()) +
-                                shrinkVertically(animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()),
+                                    shrinkVertically(animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()),
                             ) {
                                 AllDoneBanner(modifier = Modifier.padding(bottom = Spacing.medium))
                             }
@@ -382,8 +382,8 @@ fun HabitsScreen(
                                     // gesture, so there's nothing for a long-press-drag to conflict with.
                                     Box(
                                         modifier = Modifier
-                                        .shadow(elevation, MaterialTheme.shapes.largeIncreased)
-                                        .padding(bottom = Spacing.medium),
+                                            .shadow(elevation, MaterialTheme.shapes.largeIncreased)
+                                            .padding(bottom = Spacing.medium),
                                     ) {
                                         HabitRow(
                                             item = item,
@@ -398,16 +398,16 @@ fun HabitsScreen(
                                                     contentDescription = "Reorder ${item.name}",
                                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                                     modifier = Modifier
-                                                    .draggableHandle(
-                                                        onDragStarted = {
-                                                            haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
-                                                        },
-                                                        onDragStopped = {
-                                                            haptics.performHapticFeedback(HapticFeedbackType.GestureEnd)
-                                                            onAction(HabitsAction.ReorderHabits(orderIds))
-                                                        },
-                                                    )
-                                                    .size(24.dp),
+                                                        .draggableHandle(
+                                                            onDragStarted = {
+                                                                haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+                                                            },
+                                                            onDragStopped = {
+                                                                haptics.performHapticFeedback(HapticFeedbackType.GestureEnd)
+                                                                onAction(HabitsAction.ReorderHabits(orderIds))
+                                                            },
+                                                        )
+                                                        .size(24.dp),
                                                 )
                                             },
                                         )
@@ -458,31 +458,35 @@ fun HabitsScreen(
                                             SwipeToDismissBoxValue.EndToStart -> HabitSwipeDirection.END_TO_START
                                             SwipeToDismissBoxValue.Settled -> null
                                         }
-                                        when (habitSwipeAction(
-                                            HabitGesturePolicyInput(
-                                                selectedDate = uiState.selectedDate,
-                                                today = today,
-                                                reorderMode = effectiveReorderMode,
-                                                swipeDirection = direction,
-                                            ),
-                                        )) {
+                                        when (
+                                            habitSwipeAction(
+                                                HabitGesturePolicyInput(
+                                                    selectedDate = uiState.selectedDate,
+                                                    today = today,
+                                                    reorderMode = effectiveReorderMode,
+                                                    swipeDirection = direction,
+                                                ),
+                                            )
+                                        ) {
                                             HabitSwipeAction.EDIT -> {
                                                 editingHabit = item
                                                 dismissState.animateTo(SwipeToDismissBoxValue.Settled)
                                             }
+
                                             HabitSwipeAction.ARCHIVE -> archiveImmediately(item)
+
                                             HabitSwipeAction.NONE -> Unit
                                         }
                                     }
                                     Box(
                                         modifier = Modifier
-                                        .shadow(elevation, MaterialTheme.shapes.largeIncreased)
-                                        .padding(bottom = Spacing.medium)
-                                        .anchoredDraggable(
-                                            state = dismissState,
-                                            orientation = Orientation.Horizontal,
-                                            flingBehavior = flingBehavior,
-                                        ),
+                                            .shadow(elevation, MaterialTheme.shapes.largeIncreased)
+                                            .padding(bottom = Spacing.medium)
+                                            .anchoredDraggable(
+                                                state = dismissState,
+                                                orientation = Orientation.Horizontal,
+                                                flingBehavior = flingBehavior,
+                                            ),
                                     ) {
                                         val offsetPx = runCatching { dismissState.requireOffset() }.getOrDefault(0f)
                                         SwipeBackground(

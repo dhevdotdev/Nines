@@ -1,17 +1,17 @@
 package dev.dhev.nines.reminders
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
-import android.annotation.SuppressLint
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import dev.dhev.nines.data.HabitRepository
-import dev.dhev.nines.data.ReminderRepository
 import dev.dhev.nines.data.ReminderPreferencesStore
+import dev.dhev.nines.data.ReminderRepository
 import dev.dhev.nines.data.local.entity.HabitType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -43,7 +43,9 @@ class ReminderNotificationCoordinator(
         if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) return@withContext
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-        ) return@withContext
+        ) {
+            return@withContext
+        }
         ensureChannel()
         val combine = preferences.preferencesFlow.first().combineSimultaneous
         val sameMinuteCount = if (combine) {

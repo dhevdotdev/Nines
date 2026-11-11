@@ -11,12 +11,15 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.koin.core.context.GlobalContext
+import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
-import java.time.Duration
 
 class ReminderActionReceiver : BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent) {
+    override fun onReceive(
+        context: Context,
+        intent: Intent,
+    ) {
         val habitId = intent.getLongExtra(ReminderScheduler.HABIT_ID, -1)
         if (habitId < 0) return
         if (intent.action == OPEN) {
@@ -41,16 +44,34 @@ class ReminderActionReceiver : BroadcastReceiver() {
                 val reminder = reminders.get(habitId) ?: return@launch
                 val activeDate = reminder.activeDate ?: LocalDate.now()
                 when (intent.action) {
-                    MARK_DONE -> habits.toggleCompletion(habitId, activeDate)
-                    NOT_TODAY -> habits.setSkipped(habitId, activeDate)
-                    SNOOZE_15 -> snooze(reminders, habitId, Duration.ofMinutes(15))
-                    SNOOZE_1H -> snooze(reminders, habitId, Duration.ofHours(1))
-                    SNOOZE_3H -> snooze(reminders, habitId, Duration.ofHours(3))
+                    MARK_DONE -> {
+                        habits.toggleCompletion(habitId, activeDate)
+                    }
+
+                    NOT_TODAY -> {
+                        habits.setSkipped(habitId, activeDate)
+                    }
+
+                    SNOOZE_15 -> {
+                        snooze(reminders, habitId, Duration.ofMinutes(15))
+                    }
+
+                    SNOOZE_1H -> {
+                        snooze(reminders, habitId, Duration.ofHours(1))
+                    }
+
+                    SNOOZE_3H -> {
+                        snooze(reminders, habitId, Duration.ofHours(3))
+                    }
+
                     SNOOZE_TOMORROW -> {
-                        val tomorrow = LocalDate.now().plusDays(1)
-                            .atTime(reminder.localTime)
-                            .atZone(java.time.ZoneId.systemDefault())
-                            .toInstant()
+                        val tomorrow =
+                            LocalDate
+                                .now()
+                                .plusDays(1)
+                                .atTime(reminder.localTime)
+                                .atZone(java.time.ZoneId.systemDefault())
+                                .toInstant()
                         reminders.snooze(habitId, tomorrow)
                         GlobalContext.get().get<ReminderScheduler>().scheduleAt(habitId, tomorrow)
                     }
@@ -69,7 +90,11 @@ class ReminderActionReceiver : BroadcastReceiver() {
         }
     }
 
-    private suspend fun snooze(reminders: ReminderRepository, habitId: Long, duration: Duration) {
+    private suspend fun snooze(
+        reminders: ReminderRepository,
+        habitId: Long,
+        duration: Duration,
+    ) {
         reminders.snooze(habitId, Instant.now().plus(duration))
     }
 
@@ -88,7 +113,11 @@ class ReminderActionReceiver : BroadcastReceiver() {
         const val SNOOZE_3H = "dev.dhev.nines.reminders.SNOOZE_3H"
         const val SNOOZE_TOMORROW = "dev.dhev.nines.reminders.SNOOZE_TOMORROW"
 
-        fun pendingIntent(context: Context, habitId: Long, action: String): PendingIntent = PendingIntent.getBroadcast(
+        fun pendingIntent(
+            context: Context,
+            habitId: Long,
+            action: String,
+        ): PendingIntent = PendingIntent.getBroadcast(
             context,
             habitId.toInt() * 10 + action.hashCode(),
             Intent(context, ReminderActionReceiver::class.java)

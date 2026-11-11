@@ -3,32 +3,33 @@ package dev.dhev.nines.ui.habits
 import dev.dhev.nines.data.HabitRepository
 import dev.dhev.nines.data.local.entity.HabitEntity
 import dev.dhev.nines.data.local.entity.HabitType
+import dev.dhev.nines.scoring.HabitTimeline
+import dev.dhev.nines.scoring.HabitTimelineInput
+import dev.dhev.nines.scoring.ScheduleTarget
 import dev.dhev.nines.scoring.TimelineEntry
 import dev.dhev.nines.scoring.TimelineHabitKind
 import dev.dhev.nines.scoring.TimelineSchedule
-import dev.dhev.nines.scoring.HabitTimeline
-import dev.dhev.nines.scoring.HabitTimelineInput
 import dev.dhev.nines.scoring.buildHabitTimeline
-import dev.dhev.nines.scoring.ScheduleTarget
-import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+import java.time.LocalDate
 
 class HabitListItemAdapterTest {
     private val createdDate = LocalDate.of(2026, 8, 1)
     private val selectedDate = LocalDate.of(2026, 8, 8)
-    private val habit = HabitEntity(
-        id = 7,
-        name = "Read",
-        type = HabitType.NUMERICAL,
-        unit = "pages",
-        color = 0xFF00AA88.toInt(),
-        iconKey = "book",
-        backgroundStyleKey = "waves",
-        position = 0,
-        createdAt = createdDate.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant(),
-    )
+    private val habit =
+        HabitEntity(
+            id = 7,
+            name = "Read",
+            type = HabitType.NUMERICAL,
+            unit = "pages",
+            color = 0xFF00AA88.toInt(),
+            iconKey = "book",
+            backgroundStyleKey = "waves",
+            position = 0,
+            createdAt = createdDate.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant(),
+        )
 
     @Test
     fun `invisible habit is omitted from homepage`() {
@@ -39,15 +40,17 @@ class HabitListItemAdapterTest {
 
     @Test
     fun `adapter preserves selected entry and numeric target`() {
-        val observation = buildObservation(
-            entries = listOf(
-                TimelineEntry(
-                    date = selectedDate,
-                    state = dev.dhev.nines.scoring.TimelineEntryState.COMPLETED,
-                    numericValue = 12.0,
+        val observation =
+            buildObservation(
+                entries =
+                listOf(
+                    TimelineEntry(
+                        date = selectedDate,
+                        state = dev.dhev.nines.scoring.TimelineEntryState.COMPLETED,
+                        numericValue = 12.0,
+                    ),
                 ),
-            ),
-        )
+            )
 
         val item = habitListItemFromSnapshot(snapshot(observation))
 
@@ -76,7 +79,8 @@ class HabitListItemAdapterTest {
             createdDate = createdDate,
             selectedDate = selectedDate,
             entries = entries,
-            schedules = listOf(
+            schedules =
+            listOf(
                 TimelineSchedule(
                     effectiveFromDate = createdDate,
                     target = ScheduleTarget(1, 1),

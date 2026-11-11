@@ -8,6 +8,11 @@ data class AppearanceUiState(
 )
 
 sealed interface AppearanceAction {
-    data class SelectColorSource(val source: AppColorSource) : AppearanceAction
-    data class SelectCustomColor(val seedArgb: Long) : AppearanceAction
+    data class SelectColorSource(
+        val source: AppColorSource,
+    ) : AppearanceAction
+
+    data class SelectCustomColor(
+        val seedArgb: Long,
+    ) : AppearanceAction
 }

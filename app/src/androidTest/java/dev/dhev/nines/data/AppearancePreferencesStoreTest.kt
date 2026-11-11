@@ -18,9 +18,10 @@ class AppearancePreferencesStoreTest {
     @Test
     fun selectedColorSourcePersists() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        val dataStore = PreferenceDataStoreFactory.create {
-            context.preferencesDataStoreFile("appearance-test-${UUID.randomUUID()}")
-        }
+        val dataStore =
+            PreferenceDataStoreFactory.create {
+                context.preferencesDataStoreFile("appearance-test-${UUID.randomUUID()}")
+            }
         val store = AppearancePreferencesStore(dataStore)
 
         assertEquals(AppColorSource.WALLPAPER, store.colorSource.first())
@@ -31,9 +32,10 @@ class AppearancePreferencesStoreTest {
     @Test
     fun customColorPersistsItsSeedAndSelectsCustom() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        val dataStore = PreferenceDataStoreFactory.create {
-            context.preferencesDataStoreFile("appearance-test-${UUID.randomUUID()}")
-        }
+        val dataStore =
+            PreferenceDataStoreFactory.create {
+                context.preferencesDataStoreFile("appearance-test-${UUID.randomUUID()}")
+            }
         val store = AppearancePreferencesStore(dataStore)
 
         store.selectCustom(0xFF00A896L)

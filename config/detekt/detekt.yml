@@ -1,0 +1,24 @@
+# Layered on detekt's default config. Anything not listed keeps the default.
+complexity:
+  CyclomaticComplexMethod:
+    ignoreAnnotated: ['Composable']
+  LongMethod:
+    ignoreAnnotated: ['Composable']
+  LongParameterList:
+    ignoreAnnotated: ['Composable']
+  TooManyFunctions:
+    ignoreAnnotated: ['Composable']
+naming:
+  FunctionNaming:
+    ignoreAnnotated: ['Composable']
+style:
+  MagicNumber:
+    active: false
+  MaxLineLength:
+    active: false
+  ForbiddenComment:
+    active: true
+    comments:
+      - value: 'TODO:'
+      - value: 'FIXME:'
+      - value: 'STOPSHIP:'

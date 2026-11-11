@@ -42,15 +42,37 @@ data class HabitDetailUiState(
 )
 
 sealed interface HabitDetailAction {
-    data class SelectDate(val date: LocalDate) : HabitDetailAction
+    data class SelectDate(
+        val date: LocalDate,
+    ) : HabitDetailAction
+
     // Carry an explicit date rather than always assuming "today" — these now double as the
     // retroactive edit actions fired from the expanded month view, not just the mark-complete
     // button for the current day.
-    data class Toggle(val date: LocalDate) : HabitDetailAction
-    data class Increment(val date: LocalDate, val delta: Double) : HabitDetailAction
-    data class SetValue(val date: LocalDate, val value: Double) : HabitDetailAction
-    data class ClearNumericEntry(val date: LocalDate, val value: Double) : HabitDetailAction
-    data class UndoClearNumericEntry(val date: LocalDate, val value: Double) : HabitDetailAction
+    data class Toggle(
+        val date: LocalDate,
+    ) : HabitDetailAction
+
+    data class Increment(
+        val date: LocalDate,
+        val delta: Double,
+    ) : HabitDetailAction
+
+    data class SetValue(
+        val date: LocalDate,
+        val value: Double,
+    ) : HabitDetailAction
+
+    data class ClearNumericEntry(
+        val date: LocalDate,
+        val value: Double,
+    ) : HabitDetailAction
+
+    data class UndoClearNumericEntry(
+        val date: LocalDate,
+        val value: Double,
+    ) : HabitDetailAction
+
     data class Update(
         val name: String,
         val color: Int,
@@ -62,5 +84,6 @@ sealed interface HabitDetailAction {
         val targetKind: TargetKind?,
         val unit: String?,
     ) : HabitDetailAction
+
     data object Delete : HabitDetailAction
 }

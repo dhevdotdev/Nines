@@ -20,5 +20,19 @@ jobs:
           distribution: temurin
           java-version: 25
       - uses: gradle/actions/setup-gradle@v6
-      - name: Unit tests, lint, debug build, instrumented-test compile
-        run: ./gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:compileDebugAndroidTestKotlin
+      - name: Format and static analysis
+        run: ./gradlew spotlessCheck :app:detekt
+      - name: Unit tests and scoring coverage floor
+        run: ./gradlew :app:testDebugUnitTest :app:jacocoDebugUnitTestCoverageVerification
+      - name: Lint, debug build, instrumented-test compile
+        run: ./gradlew :app:lintDebug :app:assembleDebug :app:compileDebugAndroidTestKotlin
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports
+          path: |
+            app/build/reports/tests/testDebugUnitTest
+            app/build/reports/lint-results-debug.html
+            app/build/test-results/testDebugUnitTest
+          retention-days: 14

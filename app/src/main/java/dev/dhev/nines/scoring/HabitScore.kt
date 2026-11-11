@@ -9,7 +9,10 @@ import kotlin.math.sqrt
  * A schedule target expressed as an exact rational (n times per d days), never a decimal.
  * This keeps rolling-window lengths exact integers instead of accumulating rounding error.
  */
-data class ScheduleTarget(val numerator: Int, val denominator: Int) {
+data class ScheduleTarget(
+    val numerator: Int,
+    val denominator: Int,
+) {
     init {
         require(numerator > 0) { "numerator must be positive" }
         require(denominator > 0) { "denominator must be positive" }
@@ -25,7 +28,10 @@ data class ScheduleTarget(val numerator: Int, val denominator: Int) {
 
 enum class DayOutcome { COMPLETED, SKIPPED, MISSED }
 
-data class ScorePoint(val date: LocalDate, val score: Double)
+data class ScorePoint(
+    val date: LocalDate,
+    val score: Double,
+)
 
 /**
  * The exponential decay multiplier for a habit's target frequency.
@@ -110,21 +116,35 @@ private fun computeScoreSeriesForDates(
 }
 
 /** A single run of consecutive days matching some day-level condition (completed, or not). */
-data class StreakRun(val start: LocalDate, val end: LocalDate, val length: Int)
+data class StreakRun(
+    val start: LocalDate,
+    val end: LocalDate,
+    val length: Int,
+)
 
 /**
  * Runs of consecutive completed days between [startDate] and [endDate] inclusive, in
  * chronological order. The last entry is the "current" streak exactly when its [StreakRun.end]
  * is [endDate] or the day before it — a run that stopped earlier than that has already broken.
  */
-fun computeStreakRuns(completedDates: Set<LocalDate>, startDate: LocalDate, endDate: LocalDate): List<StreakRun> =
-    computeRuns(startDate, endDate) { it in completedDates }
+fun computeStreakRuns(
+    completedDates: Set<LocalDate>,
+    startDate: LocalDate,
+    endDate: LocalDate,
+): List<StreakRun> = computeRuns(startDate, endDate) { it in completedDates }
 
 /** The inverse of [computeStreakRuns]: runs of consecutive NOT-completed days, i.e. gaps. */
-fun computeGapRuns(completedDates: Set<LocalDate>, startDate: LocalDate, endDate: LocalDate): List<StreakRun> =
-    computeRuns(startDate, endDate) { it !in completedDates }
+fun computeGapRuns(
+    completedDates: Set<LocalDate>,
+    startDate: LocalDate,
+    endDate: LocalDate,
+): List<StreakRun> = computeRuns(startDate, endDate) { it !in completedDates }
 
-private fun computeRuns(startDate: LocalDate, endDate: LocalDate, matches: (LocalDate) -> Boolean): List<StreakRun> {
+private fun computeRuns(
+    startDate: LocalDate,
+    endDate: LocalDate,
+    matches: (LocalDate) -> Boolean,
+): List<StreakRun> {
     require(!endDate.isBefore(startDate)) { "endDate must not be before startDate" }
     val runs = mutableListOf<StreakRun>()
     var runStart: LocalDate? = null
@@ -146,7 +166,10 @@ private fun computeRuns(startDate: LocalDate, endDate: LocalDate, matches: (Loca
 
 /** The streak still running as of [endDate] — the last run's length if it reaches through
  * [endDate] or the day before it, zero if the most recent run already ended earlier than that. */
-fun currentStreakLength(streakRuns: List<StreakRun>, endDate: LocalDate): Int {
+fun currentStreakLength(
+    streakRuns: List<StreakRun>,
+    endDate: LocalDate,
+): Int {
     val last = streakRuns.lastOrNull() ?: return 0
     return if (!last.end.isBefore(endDate.minusDays(1))) last.length else 0
 }

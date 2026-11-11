@@ -1,15 +1,15 @@
 package dev.dhev.nines.ui.habits
 
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
-import androidx.compose.ui.test.longClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import dev.dhev.nines.data.local.entity.TargetKind
 import dev.dhev.nines.ui.theme.NinesTheme
@@ -37,10 +37,12 @@ class HabitControlsSemanticsTest {
             }
         }
 
-        composeRule.onNodeWithContentDescription("Tuesday, August 18")
+        composeRule
+            .onNodeWithContentDescription("Tuesday, August 18")
             .assertIsEnabled()
             .performClick()
-        composeRule.onNodeWithContentDescription("Thursday, August 20")
+        composeRule
+            .onNodeWithContentDescription("Thursday, August 20")
             .assertIsNotEnabled()
         assertEquals(today.minusDays(1), selectedDate)
     }
@@ -59,7 +61,8 @@ class HabitControlsSemanticsTest {
             }
         }
 
-        composeRule.onNodeWithContentDescription("Mark complete")
+        composeRule
+            .onNodeWithContentDescription("Mark complete")
             .assertIsEnabled()
             .performClick()
         assertTrue(toggled)
@@ -81,10 +84,12 @@ class HabitControlsSemanticsTest {
             }
         }
 
-        composeRule.onNodeWithContentDescription("Add progress")
+        composeRule
+            .onNodeWithContentDescription("Add progress")
             .assertIsEnabled()
             .performClick()
-        composeRule.onNodeWithContentDescription("Add progress")
+        composeRule
+            .onNodeWithContentDescription("Add progress")
             .performTouchInput { longClick() }
         assertEquals(1, increments)
         assertEquals(1, decrements)

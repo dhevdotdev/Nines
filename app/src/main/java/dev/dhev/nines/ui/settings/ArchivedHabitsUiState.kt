@@ -13,5 +13,7 @@ data class ArchivedHabitsUiState(
 )
 
 sealed interface ArchivedHabitsAction {
-    data class RestoreHabit(val habitId: Long) : ArchivedHabitsAction
+    data class RestoreHabit(
+        val habitId: Long,
+    ) : ArchivedHabitsAction
 }

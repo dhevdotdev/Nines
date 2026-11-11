@@ -27,5 +27,8 @@ interface ScheduleVersionDao {
         LIMIT 1
         """,
     )
-    suspend fun versionEffectiveOn(habitId: Long, date: LocalDate): ScheduleVersionEntity?
+    suspend fun versionEffectiveOn(
+        habitId: Long,
+        date: LocalDate,
+    ): ScheduleVersionEntity?
 }

@@ -30,7 +30,8 @@ class BaselineProfileGenerator {
             addHabitButton.click()
             val nameField = device.wait(Until.findObject(By.text("Name")), 5_000)
             nameField?.click()
-            device.wait(Until.findObject(By.clazz("android.widget.EditText")), 3_000)
+            device
+                .wait(Until.findObject(By.clazz("android.widget.EditText")), 3_000)
                 ?.text = "Benchmark habit"
             device.findObject(By.text("Add habit"))?.click()
             device.waitForIdle()

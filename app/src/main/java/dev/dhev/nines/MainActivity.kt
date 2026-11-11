@@ -4,15 +4,15 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Alignment
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.dropUnlessResumed
@@ -20,30 +20,30 @@ import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDe
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import dev.dhev.nines.data.AppearancePreferences
+import dev.dhev.nines.data.AppearancePreferencesStore
+import dev.dhev.nines.data.OnboardingCompletionStore
+import dev.dhev.nines.data.ReminderPreferencesStore
 import dev.dhev.nines.ui.habits.HabitDetailScreen
 import dev.dhev.nines.ui.habits.HabitDetailViewModel
 import dev.dhev.nines.ui.habits.HabitsScreen
 import dev.dhev.nines.ui.habits.HabitsViewModel
+import dev.dhev.nines.ui.nav.AppearanceRoute
 import dev.dhev.nines.ui.nav.ArchivedHabitsRoute
 import dev.dhev.nines.ui.nav.HabitDetailRoute
 import dev.dhev.nines.ui.nav.HabitsRoute
-import dev.dhev.nines.ui.nav.SettingsRoute
-import dev.dhev.nines.ui.nav.AppearanceRoute
 import dev.dhev.nines.ui.nav.OnboardingRoute
-import dev.dhev.nines.data.OnboardingCompletionStore
-import dev.dhev.nines.data.AppearancePreferencesStore
-import dev.dhev.nines.data.AppearancePreferences
-import dev.dhev.nines.data.ReminderPreferencesStore
+import dev.dhev.nines.ui.nav.SettingsRoute
 import dev.dhev.nines.ui.onboarding.OnboardingScreen
+import dev.dhev.nines.ui.settings.AppearanceScreen
+import dev.dhev.nines.ui.settings.AppearanceViewModel
 import dev.dhev.nines.ui.settings.ArchivedHabitsScreen
 import dev.dhev.nines.ui.settings.ArchivedHabitsViewModel
 import dev.dhev.nines.ui.settings.SettingsScreen
-import dev.dhev.nines.ui.settings.AppearanceScreen
-import dev.dhev.nines.ui.settings.AppearanceViewModel
 import dev.dhev.nines.ui.theme.NinesTheme
-import org.koin.compose.viewmodel.koinViewModel
-import org.koin.compose.koinInject
 import kotlinx.coroutines.launch
+import org.koin.compose.koinInject
+import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 class MainActivity : ComponentActivity() {
@@ -59,9 +59,15 @@ class MainActivity : ComponentActivity() {
         val openValueEditor = intent.getBooleanExtra(OPEN_VALUE_EDITOR, false)
         setContent {
             val appearanceStore = koinInject<AppearancePreferencesStore>()
-            val appearance by appearanceStore.appearance.collectAsStateWithLifecycle(initialValue = AppearancePreferences())
+            val appearance by appearanceStore.appearance.collectAsStateWithLifecycle(
+                initialValue = AppearancePreferences(),
+            )
             val reminderPreferencesStore = koinInject<ReminderPreferencesStore>()
-            val reminderPreferences by reminderPreferencesStore.preferencesFlow.collectAsStateWithLifecycle(initialValue = dev.dhev.nines.data.ReminderPreferences())
+            val reminderPreferences by reminderPreferencesStore.preferencesFlow.collectAsStateWithLifecycle(
+                initialValue =
+                dev.dhev.nines.data
+                    .ReminderPreferences(),
+            )
             NinesTheme(colorSource = appearance.colorSource, customSeedArgb = appearance.customSeedArgb) {
                 val onboardingStore = koinInject<OnboardingCompletionStore>()
                 val onboardingCompleted by onboardingStore.completed.collectAsStateWithLifecycle(initialValue = null)
@@ -70,7 +76,14 @@ class MainActivity : ComponentActivity() {
                         CircularProgressIndicator()
                     }
                 } else {
-                    NinesNavRoot(onboardingStore, onboardingCompleted == true, reminderPreferences.combineSimultaneous, reminderPreferencesStore, openHabitId, openValueEditor)
+                    NinesNavRoot(
+                        onboardingStore,
+                        onboardingCompleted == true,
+                        reminderPreferences.combineSimultaneous,
+                        reminderPreferencesStore,
+                        openHabitId,
+                        openValueEditor,
+                    )
                 }
             }
         }
@@ -94,24 +107,27 @@ private fun NinesNavRoot(
     openValueEditor: Boolean = false,
 ) {
     val scope = rememberCoroutineScope()
-    val backStack = remember {
-        mutableStateListOf<Any>(
-            when {
-                !onboardingCompleted -> OnboardingRoute(replay = false)
-                openHabitId != null -> HabitDetailRoute(openHabitId, openValueEditor)
-                else -> HabitsRoute
-            },
-        )
-    }
+    val backStack =
+        remember {
+            mutableStateListOf<Any>(
+                when {
+                    !onboardingCompleted -> OnboardingRoute(replay = false)
+                    openHabitId != null -> HabitDetailRoute(openHabitId, openValueEditor)
+                    else -> HabitsRoute
+                },
+            )
+        }
 
     NavDisplay(
         backStack = backStack,
         onBack = { backStack.removeLastOrNull() },
-        entryDecorators = listOf(
+        entryDecorators =
+        listOf(
             rememberSaveableStateHolderNavEntryDecorator(),
             rememberViewModelStoreNavEntryDecorator(),
         ),
-        entryProvider = entryProvider {
+        entryProvider =
+        entryProvider {
             entry<HabitsRoute> {
                 val viewModel = koinViewModel<HabitsViewModel>()
                 val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -132,7 +148,9 @@ private fun NinesNavRoot(
                     onAppearanceClick = { backStack.add(AppearanceRoute) },
                     onHowNinesWorksClick = { backStack.add(OnboardingRoute(replay = true)) },
                     combineSimultaneous = combineSimultaneous,
-                    onCombineSimultaneousChange = { enabled -> scope.launch { reminderPreferencesStore.setCombineSimultaneous(enabled) } },
+                    onCombineSimultaneousChange = { enabled ->
+                        scope.launch { reminderPreferencesStore.setCombineSimultaneous(enabled) }
+                    },
                     modifier = Modifier.fillMaxSize(),
                 )
             }
@@ -149,16 +167,18 @@ private fun NinesNavRoot(
             entry<OnboardingRoute> { route ->
                 OnboardingScreen(
                     onComplete = {
-                        if (route.replay) backStack.removeLastOrNull()
-                        else {
+                        if (route.replay) {
+                            backStack.removeLastOrNull()
+                        } else {
                             scope.launch { onboardingStore.markCompleted() }
                             backStack.clear()
                             backStack.add(HabitsRoute)
                         }
                     },
                     onExit = {
-                        if (route.replay) backStack.removeLastOrNull()
-                        else {
+                        if (route.replay) {
+                            backStack.removeLastOrNull()
+                        } else {
                             scope.launch { onboardingStore.markCompleted() }
                             backStack.clear()
                             backStack.add(HabitsRoute)
@@ -178,9 +198,10 @@ private fun NinesNavRoot(
                 )
             }
             entry<HabitDetailRoute> { route ->
-                val viewModel = koinViewModel<HabitDetailViewModel> {
-                    parametersOf(route.habitId)
-                }
+                val viewModel =
+                    koinViewModel<HabitDetailViewModel> {
+                        parametersOf(route.habitId)
+                    }
                 val uiState by viewModel.uiState.collectAsStateWithLifecycle()
                 HabitDetailScreen(
                     uiState = uiState,

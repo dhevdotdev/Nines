@@ -17,16 +17,21 @@ import androidx.compose.ui.graphics.drawscope.Stroke
  * yourself (see [CheckOffButton]) rather than animating internally, so callers control timing.
  */
 @Composable
-fun DrawnCheckmark(color: Color, progress: Float, modifier: Modifier = Modifier) {
+fun DrawnCheckmark(
+    color: Color,
+    progress: Float,
+    modifier: Modifier = Modifier,
+) {
     if (progress <= 0f) return
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
-        val fullPath = Path().apply {
-            moveTo(w * 0.20f, h * 0.52f)
-            lineTo(w * 0.42f, h * 0.72f)
-            lineTo(w * 0.80f, h * 0.28f)
-        }
+        val fullPath =
+            Path().apply {
+                moveTo(w * 0.20f, h * 0.52f)
+                lineTo(w * 0.42f, h * 0.72f)
+                lineTo(w * 0.80f, h * 0.28f)
+            }
         // PathMeasure is Compose's real tool for "draw the first N% of this path" — extract just
         // that leading segment into a fresh path and draw only it, re-cut every frame as
         // progress advances.
@@ -36,7 +41,8 @@ fun DrawnCheckmark(color: Color, progress: Float, modifier: Modifier = Modifier)
         drawPath(
             path = trimmedPath,
             color = color,
-            style = Stroke(
+            style =
+            Stroke(
                 width = size.minDimension * 0.16f,
                 cap = StrokeCap.Round,
                 join = StrokeJoin.Round,

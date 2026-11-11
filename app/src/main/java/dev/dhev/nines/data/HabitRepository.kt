@@ -9,10 +9,11 @@ import dev.dhev.nines.data.local.entity.HabitEntity
 import dev.dhev.nines.data.local.entity.HabitType
 import dev.dhev.nines.data.local.entity.ScheduleVersionEntity
 import dev.dhev.nines.data.local.entity.TargetKind
+import dev.dhev.nines.scoring.FrequencyProgressInput
 import dev.dhev.nines.scoring.FrequencyTargetKind
 import dev.dhev.nines.scoring.HabitTimeline
-import dev.dhev.nines.scoring.HabitTimelineInput
 import dev.dhev.nines.scoring.HabitTimelineData
+import dev.dhev.nines.scoring.HabitTimelineInput
 import dev.dhev.nines.scoring.ScheduleTarget
 import dev.dhev.nines.scoring.ScorePoint
 import dev.dhev.nines.scoring.TimelineEntry
@@ -20,9 +21,8 @@ import dev.dhev.nines.scoring.TimelineEntryState
 import dev.dhev.nines.scoring.TimelineHabitKind
 import dev.dhev.nines.scoring.TimelineSchedule
 import dev.dhev.nines.scoring.buildHabitTimeline
-import dev.dhev.nines.scoring.computeScheduleAwareScoreSeries
 import dev.dhev.nines.scoring.computeFrequencyProgress
-import dev.dhev.nines.scoring.FrequencyProgressInput
+import dev.dhev.nines.scoring.computeScheduleAwareScoreSeries
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import java.time.Instant
@@ -90,39 +90,37 @@ class HabitRepository(
 
     fun observeEntries(habitId: Long): Flow<List<EntryEntity>> = entryDao.observeEntries(habitId)
 
-    fun observeScheduleVersions(habitId: Long): Flow<List<ScheduleVersionEntity>> =
-        scheduleVersionDao.observeVersions(habitId)
+    fun observeScheduleVersions(habitId: Long): Flow<List<ScheduleVersionEntity>> = scheduleVersionDao.observeVersions(habitId)
 
-    fun observeHabitTimelineData(habitId: Long): Flow<HabitTimelineData> =
-        observeEntries(habitId).combine(observeScheduleVersions(habitId)) { entries, schedules ->
-            HabitTimelineData(
-                entries = entries.map { entry ->
-                    TimelineEntry(
-                        date = entry.date,
-                        state = when (entry.state) {
-                            EntryState.COMPLETED -> TimelineEntryState.COMPLETED
-                            EntryState.SKIPPED -> TimelineEntryState.SKIPPED
-                            EntryState.IN_PROGRESS -> TimelineEntryState.IN_PROGRESS
-                        },
-                        numericValue = entry.numericValue,
-                        createdAt = entry.createdAt,
-                        tzOffsetMinutes = entry.tzOffsetMinutes,
-                    )
-                },
-                schedules = schedules.map { schedule ->
-                    TimelineSchedule(
-                        effectiveFromDate = schedule.effectiveFromDate,
-                        target = ScheduleTarget(schedule.targetNumerator, schedule.targetDenominator),
-                        targetValue = schedule.targetValue,
-                        targetKind = when (schedule.targetKind) {
-                            TargetKind.AT_MOST -> FrequencyTargetKind.AT_MOST
-                            else -> FrequencyTargetKind.AT_LEAST
-                        },
-                        versionOrder = schedule.id,
-                    )
-                },
-            )
-        }
+    fun observeHabitTimelineData(habitId: Long): Flow<HabitTimelineData> = observeEntries(habitId).combine(observeScheduleVersions(habitId)) { entries, schedules ->
+        HabitTimelineData(
+            entries = entries.map { entry ->
+                TimelineEntry(
+                    date = entry.date,
+                    state = when (entry.state) {
+                        EntryState.COMPLETED -> TimelineEntryState.COMPLETED
+                        EntryState.SKIPPED -> TimelineEntryState.SKIPPED
+                        EntryState.IN_PROGRESS -> TimelineEntryState.IN_PROGRESS
+                    },
+                    numericValue = entry.numericValue,
+                    createdAt = entry.createdAt,
+                    tzOffsetMinutes = entry.tzOffsetMinutes,
+                )
+            },
+            schedules = schedules.map { schedule ->
+                TimelineSchedule(
+                    effectiveFromDate = schedule.effectiveFromDate,
+                    target = ScheduleTarget(schedule.targetNumerator, schedule.targetDenominator),
+                    targetValue = schedule.targetValue,
+                    targetKind = when (schedule.targetKind) {
+                        TargetKind.AT_MOST -> FrequencyTargetKind.AT_MOST
+                        else -> FrequencyTargetKind.AT_LEAST
+                    },
+                    versionOrder = schedule.id,
+                )
+            },
+        )
+    }
 
     /** Observes the complete date-bounded read model and the metadata needed by screen adapters. */
     fun observeHabitSnapshot(
@@ -162,8 +160,7 @@ class HabitRepository(
         }
     }
 
-    suspend fun scheduleEffectiveOn(habitId: Long, date: LocalDate): ScheduleVersionEntity? =
-        scheduleVersionDao.versionEffectiveOn(habitId, date)
+    suspend fun scheduleEffectiveOn(habitId: Long, date: LocalDate): ScheduleVersionEntity? = scheduleVersionDao.versionEffectiveOn(habitId, date)
 
     suspend fun createHabit(
         name: String,

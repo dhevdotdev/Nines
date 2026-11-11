@@ -46,14 +46,16 @@ internal fun EmptyInsightsState(accent: Color) {
     )
 
     Row(
-        modifier = Modifier
+        modifier =
+        Modifier
             .semantics { contentDescription = "Insights patterns are waiting" }
             .padding(Spacing.small),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.default),
     ) {
         Box(
-            modifier = Modifier
+            modifier =
+            Modifier
                 .size(56.dp)
                 .clip(MaterialShapes.Cookie9Sided.toShape())
                 .background(accent.copy(alpha = 0.10f)),
@@ -74,24 +76,42 @@ internal fun EmptyInsightsState(accent: Color) {
 }
 
 @Composable
-private fun PatternDots(progress: Float, accent: Color) {
+private fun PatternDots(
+    progress: Float,
+    accent: Color,
+) {
     Canvas(Modifier.size(40.dp)) {
         // The dots settle into a balanced constellation, not a chart: there is no axis, trend,
         // or implied score before the habit has enough history to produce one.
-        val start = listOf(
-            Offset(2f, 2f), Offset(36f, 4f), Offset(5f, 38f), Offset(38f, 36f),
-            Offset(20f, 2f), Offset(2f, 20f), Offset(38f, 20f), Offset(20f, 38f),
-        )
-        val settled = listOf(
-            Offset(8f, 9f), Offset(20f, 7f), Offset(32f, 10f), Offset(10f, 21f),
-            Offset(24f, 19f), Offset(34f, 25f), Offset(16f, 33f), Offset(29f, 34f),
-        )
+        val start =
+            listOf(
+                Offset(2f, 2f),
+                Offset(36f, 4f),
+                Offset(5f, 38f),
+                Offset(38f, 36f),
+                Offset(20f, 2f),
+                Offset(2f, 20f),
+                Offset(38f, 20f),
+                Offset(20f, 38f),
+            )
+        val settled =
+            listOf(
+                Offset(8f, 9f),
+                Offset(20f, 7f),
+                Offset(32f, 10f),
+                Offset(10f, 21f),
+                Offset(24f, 19f),
+                Offset(34f, 25f),
+                Offset(16f, 33f),
+                Offset(29f, 34f),
+            )
         start.zip(settled).forEachIndexed { index, (from, to) ->
             val dotProgress = ((progress * 1.15f) - index * 0.035f).coerceIn(0f, 1f)
-            val point = Offset(
-                x = from.x + (to.x - from.x) * dotProgress,
-                y = from.y + (to.y - from.y) * dotProgress,
-            )
+            val point =
+                Offset(
+                    x = from.x + (to.x - from.x) * dotProgress,
+                    y = from.y + (to.y - from.y) * dotProgress,
+                )
             drawCircle(accent, radius = 2.8f, center = point)
         }
     }

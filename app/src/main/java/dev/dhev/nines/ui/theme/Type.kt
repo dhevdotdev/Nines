@@ -7,11 +7,12 @@ import androidx.compose.ui.text.googlefonts.Font
 import androidx.compose.ui.text.googlefonts.GoogleFont
 import dev.dhev.nines.R
 
-private val googleFontProvider = GoogleFont.Provider(
-    providerAuthority = "com.google.android.gms.fonts",
-    providerPackage = "com.google.android.gms",
-    certificates = R.array.com_google_android_gms_fonts_certs,
-)
+private val googleFontProvider =
+    GoogleFont.Provider(
+        providerAuthority = "com.google.android.gms.fonts",
+        providerPackage = "com.google.android.gms",
+        certificates = R.array.com_google_android_gms_fonts_certs,
+    )
 
 private val googleSansFlex = GoogleFont("Google Sans Flex")
 
@@ -34,20 +35,21 @@ val NinesFontFamilies: List<FontFamily> = listOf(sansFlexBold, sansFlexSemiBold,
 
 private val defaultType = Typography()
 
-val NinesTypography = Typography(
-    displayLarge = defaultType.displayLarge.copy(fontFamily = sansFlexBold),
-    displayMedium = defaultType.displayMedium.copy(fontFamily = sansFlexBold),
-    displaySmall = defaultType.displaySmall.copy(fontFamily = sansFlexBold),
-    headlineLarge = defaultType.headlineLarge.copy(fontFamily = sansFlexSemiBold),
-    headlineMedium = defaultType.headlineMedium.copy(fontFamily = sansFlexSemiBold),
-    headlineSmall = defaultType.headlineSmall.copy(fontFamily = sansFlexSemiBold),
-    titleLarge = defaultType.titleLarge.copy(fontFamily = sansFlexMedium),
-    titleMedium = defaultType.titleMedium.copy(fontFamily = sansFlexMedium),
-    titleSmall = defaultType.titleSmall.copy(fontFamily = sansFlexMedium),
-    bodyLarge = defaultType.bodyLarge.copy(fontFamily = sansFlexNormal),
-    bodyMedium = defaultType.bodyMedium.copy(fontFamily = sansFlexNormal),
-    bodySmall = defaultType.bodySmall.copy(fontFamily = sansFlexNormal),
-    labelLarge = defaultType.labelLarge.copy(fontFamily = sansFlexMedium),
-    labelMedium = defaultType.labelMedium.copy(fontFamily = sansFlexMedium),
-    labelSmall = defaultType.labelSmall.copy(fontFamily = sansFlexMedium),
-)
+val NinesTypography =
+    Typography(
+        displayLarge = defaultType.displayLarge.copy(fontFamily = sansFlexBold),
+        displayMedium = defaultType.displayMedium.copy(fontFamily = sansFlexBold),
+        displaySmall = defaultType.displaySmall.copy(fontFamily = sansFlexBold),
+        headlineLarge = defaultType.headlineLarge.copy(fontFamily = sansFlexSemiBold),
+        headlineMedium = defaultType.headlineMedium.copy(fontFamily = sansFlexSemiBold),
+        headlineSmall = defaultType.headlineSmall.copy(fontFamily = sansFlexSemiBold),
+        titleLarge = defaultType.titleLarge.copy(fontFamily = sansFlexMedium),
+        titleMedium = defaultType.titleMedium.copy(fontFamily = sansFlexMedium),
+        titleSmall = defaultType.titleSmall.copy(fontFamily = sansFlexMedium),
+        bodyLarge = defaultType.bodyLarge.copy(fontFamily = sansFlexNormal),
+        bodyMedium = defaultType.bodyMedium.copy(fontFamily = sansFlexNormal),
+        bodySmall = defaultType.bodySmall.copy(fontFamily = sansFlexNormal),
+        labelLarge = defaultType.labelLarge.copy(fontFamily = sansFlexMedium),
+        labelMedium = defaultType.labelMedium.copy(fontFamily = sansFlexMedium),
+        labelSmall = defaultType.labelSmall.copy(fontFamily = sansFlexMedium),
+    )

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.LocalFireDepartment
@@ -26,13 +27,13 @@ import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MaterialShapes
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -49,7 +50,6 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.text.KeyboardOptions
 import dev.dhev.nines.data.local.entity.HabitType
 import dev.dhev.nines.data.local.entity.TargetKind
 import dev.dhev.nines.scoring.FrequencyTargetKind
@@ -57,10 +57,10 @@ import dev.dhev.nines.ui.theme.HabitColors
 import dev.dhev.nines.ui.theme.Spacing
 import dev.dhev.nines.ui.theme.contrastingIconColor
 import dev.dhev.nines.ui.theme.rememberHabitColors
-import kotlin.math.roundToInt
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -85,7 +85,8 @@ fun HabitRow(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.largeIncreased,
-        colors = CardDefaults.cardColors(
+        colors =
+        CardDefaults.cardColors(
             containerColor = cardContainer,
             contentColor = MaterialTheme.colorScheme.onSurface,
         ),
@@ -98,7 +99,8 @@ fun HabitRow(
                 modifier = Modifier.matchParentSize(),
             )
             Row(
-                modifier = Modifier
+                modifier =
+                Modifier
                     .fillMaxWidth()
                     .padding(horizontal = Spacing.large, vertical = Spacing.small),
                 verticalAlignment = Alignment.CenterVertically,
@@ -117,7 +119,8 @@ fun HabitRow(
                         trackColor = colors.container,
                     )
                     Box(
-                        modifier = Modifier
+                        modifier =
+                        Modifier
                             .size(34.dp)
                             .clip(CircleShape)
                             .background(colors.accent),
@@ -173,7 +176,8 @@ fun HabitRow(
                 onSetValue(value)
                 showValueDialog = false
             },
-            onClear = item.currentValue?.let { currentValue ->
+            onClear =
+            item.currentValue?.let { currentValue ->
                 {
                     onClearValue(currentValue)
                     showValueDialog = false
@@ -199,37 +203,57 @@ private fun SelectedDateStatus(
         label = "selectedDateStatusMarker",
     )
     val frequencyProgress = item.frequencyProgress?.takeIf { item.targetDenominator > 1 }
-    val statusText = when (item.type) {
-        HabitType.BOOLEAN -> if (item.completed) "Done" else "Not logged"
-        HabitType.NUMERICAL -> when {
-            item.targetValue != null && item.currentValue != null && frequencyProgress == null -> {
-                if (item.targetKind == TargetKind.AT_MOST) {
-                    "${formatValue(item.currentValue)} ≤ ${formatValue(item.targetValue)}${item.unit?.let { " $it" } ?: ""}"
-                } else {
-                    "${formatValue(item.currentValue)}/${formatValue(item.targetValue)}${item.unit?.let { " $it" } ?: ""}"
+    val statusText =
+        when (item.type) {
+            HabitType.BOOLEAN -> {
+                if (item.completed) "Done" else "Not logged"
+            }
+
+            HabitType.NUMERICAL -> {
+                when {
+                    item.targetValue != null && item.currentValue != null && frequencyProgress == null -> {
+                        if (item.targetKind == TargetKind.AT_MOST) {
+                            "${formatValue(
+                                item.currentValue,
+                            )} ≤ ${formatValue(item.targetValue)}${item.unit?.let { " $it" } ?: ""}"
+                        } else {
+                            "${formatValue(
+                                item.currentValue,
+                            )}/${formatValue(item.targetValue)}${item.unit?.let { " $it" } ?: ""}"
+                        }
+                    }
+
+                    item.currentValue != null -> {
+                        "${formatValue(item.currentValue)}${item.unit?.let { " $it" } ?: ""}"
+                    }
+
+                    else -> {
+                        "Not logged"
+                    }
                 }
             }
-            item.currentValue != null -> "${formatValue(item.currentValue)}${item.unit?.let { " $it" } ?: ""}"
-            else -> "Not logged"
         }
-    }
-    val targetText = item.targetValue?.takeIf { item.currentValue == null }?.let {
-        val operator = if (item.targetKind == TargetKind.AT_MOST) "≤" else "≥"
-        "Target $operator ${formatValue(it)}${item.unit?.let { value -> " $value" } ?: ""}"
-    }
-    val frequencyText = frequencyProgress?.let { progress ->
-        val progressLabel = if (progress.targetKind == FrequencyTargetKind.AT_MOST) {
-            "${formatValue(progress.achieved)} ≤ ${formatValue(progress.target)}"
+    val targetText =
+        item.targetValue?.takeIf { item.currentValue == null }?.let {
+            val operator = if (item.targetKind == TargetKind.AT_MOST) "≤" else "≥"
+            "Target $operator ${formatValue(it)}${item.unit?.let { value -> " $value" } ?: ""}"
+        }
+    val frequencyText =
+        frequencyProgress?.let { progress ->
+            val progressLabel =
+                if (progress.targetKind == FrequencyTargetKind.AT_MOST) {
+                    "${formatValue(progress.achieved)} ≤ ${formatValue(progress.target)}"
+                } else {
+                    "${formatValue(progress.achieved)}/${formatValue(progress.target)}"
+                }
+            "$progressLabel · last ${item.targetDenominator} days"
+        }
+    val markerShape =
+        if (isMeaningfullyComplete) {
+            MaterialShapes.Cookie9Sided.toShape()
         } else {
-            "${formatValue(progress.achieved)}/${formatValue(progress.target)}"
+            CircleShape
         }
-        "$progressLabel · last ${item.targetDenominator} days"
-    }
-    val markerShape = if (isMeaningfullyComplete) {
-        MaterialShapes.Cookie9Sided.toShape()
-    } else {
-        CircleShape
-    }
 
     Column(
         modifier = modifier,
@@ -240,7 +264,8 @@ private fun SelectedDateStatus(
             horizontalArrangement = Arrangement.spacedBy(Spacing.small),
         ) {
             Box(
-                modifier = Modifier
+                modifier =
+                Modifier
                     .size(14.dp)
                     .clip(markerShape)
                     .background(markerColor),
@@ -268,7 +293,8 @@ private fun SelectedDateStatus(
             Text(
                 text = frequencyText,
                 style = MaterialTheme.typography.labelMedium,
-                color = if (frequencyProgress.isMet) {
+                color =
+                if (frequencyProgress.isMet) {
                     accent
                 } else {
                     MaterialTheme.colorScheme.onSurfaceVariant
@@ -315,7 +341,8 @@ private fun HabitActionGroup(
         accentColor = accent,
         enabled = enabled,
         icon = if (item.type == HabitType.NUMERICAL) Icons.Outlined.Edit else Icons.Filled.Check,
-        contentDescription = if (item.type == HabitType.NUMERICAL) {
+        contentDescription =
+        if (item.type == HabitType.NUMERICAL) {
             "Edit ${item.name} value"
         } else if (item.completed) {
             "Mark ${item.name} incomplete"
@@ -326,8 +353,7 @@ private fun HabitActionGroup(
 }
 
 /** Shared numeric formatting: whole numbers stay compact, decimals retain one place. */
-fun formatValue(value: Double): String =
-    if (value == value.roundToInt().toDouble()) value.roundToInt().toString() else "%.1f".format(value)
+fun formatValue(value: Double): String = if (value == value.roundToInt().toDouble()) value.roundToInt().toString() else "%.1f".format(value)
 
 fun defaultIncrement(target: Double?): Double {
     if (target == null || target <= 0) return 1.0

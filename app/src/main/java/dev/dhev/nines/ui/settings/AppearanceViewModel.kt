@@ -12,21 +12,27 @@ import kotlinx.coroutines.launch
 class AppearanceViewModel(
     private val preferences: AppearancePreferencesStore,
 ) : ViewModel() {
-    val uiState: StateFlow<AppearanceUiState> = preferences.appearance
-        .map { AppearanceUiState(it.colorSource, it.customSeedArgb) }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = AppearanceUiState(),
-        )
+    val uiState: StateFlow<AppearanceUiState> =
+        preferences.appearance
+            .map { AppearanceUiState(it.colorSource, it.customSeedArgb) }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = AppearanceUiState(),
+            )
 
     fun onAction(action: AppearanceAction) {
         when (action) {
-            is AppearanceAction.SelectColorSource -> viewModelScope.launch {
-                preferences.select(action.source)
+            is AppearanceAction.SelectColorSource -> {
+                viewModelScope.launch {
+                    preferences.select(action.source)
+                }
             }
-            is AppearanceAction.SelectCustomColor -> viewModelScope.launch {
-                preferences.selectCustom(action.seedArgb)
+
+            is AppearanceAction.SelectCustomColor -> {
+                viewModelScope.launch {
+                    preferences.selectCustom(action.seedArgb)
+                }
             }
         }
     }

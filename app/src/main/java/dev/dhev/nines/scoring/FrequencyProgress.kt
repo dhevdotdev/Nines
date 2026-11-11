@@ -10,7 +10,9 @@ enum class FrequencyTargetKind {
 
 /** Input data for the two kinds of habit Entries supported by frequency progress. */
 sealed interface FrequencyProgressInput {
-    data class BooleanEntries(val completedDates: Set<LocalDate>) : FrequencyProgressInput
+    data class BooleanEntries(
+        val completedDates: Set<LocalDate>,
+    ) : FrequencyProgressInput
 
     data class NumericEntries(
         val valuesByDate: Map<LocalDate, Double>,
@@ -26,10 +28,11 @@ data class FrequencyProgress(
     val targetKind: FrequencyTargetKind,
 ) {
     val isMet: Boolean
-        get() = when (targetKind) {
-            FrequencyTargetKind.AT_LEAST -> achieved >= target
-            FrequencyTargetKind.AT_MOST -> achieved <= target
-        }
+        get() =
+            when (targetKind) {
+                FrequencyTargetKind.AT_LEAST -> achieved >= target
+                FrequencyTargetKind.AT_MOST -> achieved <= target
+            }
 }
 
 /**
@@ -49,19 +52,24 @@ fun computeFrequencyProgress(
     }
 
     return when (input) {
-        is FrequencyProgressInput.BooleanEntries -> FrequencyProgress(
-            achieved = input.completedDates.count(inWindow).toDouble(),
-            target = target.numerator.toDouble(),
-            targetKind = FrequencyTargetKind.AT_LEAST,
-        )
+        is FrequencyProgressInput.BooleanEntries -> {
+            FrequencyProgress(
+                achieved = input.completedDates.count(inWindow).toDouble(),
+                target = target.numerator.toDouble(),
+                targetKind = FrequencyTargetKind.AT_LEAST,
+            )
+        }
 
-        is FrequencyProgressInput.NumericEntries -> FrequencyProgress(
-            achieved = input.valuesByDate
-                .filterKeys(inWindow)
-                .values
-                .sum(),
-            target = input.targetValue,
-            targetKind = input.targetKind,
-        )
+        is FrequencyProgressInput.NumericEntries -> {
+            FrequencyProgress(
+                achieved =
+                input.valuesByDate
+                    .filterKeys(inWindow)
+                    .values
+                    .sum(),
+                target = input.targetValue,
+                targetKind = input.targetKind,
+            )
+        }
     }
 }

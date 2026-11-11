@@ -1,8 +1,8 @@
 package dev.dhev.nines.data
 
+import androidx.compose.ui.graphics.Color
 import dev.dhev.nines.appearance.AppColorSource
 import dev.dhev.nines.appearance.toSeedArgb
-import androidx.compose.ui.graphics.Color
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

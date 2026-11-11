@@ -25,15 +25,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.unit.dp
 import dev.dhev.nines.ui.theme.contrastingIconColor
 import dev.dhev.nines.ui.theme.habitCompleteSpatialSpec
 import kotlinx.coroutines.launch
@@ -67,7 +67,8 @@ fun CheckOffButton(
     // on undo, rather than trying to "undraw" itself in reverse.
     val checkProgress by animateFloatAsState(
         targetValue = if (completed) 1f else 0f,
-        animationSpec = if (completed) {
+        animationSpec =
+        if (completed) {
             tween(durationMillis = 380, easing = FastOutSlowInEasing)
         } else {
             tween(durationMillis = 120)
@@ -76,17 +77,16 @@ fun CheckOffButton(
     )
 
     Box(
-        modifier = modifier
+        modifier =
+        modifier
             .size(44.dp)
             .graphicsLayer {
                 scaleX = scale.value
                 scaleY = scale.value
-            }
-            .semantics {
+            }.semantics {
                 this.contentDescription = contentDescription
                 role = Role.Button
-            }
-            .clip(shape)
+            }.clip(shape)
             .background(containerColor)
             .border(width = 2.dp, color = borderColor, shape = shape)
             .clickable(
@@ -94,13 +94,15 @@ fun CheckOffButton(
                 interactionSource = interactionSource,
                 indication = ripple(bounded = false),
             ) {
-                haptics.performHapticFeedback(if (icon != null) {
-                    HapticFeedbackType.GestureThresholdActivate
-                } else if (completed) {
-                    HapticFeedbackType.ToggleOff
-                } else {
-                    HapticFeedbackType.ToggleOn
-                })
+                haptics.performHapticFeedback(
+                    if (icon != null) {
+                        HapticFeedbackType.GestureThresholdActivate
+                    } else if (completed) {
+                        HapticFeedbackType.ToggleOff
+                    } else {
+                        HapticFeedbackType.ToggleOn
+                    },
+                )
                 onToggle()
                 scope.launch {
                     scale.animateTo(1.2f, animationSpec = spatialSpec)

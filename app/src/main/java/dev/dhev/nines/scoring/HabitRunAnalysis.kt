@@ -37,7 +37,10 @@ fun analyzeHabitRuns(
     )
 }
 
-fun emptyHabitRunAnalysis(startDate: LocalDate, endDate: LocalDate): HabitRunAnalysis = HabitRunAnalysis(
+fun emptyHabitRunAnalysis(
+    startDate: LocalDate,
+    endDate: LocalDate,
+): HabitRunAnalysis = HabitRunAnalysis(
     startDate = startDate,
     endDate = endDate,
     completedDates = emptySet(),
@@ -47,7 +50,10 @@ fun emptyHabitRunAnalysis(startDate: LocalDate, endDate: LocalDate): HabitRunAna
     currentGap = 0,
 )
 
-private fun currentGapLength(runs: List<StreakRun>, endDate: LocalDate): Int {
+private fun currentGapLength(
+    runs: List<StreakRun>,
+    endDate: LocalDate,
+): Int {
     val last = runs.lastOrNull() ?: return 0
     return if (!last.end.isBefore(endDate.minusDays(1))) last.length else 0
 }

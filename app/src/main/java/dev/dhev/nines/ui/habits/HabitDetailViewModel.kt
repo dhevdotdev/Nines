@@ -6,19 +6,19 @@ import dev.dhev.nines.data.HabitRepository
 import dev.dhev.nines.data.local.entity.EntryState
 import dev.dhev.nines.data.local.entity.HabitType
 import dev.dhev.nines.data.local.entity.TargetKind
-import dev.dhev.nines.scoring.HabitAnalyticsInput
 import dev.dhev.nines.scoring.FrequencyTargetKind
+import dev.dhev.nines.scoring.HabitAnalyticsInput
+import dev.dhev.nines.scoring.RecordProgress
 import dev.dhev.nines.scoring.TimelineEntry
 import dev.dhev.nines.scoring.TimelineEntryState
 import dev.dhev.nines.scoring.TimelineHabitKind
-import dev.dhev.nines.scoring.RecordProgress
 import dev.dhev.nines.scoring.computeHabitAnalytics
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -126,10 +126,10 @@ class HabitDetailViewModel(
             )
         }
     }
-    // Score decay, six-plus O(history-length) passes for streaks/gaps/weekday/momentum, and
-    // building up to ~270 DayCells all ran on this flow's collection context with no dispatcher
-    // specified, which defaults to viewModelScope's Main.immediate. Moving it off-thread is what
-    // actually fixes the perceived jank, not a loading spinner papering over it.
+        // Score decay, six-plus O(history-length) passes for streaks/gaps/weekday/momentum, and
+        // building up to ~270 DayCells all ran on this flow's collection context with no dispatcher
+        // specified, which defaults to viewModelScope's Main.immediate. Moving it off-thread is what
+        // actually fixes the perceived jank, not a loading spinner papering over it.
         .flowOn(Dispatchers.Default)
         .stateIn(
             scope = viewModelScope,
@@ -140,21 +140,27 @@ class HabitDetailViewModel(
     fun onAction(action: HabitDetailAction) {
         when (action) {
             is HabitDetailAction.SelectDate -> selectedDate.value = action.date
+
             is HabitDetailAction.Toggle -> viewModelScope.launch {
                 repository.toggleCompletion(habitId, action.date)
             }
+
             is HabitDetailAction.Increment -> viewModelScope.launch {
                 repository.incrementNumericEntry(habitId, action.date, action.delta)
             }
+
             is HabitDetailAction.SetValue -> viewModelScope.launch {
                 repository.setNumericEntry(habitId, action.date, action.value)
             }
+
             is HabitDetailAction.ClearNumericEntry -> viewModelScope.launch {
                 repository.clearNumericEntry(habitId, action.date)
             }
+
             is HabitDetailAction.UndoClearNumericEntry -> viewModelScope.launch {
                 repository.setNumericEntry(habitId, action.date, action.value)
             }
+
             is HabitDetailAction.Update -> viewModelScope.launch {
                 repository.updateHabit(
                     habitId = habitId,
@@ -169,6 +175,7 @@ class HabitDetailViewModel(
                     targetKind = action.targetKind,
                 )
             }
+
             is HabitDetailAction.Delete -> viewModelScope.launch {
                 repository.archiveHabit(habitId)
             }

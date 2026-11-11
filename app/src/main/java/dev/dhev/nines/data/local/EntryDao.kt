@@ -21,8 +21,15 @@ interface EntryDao {
     fun observeEntries(habitId: Long): Flow<List<EntryEntity>>
 
     @Query("SELECT * FROM entries WHERE habitId = :habitId AND date BETWEEN :from AND :to ORDER BY date ASC")
-    suspend fun entriesBetween(habitId: Long, from: LocalDate, to: LocalDate): List<EntryEntity>
+    suspend fun entriesBetween(
+        habitId: Long,
+        from: LocalDate,
+        to: LocalDate,
+    ): List<EntryEntity>
 
     @Query("SELECT * FROM entries WHERE habitId = :habitId AND date = :date")
-    suspend fun entryOn(habitId: Long, date: LocalDate): EntryEntity?
+    suspend fun entryOn(
+        habitId: Long,
+        date: LocalDate,
+    ): EntryEntity?
 }

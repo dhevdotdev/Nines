@@ -72,13 +72,13 @@ fun NumericProgressButton(
     }
 
     Box(
-        modifier = modifier
+        modifier =
+        modifier
             .size(44.dp)
             .graphicsLayer {
                 scaleX = scale.value
                 scaleY = scale.value
-            }
-            .clip(shape)
+            }.clip(shape)
             .background(containerColor)
             .border(width = 2.dp, color = accentColor, shape = shape)
             .combinedClickable(

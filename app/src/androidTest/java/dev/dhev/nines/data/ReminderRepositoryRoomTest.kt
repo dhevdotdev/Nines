@@ -34,16 +34,17 @@ class ReminderRepositoryRoomTest {
 
     @Test
     fun reminderConfigurationPersistsIndependentlyOfEntries() = runBlocking {
-        val habitId = database.habitDao().insert(
-            HabitEntity(
-                name = "Meditate",
-                type = HabitType.BOOLEAN,
-                color = 0,
-                iconKey = "meditate",
-                position = 0,
-                createdAt = Instant.parse("2026-08-19T00:00:00Z"),
-            ),
-        )
+        val habitId =
+            database.habitDao().insert(
+                HabitEntity(
+                    name = "Meditate",
+                    type = HabitType.BOOLEAN,
+                    color = 0,
+                    iconKey = "meditate",
+                    position = 0,
+                    createdAt = Instant.parse("2026-08-19T00:00:00Z"),
+                ),
+            )
 
         repository.configure(habitId, LocalTime.of(19, 0))
 

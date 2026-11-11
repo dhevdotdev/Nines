@@ -31,7 +31,8 @@ fun habitListItemFromSnapshot(snapshot: HabitRepository.HabitTimelineSnapshot): 
         currentStreak = timeline.currentStreak,
         currentValue = selectedEntry?.numericValue,
         targetValue = selectedSchedule?.targetValue,
-        targetKind = selectedSchedule?.targetKind?.let {
+        targetKind =
+        selectedSchedule?.targetKind?.let {
             if (it == FrequencyTargetKind.AT_MOST) TargetKind.AT_MOST else TargetKind.AT_LEAST
         },
         unit = habit.unit,

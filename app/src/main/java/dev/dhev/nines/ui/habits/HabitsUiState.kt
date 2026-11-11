@@ -44,12 +44,36 @@ data class HabitsUiState(
 )
 
 sealed interface HabitsAction {
-    data class SelectDate(val date: LocalDate) : HabitsAction
-    data class ToggleHabit(val habitId: Long) : HabitsAction
-    data class IncrementHabit(val habitId: Long, val delta: Double) : HabitsAction
-    data class SetNumericValue(val habitId: Long, val value: Double) : HabitsAction
-    data class ClearNumericEntry(val habitId: Long, val date: LocalDate, val value: Double) : HabitsAction
-    data class UndoClearNumericEntry(val habitId: Long, val date: LocalDate, val value: Double) : HabitsAction
+    data class SelectDate(
+        val date: LocalDate,
+    ) : HabitsAction
+
+    data class ToggleHabit(
+        val habitId: Long,
+    ) : HabitsAction
+
+    data class IncrementHabit(
+        val habitId: Long,
+        val delta: Double,
+    ) : HabitsAction
+
+    data class SetNumericValue(
+        val habitId: Long,
+        val value: Double,
+    ) : HabitsAction
+
+    data class ClearNumericEntry(
+        val habitId: Long,
+        val date: LocalDate,
+        val value: Double,
+    ) : HabitsAction
+
+    data class UndoClearNumericEntry(
+        val habitId: Long,
+        val date: LocalDate,
+        val value: Double,
+    ) : HabitsAction
+
     data class CreateHabit(
         val name: String,
         val color: Int,
@@ -63,6 +87,7 @@ sealed interface HabitsAction {
         val unit: String? = null,
         val reminderTime: LocalTime? = null,
     ) : HabitsAction
+
     data class UpdateHabit(
         val habitId: Long,
         val name: String,
@@ -76,8 +101,15 @@ sealed interface HabitsAction {
         val unit: String? = null,
         val reminderTime: LocalTime? = null,
     ) : HabitsAction
-    data class DeleteHabit(val habitId: Long) : HabitsAction
-    data class ReorderHabits(val orderedIds: List<Long>) : HabitsAction
+
+    data class DeleteHabit(
+        val habitId: Long,
+    ) : HabitsAction
+
+    data class ReorderHabits(
+        val orderedIds: List<Long>,
+    ) : HabitsAction
+
     /** Debug-only: long-press the "Nines" title to insert a fixed set of demo habits/history
      * directly through the repository — a stand-in for adb-based DB reseeding, which this
      * device's storage permissions block (run-as can list but not read /sdcard file contents). */
