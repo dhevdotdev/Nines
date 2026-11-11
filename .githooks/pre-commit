@@ -2,4 +2,17 @@
 # Enable with: git config core.hooksPath .githooks
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
+
+# Block staged files over 1 MB, except the generated baseline profile.
+limit=1048576
+while IFS= read -r f; do
+  [ -f "$f" ] || continue
+  case "$f" in app/src/*/generated/baselineProfiles/*) continue ;; esac
+  size=$(wc -c <"$f")
+  if [ "$size" -gt "$limit" ]; then
+    echo "pre-commit: $f is $size bytes (limit $limit)" >&2
+    exit 1
+  fi
+done < <(git diff --cached --name-only --diff-filter=ACM)
+
 ./gradlew spotlessCheck :app:detekt -q
