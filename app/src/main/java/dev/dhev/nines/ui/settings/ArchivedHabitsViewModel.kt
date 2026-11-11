@@ -3,8 +3,7 @@ package dev.dhev.nines.ui.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.dhev.nines.data.HabitRepository
-import dev.dhev.nines.data.ReminderRepository
-import dev.dhev.nines.reminders.ReminderScheduler
+import dev.dhev.nines.reminders.HabitReminders
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -13,8 +12,7 @@ import kotlinx.coroutines.launch
 
 class ArchivedHabitsViewModel(
     private val repository: HabitRepository,
-    private val reminders: ReminderRepository? = null,
-    private val scheduler: ReminderScheduler? = null,
+    private val reminders: HabitReminders,
 ) : ViewModel() {
     val uiState: StateFlow<ArchivedHabitsUiState> =
         repository
@@ -43,7 +41,7 @@ class ArchivedHabitsViewModel(
             is ArchivedHabitsAction.RestoreHabit -> {
                 viewModelScope.launch {
                     repository.restoreHabit(action.habitId)
-                    reminders?.get(action.habitId)?.let { scheduler?.schedule(action.habitId, it.localTime) }
+                    reminders.onRestored(action.habitId)
                 }
             }
         }

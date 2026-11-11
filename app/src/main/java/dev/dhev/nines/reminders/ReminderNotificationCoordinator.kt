@@ -25,7 +25,7 @@ class ReminderNotificationCoordinator(
     private val reminders: ReminderRepository,
     private val scheduler: ReminderScheduler,
     private val preferences: ReminderPreferencesStore,
-) {
+) : ReminderNotifications {
     @SuppressLint("MissingPermission")
     suspend fun deliver(habitId: Long) = withContext(Dispatchers.IO) {
         val habit = habits.habit(habitId) ?: return@withContext
@@ -67,7 +67,7 @@ class ReminderNotificationCoordinator(
     }
 
     @SuppressLint("MissingPermission")
-    fun cancel(habitId: Long) {
+    override fun cancel(habitId: Long) {
         NotificationManagerCompat.from(context).cancel(habitId.toInt())
         NotificationManagerCompat.from(context).cancel(COMBINED_NOTIFICATION_ID)
     }

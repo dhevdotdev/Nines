@@ -11,6 +11,7 @@ import dev.dhev.nines.data.appearancePreferencesStore
 import dev.dhev.nines.data.local.NinesDatabase
 import dev.dhev.nines.data.onboardingCompletionStore
 import dev.dhev.nines.data.reminderPreferencesStore
+import dev.dhev.nines.reminders.HabitReminders
 import dev.dhev.nines.reminders.ReminderNotificationCoordinator
 import dev.dhev.nines.reminders.ReminderScheduler
 import dev.dhev.nines.ui.habits.HabitDetailViewModel
@@ -47,8 +48,17 @@ val appModule =
         single { ReminderScheduler(androidContext()) }
         single { ReminderNotificationCoordinator(androidContext(), get(), get(), get(), get()) }
 
-        viewModel { HabitsViewModel(get(), get(), get(), get(), get(), get()) }
+        single {
+            HabitReminders(
+                configuration = get(),
+                habits = get(),
+                alarms = get<ReminderScheduler>(),
+                notifications = get<ReminderNotificationCoordinator>(),
+            )
+        }
+
+        viewModel { HabitsViewModel(get(), get(), get(), get()) }
         viewModel { params -> HabitDetailViewModel(params.get(), get(), get()) }
-        viewModelOf(::ArchivedHabitsViewModel)
+        viewModel { ArchivedHabitsViewModel(get(), get()) }
         viewModelOf(::AppearanceViewModel)
     }

@@ -12,8 +12,8 @@ import java.time.ZoneId
 /** Best-effort local-time scheduling; delivery is intentionally not an exact-alarm use case. */
 class ReminderScheduler(
     private val context: Context,
-) {
-    fun schedule(
+) : ReminderAlarms {
+    override fun schedule(
         habitId: Long,
         localTime: LocalTime,
     ) {
@@ -37,7 +37,7 @@ class ReminderScheduler(
         )
     }
 
-    fun cancel(habitId: Long) {
+    override fun cancel(habitId: Long) {
         context.getSystemService(AlarmManager::class.java).cancel(pendingIntent(habitId))
     }
 

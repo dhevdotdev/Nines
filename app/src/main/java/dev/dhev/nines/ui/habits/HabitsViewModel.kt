@@ -4,11 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.dhev.nines.data.DemoData
 import dev.dhev.nines.data.HabitRepository
-import dev.dhev.nines.data.ReminderRepository
 import dev.dhev.nines.data.local.entity.HabitEntity
 import dev.dhev.nines.data.todayFlow
-import dev.dhev.nines.reminders.ReminderNotificationCoordinator
-import dev.dhev.nines.reminders.ReminderScheduler
+import dev.dhev.nines.reminders.HabitReminders
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -29,9 +27,7 @@ import java.time.LocalDate
 @OptIn(ExperimentalCoroutinesApi::class)
 class HabitsViewModel(
     private val repository: HabitRepository,
-    private val reminderRepository: ReminderRepository? = null,
-    private val reminderScheduler: ReminderScheduler? = null,
-    private val reminderNotifications: ReminderNotificationCoordinator? = null,
+    private val reminders: HabitReminders,
     private val demoData: DemoData = DemoData.None,
     private val clock: Clock = Clock.systemDefaultZone(),
     private val computeDispatcher: CoroutineDispatcher = Dispatchers.Default,
@@ -83,9 +79,9 @@ class HabitsViewModel(
             selectedDate = flowOf(date),
             asOfDate = todayDate,
         ),
-        reminderRepository?.observe(habit.id) ?: flowOf(null),
-    ) { snapshot, reminder ->
-        snapshot?.let(::habitListItemFromSnapshot)?.copy(reminderTime = reminder?.localTime)
+        reminders.observeTime(habit.id),
+    ) { snapshot, reminderTime ->
+        snapshot?.let(::habitListItemFromSnapshot)?.copy(reminderTime = reminderTime)
     }
 
     fun onAction(action: HabitsAction) {
@@ -125,10 +121,7 @@ class HabitsViewModel(
                     targetValue = action.targetValue,
                     targetKind = action.targetKind,
                 )
-                action.reminderTime?.let {
-                    reminderRepository?.configure(habitId, it)
-                    reminderScheduler?.schedule(habitId, it)
-                }
+                action.reminderTime?.let { reminders.configure(habitId, it) }
             }
 
             is HabitsAction.UpdateHabit -> viewModelScope.launch {
@@ -144,19 +137,12 @@ class HabitsViewModel(
                     targetValue = action.targetValue,
                     targetKind = action.targetKind,
                 )
-                action.reminderTime?.let {
-                    reminderRepository?.configure(action.habitId, it)
-                    reminderScheduler?.schedule(action.habitId, it)
-                } ?: run {
-                    reminderRepository?.remove(action.habitId)
-                    reminderScheduler?.cancel(action.habitId)
-                }
+                reminders.configure(action.habitId, action.reminderTime)
             }
 
             is HabitsAction.DeleteHabit -> viewModelScope.launch {
                 repository.archiveHabit(action.habitId)
-                reminderScheduler?.cancel(action.habitId)
-                reminderNotifications?.cancel(action.habitId)
+                reminders.onArchived(action.habitId)
             }
 
             is HabitsAction.ReorderHabits -> viewModelScope.launch {

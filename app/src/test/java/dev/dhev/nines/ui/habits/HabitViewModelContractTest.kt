@@ -1,8 +1,13 @@
 package dev.dhev.nines.ui.habits
 
+import dev.dhev.nines.FakeEntryDao
+import dev.dhev.nines.FakeHabitDao
+import dev.dhev.nines.FakeReminderDao
+import dev.dhev.nines.FakeScheduleDao
 import dev.dhev.nines.TestClock
 import dev.dhev.nines.data.DemoData
 import dev.dhev.nines.data.HabitRepository
+import dev.dhev.nines.data.ReminderRepository
 import dev.dhev.nines.data.local.EntryDao
 import dev.dhev.nines.data.local.HabitDao
 import dev.dhev.nines.data.local.ScheduleVersionDao
@@ -11,6 +16,9 @@ import dev.dhev.nines.data.local.entity.EntryState
 import dev.dhev.nines.data.local.entity.HabitEntity
 import dev.dhev.nines.data.local.entity.HabitType
 import dev.dhev.nines.data.local.entity.ScheduleVersionEntity
+import dev.dhev.nines.reminders.HabitReminders
+import dev.dhev.nines.reminders.RecordingAlarms
+import dev.dhev.nines.reminders.RecordingNotifications
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -48,7 +56,7 @@ class HabitViewModelContractTest {
     fun `homepage selected date changes and return to today use matching entry`() = runTest(mainDispatcherRule.dispatcher) {
         val today = LocalDate.now()
         val fixture = Fixture(today)
-        val viewModel = HabitsViewModel(fixture.repository, computeDispatcher = mainDispatcherRule.dispatcher)
+        val viewModel = HabitsViewModel(fixture.repository, fixture.reminders, computeDispatcher = mainDispatcherRule.dispatcher)
 
         assertTrue(
             viewModel.uiState
@@ -72,7 +80,7 @@ class HabitViewModelContractTest {
     @Test
     fun `demo data is unavailable by default and the seed action is a no-op`() = runTest(mainDispatcherRule.dispatcher) {
         val fixture = Fixture(LocalDate.now())
-        val viewModel = HabitsViewModel(fixture.repository, computeDispatcher = mainDispatcherRule.dispatcher)
+        val viewModel = HabitsViewModel(fixture.repository, fixture.reminders, computeDispatcher = mainDispatcherRule.dispatcher)
 
         assertFalse(viewModel.uiState.first { !it.isLoading }.demoDataAvailable)
         viewModel.onAction(HabitsAction.SeedDemoData)
@@ -91,8 +99,10 @@ class HabitViewModelContractTest {
                 seeded++
             }
         }
+        val fixture = Fixture(LocalDate.now())
         val viewModel = HabitsViewModel(
-            Fixture(LocalDate.now()).repository,
+            fixture.repository,
+            fixture.reminders,
             demoData = demoData,
             computeDispatcher = mainDispatcherRule.dispatcher,
         )
@@ -108,7 +118,7 @@ class HabitViewModelContractTest {
     fun `homepage toggle writes to the selected date`() = runTest(mainDispatcherRule.dispatcher) {
         val today = LocalDate.now()
         val fixture = Fixture(today)
-        val viewModel = HabitsViewModel(fixture.repository, computeDispatcher = mainDispatcherRule.dispatcher)
+        val viewModel = HabitsViewModel(fixture.repository, fixture.reminders, computeDispatcher = mainDispatcherRule.dispatcher)
         viewModel.uiState.first { !it.isLoading }
 
         val historicalDate = today.minusDays(1)
@@ -130,7 +140,7 @@ class HabitViewModelContractTest {
     fun `homepage numeric logging writes value to the selected date`() = runTest(mainDispatcherRule.dispatcher) {
         val today = LocalDate.now()
         val fixture = Fixture(today, HabitType.NUMERICAL)
-        val viewModel = HabitsViewModel(fixture.repository, computeDispatcher = mainDispatcherRule.dispatcher)
+        val viewModel = HabitsViewModel(fixture.repository, fixture.reminders, computeDispatcher = mainDispatcherRule.dispatcher)
         val historicalDate = today.minusDays(1)
 
         viewModel.onAction(HabitsAction.SelectDate(historicalDate))
@@ -156,7 +166,7 @@ class HabitViewModelContractTest {
     fun `homepage clear and undo numeric entry use the action date`() = runTest(mainDispatcherRule.dispatcher) {
         val today = LocalDate.now()
         val fixture = Fixture(today, HabitType.NUMERICAL)
-        val viewModel = HabitsViewModel(fixture.repository, computeDispatcher = mainDispatcherRule.dispatcher)
+        val viewModel = HabitsViewModel(fixture.repository, fixture.reminders, computeDispatcher = mainDispatcherRule.dispatcher)
         val historicalDate = today.minusDays(1)
 
         viewModel.onAction(HabitsAction.SetNumericValue(fixture.habit.id, 3.5))
@@ -206,8 +216,10 @@ class HabitViewModelContractTest {
     @Test
     fun `homepage today and the selected date roll over at midnight`() = runTest(mainDispatcherRule.dispatcher) {
         val clock = TestClock(testScheduler, Instant.parse("2026-03-18T22:00:00Z"))
+        val fixture = Fixture(LocalDate.of(2026, 3, 18), clock = clock)
         val viewModel = HabitsViewModel(
-            Fixture(LocalDate.of(2026, 3, 18), clock = clock).repository,
+            fixture.repository,
+            fixture.reminders,
             clock = clock,
             computeDispatcher = mainDispatcherRule.dispatcher,
         )
@@ -228,8 +240,10 @@ class HabitViewModelContractTest {
     @Test
     fun `homepage keeps a browsed past date across midnight`() = runTest(mainDispatcherRule.dispatcher) {
         val clock = TestClock(testScheduler, Instant.parse("2026-03-18T22:00:00Z"))
+        val fixture = Fixture(LocalDate.of(2026, 3, 18), clock = clock)
         val viewModel = HabitsViewModel(
-            Fixture(LocalDate.of(2026, 3, 18), clock = clock).repository,
+            fixture.repository,
+            fixture.reminders,
             clock = clock,
             computeDispatcher = mainDispatcherRule.dispatcher,
         )
@@ -323,89 +337,7 @@ class HabitViewModelContractTest {
                 ),
             )
         val repository = HabitRepository(FakeHabitDao(habits), FakeScheduleDao(schedules), FakeEntryDao(entries), clock)
-    }
-
-    private class FakeHabitDao(
-        private val habit: MutableStateFlow<HabitEntity?>,
-    ) : HabitDao {
-        override fun observeActiveHabits(): Flow<List<HabitEntity>> = habit.value?.let { MutableStateFlow(listOf(it)) } ?: MutableStateFlow(emptyList())
-
-        override fun observeArchivedHabits(): Flow<List<HabitEntity>> = MutableStateFlow(emptyList())
-
-        override suspend fun getById(habitId: Long): HabitEntity? = habit.value?.takeIf { it.id == habitId }
-
-        override fun observeById(habitId: Long): Flow<HabitEntity?> = if (habit.value?.id ==
-            habitId
-        ) {
-            habit
-        } else {
-            flowOf(null)
-        }
-
-        override suspend fun insert(habit: HabitEntity): Long = habit.id
-
-        override suspend fun update(habit: HabitEntity) {
-            this.habit.value = habit
-        }
-
-        override suspend fun nextPosition(): Int = 0
-
-        override suspend fun updatePosition(
-            habitId: Long,
-            position: Int,
-        ) = Unit
-    }
-
-    private class FakeScheduleDao(
-        private val schedules: MutableStateFlow<List<ScheduleVersionEntity>>,
-    ) : ScheduleVersionDao {
-        override suspend fun insert(scheduleVersion: ScheduleVersionEntity): Long {
-            schedules.value = schedules.value + scheduleVersion
-            return scheduleVersion.id
-        }
-
-        override fun observeVersions(habitId: Long): Flow<List<ScheduleVersionEntity>> = schedules.map { values -> values.filter { it.habitId == habitId } }
-
-        override suspend fun getVersions(habitId: Long): List<ScheduleVersionEntity> = schedules.value.filter {
-            it.habitId ==
-                habitId
-        }
-
-        override suspend fun versionEffectiveOn(
-            habitId: Long,
-            date: LocalDate,
-        ): ScheduleVersionEntity? = schedules.value
-            .filter { it.habitId == habitId && !it.effectiveFromDate.isAfter(date) }
-            .maxWithOrNull(compareBy<ScheduleVersionEntity> { it.effectiveFromDate }.thenBy { it.id })
-    }
-
-    private class FakeEntryDao(
-        val entries: MutableStateFlow<List<EntryEntity>>,
-    ) : EntryDao {
-        override suspend fun upsert(entry: EntryEntity) {
-            entries.value = entries.value.filterNot { it.habitId == entry.habitId && it.date == entry.date } + entry
-        }
-
-        override suspend fun delete(entry: EntryEntity) {
-            entries.value = entries.value - entry
-        }
-
-        override fun observeEntries(habitId: Long): Flow<List<EntryEntity>> = entries.map { values -> values.filter { it.habitId == habitId } }
-
-        override suspend fun entriesBetween(
-            habitId: Long,
-            from: LocalDate,
-            to: LocalDate,
-        ): List<EntryEntity> = entries.value.filter { it.habitId == habitId && !it.date.isBefore(from) && !it.date.isAfter(to) }
-
-        override suspend fun entryOn(
-            habitId: Long,
-            date: LocalDate,
-        ): EntryEntity? = entries.value.firstOrNull {
-            it.habitId ==
-                habitId &&
-                it.date == date
-        }
+        val reminders = HabitReminders(ReminderRepository(FakeReminderDao()), repository, RecordingAlarms(), RecordingNotifications())
     }
 
     class MainDispatcherRule : TestWatcher() {
