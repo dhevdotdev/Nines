@@ -20,5 +20,5 @@ Proof: the dump shows `Viewing Tue, Nov 10` and the `Reorder habits` node's desc
 
 ## Gotchas
 
-- A habit created today does not appear on earlier dates: they show the empty state. Entry editing on a past date needs a habit created before that date, which the stock emulator image gives no way to seed. Create the habit first, then select only dates on or after its creation, or leave that path unproven.
+- A habit created today does not appear on earlier dates: they show the empty state. Run `scripts/seed.py` first to get habits with 60 days of history.
 - Driven so far: selecting a past date and the banner. Editing an entry on a past date and the full calendar are not driven.

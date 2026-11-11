@@ -27,6 +27,8 @@ A device already attached is used as is, and its Nines data is wiped. Do not run
 
 Use content descriptions, which are stable: `Add habit`, `Mark <name> complete`, `Mark <name> incomplete`, `Settings`, `Reorder habits`, `Choose a date`, and the day rail's `Tuesday, November 10` style labels. Wait about two seconds after a tap before dumping, because sheets animate. The soft keyboard covers the lower half of a sheet: send `adb shell input keyevent 4` to dismiss it, then `adb shell input swipe 540 1900 540 500 300` to scroll. Type one word at a time, since the emulator keyboard appends autocomplete suggestions to longer text.
 
+- `scripts/seed.py` replaces the device's habits with six habits and 60 days of history (boolean, measurable, weekly targets, streaks), for screenshots and for driving past dates or numeric editing. Run it after `launch.sh`.
+
 `features/README.md` lists what to drive and what proves each feature.
 
 ## Evidence
