@@ -1,10 +1,13 @@
 package dev.dhev.nines.ui.settings
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import dev.dhev.nines.appearance.AppColorSource
 import dev.dhev.nines.ui.theme.NinesTheme
@@ -35,6 +38,8 @@ class AppearanceSemanticsTest {
 
         composeRule.onNodeWithText("Appearance").assertIsDisplayed()
         listOf("Wallpaper", "Nines", "Forest", "Ocean", "Sunset").forEach {
+            // The list is lazy, so on a short screen the later palettes are off-screen until scrolled to.
+            composeRule.onNode(hasScrollAction()).performScrollToNode(hasText(it))
             composeRule.onNodeWithText(it).assertIsDisplayed()
         }
         composeRule.onNodeWithContentDescription("Select Forest").performClick()

@@ -9,6 +9,7 @@ import dev.dhev.nines.data.ReminderPreferencesStore
 import dev.dhev.nines.data.ReminderRepository
 import dev.dhev.nines.data.appearancePreferencesStore
 import dev.dhev.nines.data.local.NinesDatabase
+import dev.dhev.nines.data.local.ninesMigrations
 import dev.dhev.nines.data.onboardingCompletionStore
 import dev.dhev.nines.data.reminderPreferencesStore
 import dev.dhev.nines.reminders.HabitReminders
@@ -33,8 +34,9 @@ val appModule =
         single {
             Room
                 .databaseBuilder(androidContext(), NinesDatabase::class.java, "nines.db")
-                // Pre-release: no installed base to migrate yet. Replace with real Migrations before shipping.
-                .fallbackToDestructiveMigration()
+                .addMigrations(*ninesMigrations)
+                // Only an older build installed over a newer database may reset it; upgrades never do.
+                .fallbackToDestructiveMigrationOnDowngrade(dropAllTables = true)
                 .build()
         }
         single { get<NinesDatabase>().habitDao() }

@@ -2,6 +2,7 @@ package dev.dhev.nines.ui.theme
 
 import android.app.Activity
 import android.os.Build
+import android.util.Log
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialExpressiveTheme
@@ -42,7 +43,15 @@ fun NinesTheme(
     // time-sensitive happening, instead of lazily the first time a sheet using these fonts opens.
     val fontFamilyResolver = LocalFontFamilyResolver.current
     LaunchedEffect(Unit) {
-        NinesFontFamilies.forEach { fontFamilyResolver.preload(it) }
+        NinesFontFamilies.forEach { family ->
+            try {
+                fontFamilyResolver.preload(family)
+            } catch (e: IllegalStateException) {
+                // No Google Fonts provider (no Play services, or offline on first run): text uses
+                // the platform sans-serif fallback in each FontFamily instead of crashing.
+                Log.w("NinesTheme", "Could not preload the app typeface", e)
+            }
+        }
     }
 
     val view = LocalView.current

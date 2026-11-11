@@ -1,11 +1,13 @@
 package dev.dhev.nines.ui.theme
 
 import androidx.compose.material3.Typography
+import androidx.compose.ui.text.font.DeviceFontFamilyName
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.googlefonts.Font
 import androidx.compose.ui.text.googlefonts.GoogleFont
 import dev.dhev.nines.R
+import androidx.compose.ui.text.font.Font as DeviceFont
 
 private val googleFontProvider =
     GoogleFont.Provider(
@@ -16,8 +18,10 @@ private val googleFontProvider =
 
 private val googleSansFlex = GoogleFont("Google Sans Flex")
 
+/** The downloadable font first, then the platform sans-serif if the provider is unavailable. */
 private fun sansFlex(weight: FontWeight) = FontFamily(
     Font(googleFont = googleSansFlex, fontProvider = googleFontProvider, weight = weight),
+    DeviceFont(DeviceFontFamilyName("sans-serif"), weight = weight),
 )
 
 // One shared FontFamily instance per weight tier, reused across every role that needs it.
