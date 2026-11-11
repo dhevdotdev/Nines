@@ -16,6 +16,7 @@ import dev.dhev.nines.data.local.entity.HabitType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 
@@ -25,20 +26,21 @@ class ReminderNotificationCoordinator(
     private val reminders: ReminderRepository,
     private val scheduler: ReminderScheduler,
     private val preferences: ReminderPreferencesStore,
+    private val clock: Clock = Clock.systemDefaultZone(),
 ) : ReminderNotifications {
     @SuppressLint("MissingPermission")
     suspend fun deliver(habitId: Long) = withContext(Dispatchers.IO) {
         val habit = habits.habit(habitId) ?: return@withContext
         val reminder = reminders.get(habitId) ?: return@withContext
         if (habit.archivedAt != null) return@withContext
-        if (reminder.snoozedUntil?.isAfter(Instant.now()) == true) return@withContext
-        val date = reminder.activeDate ?: LocalDate.now()
+        if (reminder.snoozedUntil?.isAfter(clock.instant()) == true) return@withContext
+        val date = reminder.activeDate ?: LocalDate.now(clock)
         if (habits.isReminderResolved(habitId, date)) {
             reminders.resolve(habitId)
             scheduler.schedule(habitId, reminder.localTime)
             return@withContext
         }
-        reminders.activate(habitId, date, Instant.now())
+        reminders.activate(habitId, date, clock.instant())
         scheduler.schedule(habitId, reminder.localTime)
         if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) return@withContext
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -52,7 +54,7 @@ class ReminderNotificationCoordinator(
             reminders.all().count { other ->
                 other.habitId != habitId &&
                     other.localTime == reminder.localTime &&
-                    other.snoozedUntil?.isAfter(Instant.now()) != true &&
+                    other.snoozedUntil?.isAfter(clock.instant()) != true &&
                     habits.habit(other.habitId)?.let { it.archivedAt == null } == true &&
                     !habits.isReminderResolved(other.habitId, other.activeDate ?: date)
             } + 1

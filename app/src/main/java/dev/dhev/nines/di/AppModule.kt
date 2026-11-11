@@ -45,8 +45,8 @@ val appModule =
         single { HabitRepository(get(), get(), get(), get()) }
         single { ReminderRepository(get()) }
         single<DemoData> { DemoData.None }
-        single { ReminderScheduler(androidContext()) }
-        single { ReminderNotificationCoordinator(androidContext(), get(), get(), get(), get()) }
+        single { ReminderScheduler(androidContext(), get()) }
+        single { ReminderNotificationCoordinator(androidContext(), get(), get(), get(), get(), get()) }
 
         single {
             HabitReminders(

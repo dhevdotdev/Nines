@@ -4,25 +4,21 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import java.time.Clock
 import java.time.Instant
-import java.time.LocalDateTime
 import java.time.LocalTime
-import java.time.ZoneId
+import java.time.ZonedDateTime
 
 /** Best-effort local-time scheduling; delivery is intentionally not an exact-alarm use case. */
 class ReminderScheduler(
     private val context: Context,
+    private val clock: Clock = Clock.systemDefaultZone(),
 ) : ReminderAlarms {
     override fun schedule(
         habitId: Long,
         localTime: LocalTime,
     ) {
-        val now = LocalDateTime.now()
-        val next =
-            now.toLocalDate().atTime(localTime).let { candidate ->
-                if (candidate.isAfter(now)) candidate else candidate.plusDays(1)
-            }
-        scheduleAt(habitId, next.atZone(ZoneId.systemDefault()).toInstant())
+        scheduleAt(habitId, nextReminderInstant(ZonedDateTime.now(clock), localTime))
     }
 
     /** Schedules a one-off delivery at an already-resolved instant, used by Snooze. */

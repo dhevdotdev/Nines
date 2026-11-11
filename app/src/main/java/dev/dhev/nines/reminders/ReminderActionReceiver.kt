@@ -11,11 +11,15 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.koin.core.context.GlobalContext
+import java.time.Clock
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZonedDateTime
 
 class ReminderActionReceiver : BroadcastReceiver() {
+    private val clock: Clock get() = GlobalContext.get().get()
+
     override fun onReceive(
         context: Context,
         intent: Intent,
@@ -42,7 +46,7 @@ class ReminderActionReceiver : BroadcastReceiver() {
                 val reminders = GlobalContext.get().get<ReminderRepository>()
                 val notifications = GlobalContext.get().get<ReminderNotificationCoordinator>()
                 val reminder = reminders.get(habitId) ?: return@launch
-                val activeDate = reminder.activeDate ?: LocalDate.now()
+                val activeDate = reminder.activeDate ?: LocalDate.now(clock)
                 when (intent.action) {
                     MARK_DONE -> {
                         habits.toggleCompletion(habitId, activeDate)
@@ -65,19 +69,13 @@ class ReminderActionReceiver : BroadcastReceiver() {
                     }
 
                     SNOOZE_TOMORROW -> {
-                        val tomorrow =
-                            LocalDate
-                                .now()
-                                .plusDays(1)
-                                .atTime(reminder.localTime)
-                                .atZone(java.time.ZoneId.systemDefault())
-                                .toInstant()
+                        val tomorrow = tomorrowReminderInstant(ZonedDateTime.now(clock), reminder.localTime)
                         reminders.snooze(habitId, tomorrow)
                         GlobalContext.get().get<ReminderScheduler>().scheduleAt(habitId, tomorrow)
                     }
                 }
                 if (intent.action in setOf(SNOOZE_15, SNOOZE_1H, SNOOZE_3H)) {
-                    val until = Instant.now().plus(snoozeDuration(intent.action ?: SNOOZE_15))
+                    val until = clock.instant().plus(snoozeDuration(intent.action ?: SNOOZE_15))
                     GlobalContext.get().get<ReminderScheduler>().scheduleAt(habitId, until)
                 } else if (intent.action != SNOOZE_TOMORROW) {
                     reminders.resolve(habitId)
@@ -95,7 +93,7 @@ class ReminderActionReceiver : BroadcastReceiver() {
         habitId: Long,
         duration: Duration,
     ) {
-        reminders.snooze(habitId, Instant.now().plus(duration))
+        reminders.snooze(habitId, clock.instant().plus(duration))
     }
 
     private fun snoozeDuration(action: String): Duration = when (action) {
