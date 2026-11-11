@@ -4,13 +4,36 @@ Nines is a habit tracker for Android whose score works like an uptime SLO. Miss 
 
 Everything stays on your phone. Nines has no account, no ads, no analytics and no internet permission. It runs on Android 8.0 and later and follows your wallpaper colors with Material 3 Expressive.
 
-<p>
-<img src="docs/screenshots/home.png" alt="The habit list for today, with streaks, progress rings and a day rail" width="250">
-<img src="docs/screenshots/editor.png" alt="Logging a measurable habit: the value editor sheet showing 12 of a 20-page target" width="250">
-<img src="docs/screenshots/appearance.png" alt="Choosing a color palette: the system wallpaper or one made for Nines" width="250">
-</p>
-
-Left, today's habits with streaks and progress toward each target. Middle, logging a measurable habit against its target. Right, the palette picker.
+<table>
+  <tr>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/home.png" alt="The habit list for today, with streaks, progress rings and a day rail" width="250"><br>
+      <sub><b>Today</b><br>Streaks and progress at a glance</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/detail.png" alt="The Read habit's detail screen with consistency, streaks and a monthly history grid" width="250"><br>
+      <sub><b>Habit detail</b><br>Consistency, streaks and history</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/log-value.png" alt="The value editor sheet showing 12 of a 20-page target" width="250"><br>
+      <sub><b>Log a value</b><br>Measurable habits against a target</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/past-days.png" alt="Viewing Mon, Nov 9 with each habit's status for that day" width="250"><br>
+      <sub><b>Any past day</b><br>Log or fix an entry after the fact</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/new-habit.png" alt="The new habit sheet with type, frequency, reminder, color, background and icon" width="250"><br>
+      <sub><b>New habit</b><br>Color, background and icon</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/appearance.png" alt="Choosing a color palette: the system wallpaper or one made for Nines" width="250"><br>
+      <sub><b>Palettes</b><br>Your wallpaper, or one made for Nines</sub>
+    </td>
+  </tr>
+</table>
 
 ## What it does
 
