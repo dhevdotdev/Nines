@@ -11,7 +11,7 @@ Everything stays on your phone. Nines has no account, no ads, no analytics and n
       <sub><b>Today</b><br>Streaks and progress at a glance</sub>
     </td>
     <td align="center" width="33%">
-      <img src="docs/screenshots/detail.png" alt="The Read habit's detail screen with consistency, streaks and a monthly history grid" width="250"><br>
+      <img src="docs/screenshots/detail.png" alt="The Lights out by 11 habit's detail screen with consistency, streaks and a monthly history grid" width="250"><br>
       <sub><b>Habit detail</b><br>Consistency, streaks and history</sub>
     </td>
     <td align="center" width="33%">
