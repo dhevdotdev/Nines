@@ -6,11 +6,11 @@ Everything stays on your phone. Nines has no account, no ads, no analytics and n
 
 <p>
 <img src="docs/screenshots/home.png" alt="The habit list for today, with streaks, progress rings and a day rail" width="250">
-<img src="docs/screenshots/detail.png" alt="A habit's detail screen with consistency, streaks and a monthly history grid" width="250">
+<img src="docs/screenshots/editor.png" alt="Logging a measurable habit: the value editor sheet showing 12 of a 20-page target" width="250">
 <img src="docs/screenshots/appearance.png" alt="Choosing a color palette: the system wallpaper or one made for Nines" width="250">
 </p>
 
-Left, today's habits with streaks and progress toward each target. Middle, one habit's consistency score, streaks and history. Right, the palette picker.
+Left, today's habits with streaks and progress toward each target. Middle, logging a measurable habit against its target. Right, the palette picker.
 
 ## What it does
 
