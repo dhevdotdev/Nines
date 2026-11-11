@@ -56,6 +56,7 @@ val appModule =
                 habits = get(),
                 alarms = get<ReminderScheduler>(),
                 notifications = get<ReminderNotificationCoordinator>(),
+                clock = get(),
             )
         }
 

@@ -5,21 +5,13 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import dev.dhev.nines.MainActivity
-import dev.dhev.nines.data.HabitRepository
-import dev.dhev.nines.data.ReminderRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.koin.core.context.GlobalContext
-import java.time.Clock
 import java.time.Duration
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZonedDateTime
 
 class ReminderActionReceiver : BroadcastReceiver() {
-    private val clock: Clock get() = GlobalContext.get().get()
-
     override fun onReceive(
         context: Context,
         intent: Intent,
@@ -39,67 +31,25 @@ class ReminderActionReceiver : BroadcastReceiver() {
             )
             return
         }
+        val action = reminderActionFor(intent.action) ?: return
         val pending = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val habits = GlobalContext.get().get<HabitRepository>()
-                val reminders = GlobalContext.get().get<ReminderRepository>()
-                val notifications = GlobalContext.get().get<ReminderNotificationCoordinator>()
-                val reminder = reminders.get(habitId) ?: return@launch
-                val activeDate = reminder.activeDate ?: LocalDate.now(clock)
-                when (intent.action) {
-                    MARK_DONE -> {
-                        habits.toggleCompletion(habitId, activeDate)
-                    }
-
-                    NOT_TODAY -> {
-                        habits.setSkipped(habitId, activeDate)
-                    }
-
-                    SNOOZE_15 -> {
-                        snooze(reminders, habitId, Duration.ofMinutes(15))
-                    }
-
-                    SNOOZE_1H -> {
-                        snooze(reminders, habitId, Duration.ofHours(1))
-                    }
-
-                    SNOOZE_3H -> {
-                        snooze(reminders, habitId, Duration.ofHours(3))
-                    }
-
-                    SNOOZE_TOMORROW -> {
-                        val tomorrow = tomorrowReminderInstant(ZonedDateTime.now(clock), reminder.localTime)
-                        reminders.snooze(habitId, tomorrow)
-                        GlobalContext.get().get<ReminderScheduler>().scheduleAt(habitId, tomorrow)
-                    }
-                }
-                if (intent.action in setOf(SNOOZE_15, SNOOZE_1H, SNOOZE_3H)) {
-                    val until = clock.instant().plus(snoozeDuration(intent.action ?: SNOOZE_15))
-                    GlobalContext.get().get<ReminderScheduler>().scheduleAt(habitId, until)
-                } else if (intent.action != SNOOZE_TOMORROW) {
-                    reminders.resolve(habitId)
-                    GlobalContext.get().get<ReminderScheduler>().schedule(habitId, reminder.localTime)
-                }
-                notifications.cancel(habitId)
+                GlobalContext.get().get<HabitReminders>().respond(habitId, action)
             } finally {
                 pending.finish()
             }
         }
     }
 
-    private suspend fun snooze(
-        reminders: ReminderRepository,
-        habitId: Long,
-        duration: Duration,
-    ) {
-        reminders.snooze(habitId, clock.instant().plus(duration))
-    }
-
-    private fun snoozeDuration(action: String): Duration = when (action) {
-        SNOOZE_1H -> Duration.ofHours(1)
-        SNOOZE_3H -> Duration.ofHours(3)
-        else -> Duration.ofMinutes(15)
+    private fun reminderActionFor(intentAction: String?): ReminderAction? = when (intentAction) {
+        MARK_DONE -> ReminderAction.MarkDone
+        NOT_TODAY -> ReminderAction.NotToday
+        SNOOZE_15 -> ReminderAction.Snooze(Duration.ofMinutes(15))
+        SNOOZE_1H -> ReminderAction.Snooze(Duration.ofHours(1))
+        SNOOZE_3H -> ReminderAction.Snooze(Duration.ofHours(3))
+        SNOOZE_TOMORROW -> ReminderAction.SnoozeUntilTomorrow
+        else -> null
     }
 
     companion object {

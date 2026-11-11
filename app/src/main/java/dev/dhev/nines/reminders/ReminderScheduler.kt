@@ -22,7 +22,7 @@ class ReminderScheduler(
     }
 
     /** Schedules a one-off delivery at an already-resolved instant, used by Snooze. */
-    fun scheduleAt(
+    override fun scheduleAt(
         habitId: Long,
         instant: Instant,
     ) {

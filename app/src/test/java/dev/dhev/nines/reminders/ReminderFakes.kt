@@ -1,9 +1,11 @@
 package dev.dhev.nines.reminders
 
+import java.time.Instant
 import java.time.LocalTime
 
 internal class RecordingAlarms : ReminderAlarms {
     val scheduled = mutableListOf<Pair<Long, LocalTime>>()
+    val scheduledAt = mutableListOf<Pair<Long, Instant>>()
     val cancelled = mutableListOf<Long>()
 
     override fun schedule(
@@ -11,6 +13,13 @@ internal class RecordingAlarms : ReminderAlarms {
         localTime: LocalTime,
     ) {
         scheduled += habitId to localTime
+    }
+
+    override fun scheduleAt(
+        habitId: Long,
+        instant: Instant,
+    ) {
+        scheduledAt += habitId to instant
     }
 
     override fun cancel(habitId: Long) {
