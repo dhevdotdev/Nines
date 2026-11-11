@@ -6,12 +6,14 @@ Built with Kotlin, Jetpack Compose and Material 3 Expressive. Single `:app` modu
 
 ## Build
 
+You need the Android SDK (set `ANDROID_HOME` or `sdk.dir` in `local.properties`) and a full JDK 25. GraalVM builds fail: their `jlink` can't create the Android JDK image.
+
 ```sh
 ./gradlew :app:assembleDebug     # debug APK
 ./gradlew :app:testDebugUnitTest # unit tests
 ```
 
-Instrumented tests (Room, reminders, UI) run on a device or emulator with `./gradlew :app:connectedDebugAndroidTest`.
+Debug builds on a device or emulator: see `.agents/skills/verify-nines`. Instrumented tests (Room, reminders, UI) run on a device or emulator with `./gradlew :app:connectedDebugAndroidTest`.
 
 ## Project
 
@@ -20,4 +22,4 @@ Instrumented tests (Room, reminders, UI) run on a device or emulator with `./gra
 - Planned work is tracked in [GitHub Issues](https://github.com/dhevdotdev/Nines/issues).
 - `AGENTS.md` holds the conventions for coding agents working in this repo.
 
-Nines is a personal project and is not yet licensed for reuse.
+Released under the [MIT License](LICENSE).
