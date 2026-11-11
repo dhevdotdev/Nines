@@ -57,7 +57,7 @@ class HabitRepository(
     suspend fun isReminderResolved(habitId: Long, date: LocalDate): Boolean {
         val habit = habitDao.getById(habitId) ?: return true
         val schedules = scheduleVersionDao.getVersions(habitId).map { it.toTimelineSchedule() }
-        val longestWindow = schedules.maxOfOrNull { it.target.denominator } ?: return false
+        val longestWindow = schedules.maxOfOrNull { it.target.denominator } ?: 1
         val entries = entryDao.entriesBetween(habitId, date.minusDays(longestWindow - 1L), date)
         return isReminderResolvedOn(
             kind = habit.type.toTimelineKind(),

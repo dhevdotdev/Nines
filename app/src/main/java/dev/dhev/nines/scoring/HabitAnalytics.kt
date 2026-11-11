@@ -49,12 +49,8 @@ fun computeHabitAnalytics(input: HabitAnalyticsInput): HabitAnalytics {
         input.entries.filter {
             !it.date.isBefore(input.createdDate) && !it.date.isAfter(input.asOfDate)
         }
-    val entriesByDate = entries.associateBy { it.date }
-    val completedDates =
-        entries
-            .filter { it.state == TimelineEntryState.COMPLETED }
-            .map { it.date }
-            .toSet()
+    val completedEntries = entries.filter { it.state == TimelineEntryState.COMPLETED }
+    val completedDates = completedEntries.map { it.date }.toSet()
     require(
         input.runAnalysis.startDate == input.createdDate &&
             input.runAnalysis.endDate == input.asOfDate &&
@@ -65,101 +61,94 @@ fun computeHabitAnalytics(input: HabitAnalyticsInput): HabitAnalytics {
     val runAnalysis = input.runAnalysis
     val streakRuns = runAnalysis.streakRuns
     val bestStreak = streakRuns.maxOfOrNull { it.length } ?: 0
-    val totalCompletions = completedDates.size
-
-    val weekdayRates =
-        if (!input.createdDate.isAfter(input.asOfDate.minusDays(13))) {
-            val totals = IntArray(7)
-            val completions = IntArray(7)
-            var date = input.createdDate
-            while (!date.isAfter(input.asOfDate)) {
-                val index = date.dayOfWeek.value - 1
-                totals[index]++
-                if (entriesByDate[date]?.state == TimelineEntryState.COMPLETED) completions[index]++
-                date = date.plusDays(1)
-            }
-            (0 until 7).map { index ->
-                if (totals[index] > 0) completions[index].toDouble() / totals[index] else 0.0
-            }
-        } else {
-            emptyList()
-        }
-
-    val momentumDeltaPoints =
-        if (!input.createdDate.isAfter(input.asOfDate.minusDays(59))) {
-            fun completionRate(windowEnd: LocalDate): Double {
-                val windowStart = windowEnd.minusDays(29)
-                var count = 0
-                var date = windowStart
-                while (!date.isAfter(windowEnd)) {
-                    if (entriesByDate[date]?.state == TimelineEntryState.COMPLETED) count++
-                    date = date.plusDays(1)
-                }
-                return count / 30.0
-            }
-            (completionRate(input.asOfDate) - completionRate(input.asOfDate.minusDays(30))) * 100
-        } else {
-            null
-        }
-
-    val completedEntries = entries.filter { it.state == TimelineEntryState.COMPLETED }
-    val typicalTimeOfDay =
-        if (completedEntries.size >= 5) {
-            completedEntries
-                .map {
-                    val hour =
-                        it.createdAt
-                            ?.atOffset(ZoneOffset.ofTotalSeconds(it.tzOffsetMinutes * 60))
-                            ?.hour
-                            ?: return@map "night"
-                    when (hour) {
-                        in 5..11 -> "morning"
-                        in 12..16 -> "afternoon"
-                        in 17..20 -> "evening"
-                        else -> "night"
-                    }
-                }.groupingBy { it }
-                .eachCount()
-                .maxByOrNull { it.value }
-                ?.key
-        } else {
-            null
-        }
-
-    val longestGap =
-        runAnalysis.gapRuns
-            .filter { it.length >= 3 }
-            .maxByOrNull { it.length }
-    val loggedValues =
-        entries
-            .filter { it.state == TimelineEntryState.COMPLETED }
-            .mapNotNull { it.numericValue }
-            .filter { it > 0 }
-    val numericTotal =
-        if (input.kind == TimelineHabitKind.NUMERICAL && loggedValues.isNotEmpty()) {
-            loggedValues.sum()
-        } else {
-            null
-        }
-    val numericAverage = numericTotal?.let { it / loggedValues.size }
-    val recordProgress =
-        when {
-            bestStreak == 0 || runAnalysis.currentStreak == 0 -> RecordProgress.NONE
-            runAnalysis.currentStreak >= bestStreak -> RecordProgress.CURRENT_RECORD
-            else -> RecordProgress.CHASING_RECORD
-        }
+    val numeric = numericSummary(input.kind, completedEntries)
 
     return HabitAnalytics(
         currentStreak = runAnalysis.currentStreak,
         bestStreak = bestStreak,
-        totalCompletions = totalCompletions,
+        totalCompletions = completedDates.size,
         topStreaks = streakRuns.sortedByDescending { it.length }.take(5),
-        weekdayRates = weekdayRates,
-        momentumDeltaPoints = momentumDeltaPoints,
-        typicalTimeOfDay = typicalTimeOfDay,
-        longestGap = longestGap,
-        numericTotal = numericTotal,
-        numericAverage = numericAverage,
-        recordProgress = recordProgress,
+        weekdayRates = weekdayRates(input.createdDate, input.asOfDate, completedDates),
+        momentumDeltaPoints = momentumDeltaPoints(input.createdDate, input.asOfDate, completedDates),
+        typicalTimeOfDay = typicalTimeOfDay(completedEntries),
+        longestGap = runAnalysis.gapRuns.filter { it.length >= 3 }.maxByOrNull { it.length },
+        numericTotal = numeric?.first,
+        numericAverage = numeric?.second,
+        recordProgress = recordProgress(bestStreak, runAnalysis.currentStreak),
     )
+}
+
+/** Completion rate per weekday (Monday first), or empty until the habit has two weeks of history. */
+private fun weekdayRates(
+    createdDate: LocalDate,
+    asOfDate: LocalDate,
+    completedDates: Set<LocalDate>,
+): List<Double> {
+    if (createdDate.isAfter(asOfDate.minusDays(13))) return emptyList()
+    val totals = IntArray(7)
+    val completions = IntArray(7)
+    var date = createdDate
+    while (!date.isAfter(asOfDate)) {
+        val index = date.dayOfWeek.value - 1
+        totals[index]++
+        if (date in completedDates) completions[index]++
+        date = date.plusDays(1)
+    }
+    return (0 until 7).map { index ->
+        if (totals[index] > 0) completions[index].toDouble() / totals[index] else 0.0
+    }
+}
+
+/** The last 30 days' completion rate minus the 30 before it, in points, once there are 60 days of history. */
+private fun momentumDeltaPoints(
+    createdDate: LocalDate,
+    asOfDate: LocalDate,
+    completedDates: Set<LocalDate>,
+): Double? {
+    if (createdDate.isAfter(asOfDate.minusDays(59))) return null
+
+    fun completionRate(windowEnd: LocalDate): Double = (0L until 30L).count { windowEnd.minusDays(it) in completedDates } / 30.0
+    return (completionRate(asOfDate) - completionRate(asOfDate.minusDays(30))) * 100
+}
+
+/** The part of the day most completions happen in, once there are at least five to judge from. */
+private fun typicalTimeOfDay(completedEntries: List<TimelineEntry>): String? {
+    if (completedEntries.size < 5) return null
+    return completedEntries
+        .map { timeOfDay(it) }
+        .groupingBy { it }
+        .eachCount()
+        .maxByOrNull { it.value }
+        ?.key
+}
+
+private fun timeOfDay(entry: TimelineEntry): String {
+    val hour = entry.createdAt?.atOffset(ZoneOffset.ofTotalSeconds(entry.tzOffsetMinutes * 60))?.hour ?: return "night"
+    return when (hour) {
+        in 5..11 -> "morning"
+        in 12..16 -> "afternoon"
+        in 17..20 -> "evening"
+        else -> "night"
+    }
+}
+
+/** Total and average of the positive logged values of a numeric habit, or null with nothing logged. */
+private fun numericSummary(
+    kind: TimelineHabitKind,
+    completedEntries: List<TimelineEntry>,
+): Pair<Double, Double>? {
+    if (kind != TimelineHabitKind.NUMERICAL) return null
+    val values = completedEntries.mapNotNull { it.numericValue }.filter { it > 0 }
+    if (values.isEmpty()) return null
+    val total = values.sum()
+    return total to total / values.size
+}
+
+private fun recordProgress(
+    bestStreak: Int,
+    currentStreak: Int,
+): RecordProgress = when {
+    bestStreak == 0 || currentStreak == 0 -> RecordProgress.NONE
+    currentStreak >= bestStreak -> RecordProgress.CURRENT_RECORD
+    else -> RecordProgress.CHASING_RECORD
 }

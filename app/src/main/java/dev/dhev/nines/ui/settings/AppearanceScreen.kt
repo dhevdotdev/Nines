@@ -314,44 +314,37 @@ private fun PalettePreview(scheme: androidx.compose.material3.ColorScheme) {
     }
 }
 
-private fun AppColorSource.label(): String = when (this) {
-    AppColorSource.WALLPAPER -> "Wallpaper"
-    AppColorSource.NINES -> "Nines"
-    AppColorSource.FOREST -> "Forest"
-    AppColorSource.OCEAN -> "Ocean"
-    AppColorSource.SUNSET -> "Sunset"
-    AppColorSource.CATPPUCCIN -> "Catppuccin"
-    AppColorSource.TOKYO_NIGHT -> "Tokyo Night"
-    AppColorSource.DRACULA -> "Dracula"
-    AppColorSource.NORD -> "Nord"
-    AppColorSource.ONE_DARK -> "One Dark"
-    AppColorSource.GRUVBOX -> "Gruvbox"
-    AppColorSource.SOLARIZED -> "Solarized"
-    AppColorSource.MONOKAI -> "Monokai"
-    AppColorSource.KANAGAWA -> "Kanagawa"
-    AppColorSource.ROSE_PINE -> "Rosé Pine"
-    AppColorSource.EVERFOREST -> "Everforest"
-    AppColorSource.NIGHTFOX -> "Nightfox"
-    AppColorSource.CUSTOM -> "Custom"
-}
+private data class ColorSourceCopy(
+    val label: String,
+    val description: String,
+)
 
-private fun AppColorSource.description(wallpaperAvailable: Boolean): String = when (this) {
-    AppColorSource.WALLPAPER -> if (wallpaperAvailable) "Matches your system wallpaper" else "Available on Android 12 and newer"
-    AppColorSource.NINES -> "Nines' expressive violet"
-    AppColorSource.FOREST -> "Grounded green"
-    AppColorSource.OCEAN -> "Clear blue"
-    AppColorSource.SUNSET -> "Warm orange"
-    AppColorSource.CATPPUCCIN -> "Mocha-inspired lavender"
-    AppColorSource.TOKYO_NIGHT -> "Night-blue inspired"
-    AppColorSource.DRACULA -> "Purple-inspired"
-    AppColorSource.NORD -> "Arctic blue-inspired"
-    AppColorSource.ONE_DARK -> "Atom-inspired blue"
-    AppColorSource.GRUVBOX -> "Warm retro gold"
-    AppColorSource.SOLARIZED -> "Balanced blue"
-    AppColorSource.MONOKAI -> "Vivid pink"
-    AppColorSource.KANAGAWA -> "Indigo-inspired"
-    AppColorSource.ROSE_PINE -> "Soft iris-inspired"
-    AppColorSource.EVERFOREST -> "Muted green"
-    AppColorSource.NIGHTFOX -> "Deep blue-inspired"
-    AppColorSource.CUSTOM -> "Create a palette from your own color"
+/** The picker's text for every color source. Wallpaper's description depends on the device, see [description]. */
+private val colorSourceCopy: Map<AppColorSource, ColorSourceCopy> = mapOf(
+    AppColorSource.WALLPAPER to ColorSourceCopy("Wallpaper", "Matches your system wallpaper"),
+    AppColorSource.NINES to ColorSourceCopy("Nines", "Nines' expressive violet"),
+    AppColorSource.FOREST to ColorSourceCopy("Forest", "Grounded green"),
+    AppColorSource.OCEAN to ColorSourceCopy("Ocean", "Clear blue"),
+    AppColorSource.SUNSET to ColorSourceCopy("Sunset", "Warm orange"),
+    AppColorSource.CATPPUCCIN to ColorSourceCopy("Catppuccin", "Mocha-inspired lavender"),
+    AppColorSource.TOKYO_NIGHT to ColorSourceCopy("Tokyo Night", "Night-blue inspired"),
+    AppColorSource.DRACULA to ColorSourceCopy("Dracula", "Purple-inspired"),
+    AppColorSource.NORD to ColorSourceCopy("Nord", "Arctic blue-inspired"),
+    AppColorSource.ONE_DARK to ColorSourceCopy("One Dark", "Atom-inspired blue"),
+    AppColorSource.GRUVBOX to ColorSourceCopy("Gruvbox", "Warm retro gold"),
+    AppColorSource.SOLARIZED to ColorSourceCopy("Solarized", "Balanced blue"),
+    AppColorSource.MONOKAI to ColorSourceCopy("Monokai", "Vivid pink"),
+    AppColorSource.KANAGAWA to ColorSourceCopy("Kanagawa", "Indigo-inspired"),
+    AppColorSource.ROSE_PINE to ColorSourceCopy("Rosé Pine", "Soft iris-inspired"),
+    AppColorSource.EVERFOREST to ColorSourceCopy("Everforest", "Muted green"),
+    AppColorSource.NIGHTFOX to ColorSourceCopy("Nightfox", "Deep blue-inspired"),
+    AppColorSource.CUSTOM to ColorSourceCopy("Custom", "Create a palette from your own color"),
+)
+
+private fun AppColorSource.label(): String = colorSourceCopy.getValue(this).label
+
+private fun AppColorSource.description(wallpaperAvailable: Boolean): String = if (this == AppColorSource.WALLPAPER && !wallpaperAvailable) {
+    "Available on Android 12 and newer"
+} else {
+    colorSourceCopy.getValue(this).description
 }

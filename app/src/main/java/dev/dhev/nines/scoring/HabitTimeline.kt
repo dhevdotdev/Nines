@@ -106,35 +106,8 @@ fun buildHabitTimeline(input: HabitTimelineInput): HabitTimeline {
         ).lastOrNull()?.score ?: 0.0
     val runAnalysis = analyzeHabitRuns(completedDates, input.createdDate, input.selectedDate)
     val frequencyProgress =
-        selectedSchedule?.let { schedule ->
-            when (input.kind) {
-                TimelineHabitKind.BOOLEAN -> {
-                    computeFrequencyProgress(
-                        selectedDate = input.selectedDate,
-                        target = schedule.target,
-                        input = FrequencyProgressInput.BooleanEntries(completedDates),
-                    )
-                }
-
-                TimelineHabitKind.NUMERICAL -> {
-                    schedule.targetValue?.let { targetValue ->
-                        computeFrequencyProgress(
-                            selectedDate = input.selectedDate,
-                            target = schedule.target,
-                            input =
-                            FrequencyProgressInput.NumericEntries(
-                                valuesByDate =
-                                entries
-                                    .filter { it.state != TimelineEntryState.SKIPPED }
-                                    .mapNotNull { entry -> entry.numericValue?.let { entry.date to it } }
-                                    .toMap(),
-                                targetValue = targetValue,
-                                targetKind = schedule.targetKind ?: FrequencyTargetKind.AT_LEAST,
-                            ),
-                        )
-                    }
-                }
-            }
+        selectedSchedule?.let {
+            selectedDateFrequencyProgress(input.kind, input.selectedDate, it, entries, completedDates)
         }
 
     return HabitTimeline(
@@ -154,3 +127,32 @@ fun scheduleEffectiveOn(
 ): TimelineSchedule? = schedules
     .filter { !it.effectiveFromDate.isAfter(date) }
     .maxWithOrNull(compareBy<TimelineSchedule> { it.effectiveFromDate }.thenBy { it.versionOrder })
+
+private fun selectedDateFrequencyProgress(
+    kind: TimelineHabitKind,
+    selectedDate: LocalDate,
+    schedule: TimelineSchedule,
+    entries: List<TimelineEntry>,
+    completedDates: Set<LocalDate>,
+): FrequencyProgress? = when (kind) {
+    TimelineHabitKind.BOOLEAN -> computeFrequencyProgress(
+        selectedDate = selectedDate,
+        target = schedule.target,
+        input = FrequencyProgressInput.BooleanEntries(completedDates),
+    )
+
+    TimelineHabitKind.NUMERICAL -> schedule.targetValue?.let { targetValue ->
+        computeFrequencyProgress(
+            selectedDate = selectedDate,
+            target = schedule.target,
+            input = FrequencyProgressInput.NumericEntries(
+                valuesByDate = entries
+                    .filter { it.state != TimelineEntryState.SKIPPED }
+                    .mapNotNull { entry -> entry.numericValue?.let { entry.date to it } }
+                    .toMap(),
+                targetValue = targetValue,
+                targetKind = schedule.targetKind ?: FrequencyTargetKind.AT_LEAST,
+            ),
+        )
+    }
+}
