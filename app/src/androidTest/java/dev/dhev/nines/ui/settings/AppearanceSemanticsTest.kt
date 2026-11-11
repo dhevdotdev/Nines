@@ -1,6 +1,7 @@
 package dev.dhev.nines.ui.settings
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -42,6 +43,7 @@ class AppearanceSemanticsTest {
             composeRule.onNode(hasScrollAction()).performScrollToNode(hasText(it))
             composeRule.onNodeWithText(it).assertIsDisplayed()
         }
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasContentDescription("Select Forest"))
         composeRule.onNodeWithContentDescription("Select Forest").performClick()
 
         assertEquals(AppColorSource.FOREST, selected)

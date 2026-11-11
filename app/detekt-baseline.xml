@@ -3,18 +3,13 @@
   <ManuallySuppressedIssues/>
   <CurrentIssues>
     <ID>ComplexCondition:HabitDetailInsights.kt:strongest != null &amp;&amp; weakest != null &amp;&amp; strongest != weakest &amp;&amp; rates[strongest] &gt; rates[weakest]</ID>
-    <ID>CyclomaticComplexMethod:AppearanceScreen.kt:private fun AppColorSource.description: String</ID>
-    <ID>CyclomaticComplexMethod:AppearanceScreen.kt:private fun AppColorSource.label: String</ID>
-    <ID>CyclomaticComplexMethod:HabitAnalytics.kt:fun computeHabitAnalytics: HabitAnalytics</ID>
-    <ID>CyclomaticComplexMethod:ReminderActionReceiver.kt:ReminderActionReceiver$override fun onReceive</ID>
     <ID>CyclomaticComplexMethod:ReminderNotificationCoordinator.kt:ReminderNotificationCoordinator$@SuppressLint("MissingPermission") suspend fun deliver</ID>
-    <ID>LongMethod:HabitAnalytics.kt:fun computeHabitAnalytics: HabitAnalytics</ID>
     <ID>LongMethod:HabitAnalyticsTest.kt:HabitAnalyticsTest$@Test fun `thresholds expose weekday rates at fourteen days and gaps at three days`</ID>
-    <ID>LongMethod:HabitTimeline.kt:fun buildHabitTimeline: HabitTimeline</ID>
     <ID>LongMethod:HabitTimelineTest.kt:HabitTimelineTest$@Test fun `score changes when a new schedule takes effect inside the range`</ID>
     <ID>MatchingDeclarationName:HabitCardBackground.kt:CardBackgroundStyle</ID>
+    <ID>ReturnCount:HabitAnalytics.kt:private fun numericSummary: Pair&lt;Double, Double&gt;?</ID>
     <ID>ReturnCount:HabitDetailCalendar.kt:fun cycleProgressLabel: String?</ID>
-    <ID>ReturnCount:HabitRepository.kt:HabitRepository$suspend fun isReminderResolved: Boolean</ID>
+    <ID>ReturnCount:ReminderActionReceiver.kt:ReminderActionReceiver$override fun onReceive</ID>
     <ID>SwallowedException:HabitScoreTest.kt:HabitScoreTest$e: IllegalArgumentException</ID>
     <ID>TooManyFunctions:HabitRepository.kt:HabitRepository</ID>
     <ID>UnusedParameter:HabitDetailInsights.kt:accent: Color</ID>
