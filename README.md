@@ -66,4 +66,4 @@ Kotlin, Jetpack Compose with Material 3 Expressive, Room, Koin and Navigation 3,
 
 ## License
 
-Nines is released under the [MIT License](LICENSE).
+Nines is released under the [MIT License](LICENSE). Third-party attributions are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
