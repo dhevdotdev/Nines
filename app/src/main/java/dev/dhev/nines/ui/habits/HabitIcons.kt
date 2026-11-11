@@ -107,7 +107,7 @@ object HabitIcons {
             "trophy" to Icons.Filled.EmojiEvents,
         )
 
-    val default = "fitness"
+    const val default = "fitness"
 
     fun iconFor(key: String): ImageVector = options.firstOrNull { it.first == key }?.second ?: Icons.Filled.Star
 }

@@ -473,7 +473,6 @@ fun HabitDetailScreen(
             month = month,
             byDate = remember(uiState.history) { uiState.history.associateBy { it.date } },
             habitType = uiState.type,
-            unit = uiState.unit,
             today = uiState.today,
             accent = colors.accent,
             onDayClick = { day ->

@@ -275,7 +275,7 @@ private val TargetChartHeight = 56.dp
 
 // Bars are allowed to rise 25% above the target line before clipping, so a day that blew past
 // goal reads as visibly taller instead of clipping flush with every day that merely met it.
-private const val TargetChartMaxScale = 1.25f
+private const val TARGET_CHART_MAX_SCALE = 1.25f
 
 /**
  * The other half of a numeric habit's story that a plain daily number never shows: not just
@@ -306,7 +306,7 @@ private fun TargetProgressRow(days: List<DayCell>, target: Double, targetKind: T
             HorizontalDivider(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .offset(y = -(TargetChartHeight / TargetChartMaxScale)),
+                    .offset(y = -(TargetChartHeight / TARGET_CHART_MAX_SCALE)),
                 color = accent.copy(alpha = 0.45f),
             )
             Row(
@@ -315,7 +315,7 @@ private fun TargetProgressRow(days: List<DayCell>, target: Double, targetKind: T
                 verticalAlignment = Alignment.Bottom,
             ) {
                 days.forEach { day ->
-                    val ratio = ((day.numericValue ?: 0.0) / target).toFloat().coerceIn(0f, TargetChartMaxScale)
+                    val ratio = ((day.numericValue ?: 0.0) / target).toFloat().coerceIn(0f, TARGET_CHART_MAX_SCALE)
                     val metTarget = isMet(day.numericValue ?: 0.0)
                     val animatedRatio by animateFloatAsState(
                         targetValue = if (animateIn) ratio else 0f,
@@ -328,7 +328,7 @@ private fun TargetProgressRow(days: List<DayCell>, target: Double, targetKind: T
                             // The spatial spring is underdamped and overshoots by design, but
                             // fillMaxHeight requires its fraction to stay within 0f..1f - clamp
                             // the rare overshoot past 1.0 rather than let it crash mid-animation.
-                            .fillMaxHeight((animatedRatio / TargetChartMaxScale).coerceIn(0f, 1f))
+                            .fillMaxHeight((animatedRatio / TARGET_CHART_MAX_SCALE).coerceIn(0f, 1f))
                             .clip(RoundedCornerShape(3.dp))
                             .background(
                                 when {

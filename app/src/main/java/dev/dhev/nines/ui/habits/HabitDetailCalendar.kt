@@ -100,7 +100,6 @@ fun ExpandedMonthDialog(
     month: YearMonth,
     byDate: Map<LocalDate, DayCell>,
     habitType: HabitType,
-    unit: String?,
     today: LocalDate,
     accent: Color,
     onDayClick: (DayCell) -> Unit,
