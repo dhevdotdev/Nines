@@ -23,6 +23,7 @@ import dev.dhev.nines.scoring.TimelineSchedule
 import dev.dhev.nines.scoring.buildHabitTimeline
 import dev.dhev.nines.scoring.computeFrequencyProgress
 import dev.dhev.nines.scoring.computeScheduleAwareScoreSeries
+import dev.dhev.nines.scoring.isReminderResolvedOn
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import java.time.Instant
@@ -51,41 +52,18 @@ class HabitRepository(
 
     suspend fun entryOn(habitId: Long, date: LocalDate): EntryEntity? = entryDao.entryOn(habitId, date)
 
-    /** True when the active schedule says this habit no longer needs a reminder for [date]. */
+    /** True when the Schedule in force says this habit no longer needs a reminder for [date]. */
     suspend fun isReminderResolved(habitId: Long, date: LocalDate): Boolean {
         val habit = habitDao.getById(habitId) ?: return true
-        val schedule = scheduleVersionDao.versionEffectiveOn(habitId, date) ?: return false
-        val entry = entryDao.entryOn(habitId, date)
-        if (entry?.state == EntryState.SKIPPED) return true
-        if (habit.type == HabitType.NUMERICAL && schedule.targetKind == TargetKind.AT_MOST) {
-            return entry?.numericValue != null
-        }
-        val windowStart = date.minusDays(schedule.targetDenominator.toLong() - 1)
-        val entries = entryDao.entriesBetween(habitId, windowStart, date)
-        val progress = if (habit.type == HabitType.NUMERICAL) {
-            val targetValue = schedule.targetValue ?: return false
-            computeFrequencyProgress(
-                selectedDate = date,
-                target = ScheduleTarget(schedule.targetNumerator, schedule.targetDenominator),
-                input = FrequencyProgressInput.NumericEntries(
-                    valuesByDate = entries.mapNotNull { it.numericValue?.let { value -> it.date to value } }.toMap(),
-                    targetValue = targetValue,
-                    targetKind = when (schedule.targetKind) {
-                        TargetKind.AT_MOST -> FrequencyTargetKind.AT_MOST
-                        else -> FrequencyTargetKind.AT_LEAST
-                    },
-                ),
-            )
-        } else {
-            computeFrequencyProgress(
-                selectedDate = date,
-                target = ScheduleTarget(schedule.targetNumerator, schedule.targetDenominator),
-                input = FrequencyProgressInput.BooleanEntries(
-                    completedDates = entries.filter { it.state == EntryState.COMPLETED }.map { it.date }.toSet(),
-                ),
-            )
-        }
-        return progress.isMet
+        val schedules = scheduleVersionDao.getVersions(habitId).map { it.toTimelineSchedule() }
+        val longestWindow = schedules.maxOfOrNull { it.target.denominator } ?: return false
+        val entries = entryDao.entriesBetween(habitId, date.minusDays(longestWindow - 1L), date)
+        return isReminderResolvedOn(
+            kind = habit.type.toTimelineKind(),
+            date = date,
+            schedules = schedules,
+            entries = entries.map { it.toTimelineEntry() },
+        )
     }
 
     fun observeEntries(habitId: Long): Flow<List<EntryEntity>> = entryDao.observeEntries(habitId)
@@ -94,31 +72,8 @@ class HabitRepository(
 
     fun observeHabitTimelineData(habitId: Long): Flow<HabitTimelineData> = observeEntries(habitId).combine(observeScheduleVersions(habitId)) { entries, schedules ->
         HabitTimelineData(
-            entries = entries.map { entry ->
-                TimelineEntry(
-                    date = entry.date,
-                    state = when (entry.state) {
-                        EntryState.COMPLETED -> TimelineEntryState.COMPLETED
-                        EntryState.SKIPPED -> TimelineEntryState.SKIPPED
-                        EntryState.IN_PROGRESS -> TimelineEntryState.IN_PROGRESS
-                    },
-                    numericValue = entry.numericValue,
-                    createdAt = entry.createdAt,
-                    tzOffsetMinutes = entry.tzOffsetMinutes,
-                )
-            },
-            schedules = schedules.map { schedule ->
-                TimelineSchedule(
-                    effectiveFromDate = schedule.effectiveFromDate,
-                    target = ScheduleTarget(schedule.targetNumerator, schedule.targetDenominator),
-                    targetValue = schedule.targetValue,
-                    targetKind = when (schedule.targetKind) {
-                        TargetKind.AT_MOST -> FrequencyTargetKind.AT_MOST
-                        else -> FrequencyTargetKind.AT_LEAST
-                    },
-                    versionOrder = schedule.id,
-                )
-            },
+            entries = entries.map { it.toTimelineEntry() },
+            schedules = schedules.map { it.toTimelineSchedule() },
         )
     }
 
@@ -144,11 +99,7 @@ class HabitRepository(
                 habit = it,
                 timeline = buildHabitTimeline(
                     HabitTimelineInput(
-                        kind = if (it.type == HabitType.NUMERICAL) {
-                            TimelineHabitKind.NUMERICAL
-                        } else {
-                            TimelineHabitKind.BOOLEAN
-                        },
+                        kind = it.type.toTimelineKind(),
                         createdDate = createdDate,
                         selectedDate = effectiveSelectedDate,
                         entries = boundedEntries,
