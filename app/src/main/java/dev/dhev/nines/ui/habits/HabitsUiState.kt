@@ -41,6 +41,7 @@ data class HabitsUiState(
     val isLoading: Boolean = true,
     val today: LocalDate = LocalDate.now(),
     val selectedDate: LocalDate = today,
+    val demoDataAvailable: Boolean = false,
 )
 
 sealed interface HabitsAction {

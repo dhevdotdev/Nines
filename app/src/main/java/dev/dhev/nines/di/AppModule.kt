@@ -2,6 +2,7 @@ package dev.dhev.nines.di
 
 import androidx.room.Room
 import dev.dhev.nines.data.AppearancePreferencesStore
+import dev.dhev.nines.data.DemoData
 import dev.dhev.nines.data.HabitRepository
 import dev.dhev.nines.data.OnboardingCompletionStore
 import dev.dhev.nines.data.ReminderPreferencesStore
@@ -39,6 +40,7 @@ val appModule =
         single { get<NinesDatabase>().reminderDao() }
         single { HabitRepository(get(), get(), get()) }
         single { ReminderRepository(get()) }
+        single<DemoData> { DemoData.None }
         single { ReminderScheduler(androidContext()) }
         single { ReminderNotificationCoordinator(androidContext(), get(), get(), get(), get()) }
 

@@ -120,7 +120,6 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import dev.dhev.nines.BuildConfig
 import dev.dhev.nines.data.local.entity.HabitType
 import dev.dhev.nines.data.local.entity.TargetKind
 import dev.dhev.nines.ui.theme.HabitColors
@@ -226,11 +225,9 @@ fun HabitsScreen(
                     Text(
                         text = "Nines",
                         style = MaterialTheme.typography.displaySmall,
-                        // Debug-only: long-press to insert demo habits/history directly through
-                        // the repository, in-process — a stand-in for adb-based DB reseeding on
-                        // devices (like this one) whose storage permissions block that. No-op,
-                        // inert gesture in release builds.
-                        modifier = if (BuildConfig.DEBUG) {
+                        // Long-press inserts demo habits and history. Only debug builds provide a
+                        // DemoData source, so this gesture does not exist in release builds.
+                        modifier = if (uiState.demoDataAvailable) {
                             Modifier.combinedClickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null,

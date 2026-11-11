@@ -173,8 +173,7 @@ class HabitRepository(
         unit: String? = null,
         targetValue: Double? = null,
         targetKind: TargetKind? = null,
-        // Overridable only so debug demo-data seeding can backdate a habit's creation date
-        // (to populate its calendar history) — real habit creation always uses the default.
+        // Overridable so tests and debug demo-data can backdate a habit; real creation uses the defaults.
         createdAt: Instant = Instant.now(),
         scheduleEffectiveFrom: LocalDate = LocalDate.now(),
     ): Long {

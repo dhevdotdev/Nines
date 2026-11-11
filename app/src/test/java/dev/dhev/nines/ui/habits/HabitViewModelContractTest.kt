@@ -1,5 +1,6 @@
 package dev.dhev.nines.ui.habits
 
+import dev.dhev.nines.data.DemoData
 import dev.dhev.nines.data.HabitRepository
 import dev.dhev.nines.data.local.EntryDao
 import dev.dhev.nines.data.local.HabitDao
@@ -60,6 +61,37 @@ class HabitViewModelContractTest {
         advanceUntilIdle()
         val current = viewModel.uiState.first { it.selectedDate == today && it.habits.single().completed }
         assertEquals(today, current.selectedDate)
+    }
+
+    @Test
+    fun `demo data is unavailable by default and the seed action is a no-op`() = runTest(mainDispatcherRule.dispatcher) {
+        val fixture = Fixture(LocalDate.now())
+        val viewModel = HabitsViewModel(fixture.repository)
+
+        assertFalse(viewModel.uiState.first { !it.isLoading }.demoDataAvailable)
+        viewModel.onAction(HabitsAction.SeedDemoData)
+        advanceUntilIdle()
+
+        assertEquals(1, viewModel.uiState.first { !it.isLoading }.habits.size)
+    }
+
+    @Test
+    fun `a bound demo data source is advertised and seeded on request`() = runTest(mainDispatcherRule.dispatcher) {
+        val demoData = object : DemoData {
+            override val isAvailable = true
+            var seeded = 0
+
+            override suspend fun seed() {
+                seeded++
+            }
+        }
+        val viewModel = HabitsViewModel(Fixture(LocalDate.now()).repository, demoData = demoData)
+
+        assertTrue(viewModel.uiState.first { !it.isLoading }.demoDataAvailable)
+        viewModel.onAction(HabitsAction.SeedDemoData)
+        advanceUntilIdle()
+
+        assertEquals(1, demoData.seeded)
     }
 
     @Test
